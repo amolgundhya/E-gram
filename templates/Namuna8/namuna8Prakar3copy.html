@@ -1,0 +1,500 @@
+<!-- Header Section: Place this at the top of your HTML file -->
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>नमुना ८</title>
+    <style>
+        body { font-family: 'Mangal', Arial, sans-serif; }
+        table { border-collapse: collapse; width: 100%; font-size: 13px; }
+        .header-table td { border: none; padding: 2px 4px; }
+        .center { text-align: center; }
+        .left { text-align: left; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        th, td { border: 1px solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
+        th { background: #f0f0f0; }
+        .footer-summary {
+            border: 3px solid #000;
+            border-top: none;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding: 2px 8px;
+            display: inline-block;
+            background: #fff;
+        }
+        tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        .nested-table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .nested-table tr, .nested-table td {
+            height: 100%;
+            vertical-align: stretch;
+            padding: 0;
+            text-align: center;
+            word-break: break-word;
+        }
+        @media print {
+            @page {
+                size: A4 landscape;
+            }
+            #toolbar {
+                display: none !important;
+            }
+            /* Ensure footer appears at the end during print */
+            .footer-summary {
+                display: block !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f8f8f8; border-bottom: 1px solid #ccc;">
+        <!-- Left: Icon Buttons & Navigation -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <button title="First Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏮️</button>
+            <button title="Previous Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">◀️</button>
+            <input type="text" value="1" id="pageInput" style="width: 32px; text-align: center; font-size: 14px; border: 1px solid #ccc; border-radius: 2px; margin: 0 2px;" />
+            <span id="pageTotal" style="font-size: 14px; color: #888;"></span>
+            <button title="Next Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">▶️</button>
+            <button title="Last Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏭️</button>
+            <button title="Zoom Out" onclick="zoomOut()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➖</button>
+            <span id="zoomPercent" style="min-width: 40px; text-align: center; font-size: 14px;">100%</span>
+            <button title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
+        </div>
+        <!-- Right: Print & Exit Buttons -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
+            <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
+        </div>
+    </div>
+    <script>
+        let zoomLevel = 1.0;
+        const minZoom = 0.5;
+        const maxZoom = 2.0;
+        const zoomStep = 0.1;
+        let currentPage = 1;
+        const recordsPerPage = 2; // 2 tables (records) per page
+        let totalPages = 0;
+
+        function updateZoom() {
+            document.getElementById('mainContent').style.zoom = zoomLevel;
+            document.getElementById('zoomPercent').innerText = Math.round(zoomLevel * 100) + '%';
+        }
+        function zoomIn() {
+            if (zoomLevel < maxZoom) {
+                zoomLevel += zoomStep;
+                zoomLevel = Math.min(maxZoom, zoomLevel);
+                updateZoom();
+            }
+        }
+        function zoomOut() {
+            if (zoomLevel > minZoom) {
+                zoomLevel -= zoomStep;
+                zoomLevel = Math.max(minZoom, zoomLevel);
+                updateZoom();
+            }
+        }
+        function showPage(page) {
+            const recordPages = Array.from(document.querySelectorAll('.record-page'));
+            totalPages = Math.ceil(recordPages.length);
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            currentPage = page;
+            recordPages.forEach((el, idx) => {
+                el.style.display = (idx + 1 === currentPage) ? '' : 'none';
+            });
+            document.getElementById('pageInput').value = currentPage;
+            if(document.getElementById('pageTotal'))
+                document.getElementById('pageTotal').innerText = '/' + totalPages;
+            updateFooterSummary(); // <-- Add this line
+        }
+        function nextPage() { showPage(currentPage + 1); }
+        function prevPage() { showPage(currentPage - 1); }
+        function firstPage() { showPage(1); }
+        function lastPage() { showPage(totalPages); }
+        function printPage() {
+            // Show all pages before printing, then restore current page
+            const recordPages = Array.from(document.querySelectorAll('.record-page'));
+            const prevStates = recordPages.map(el => el.style.display);
+            recordPages.forEach(el => el.style.display = '');
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => {
+                    recordPages.forEach((el, idx) => {
+                        el.style.display = (idx + 1 === currentPage) ? '' : 'none';
+                    });
+                }, 100);
+            }, 50);
+        }
+        function exitPage() {
+            window.close();
+        }
+        function updateFooterSummary() {
+            // Calculate totals for all records (not just visible ones)
+            const allRecords = Array.from(document.querySelectorAll('.record-table-wrapper'));
+            let house = 0, lighting = 0, health = 0, water = 0, total = 0;
+            allRecords.forEach(row => {
+                house += parseFloat(row.dataset.houseTax) || 0;
+                lighting += parseFloat(row.dataset.lightingTax) || 0;
+                health += parseFloat(row.dataset.healthTax) || 0;
+                water += parseFloat(row.dataset.waterTax) || 0;
+                total += parseFloat(row.dataset.totalTax) || 0;
+            });
+            const summary = `एकूण कर : घर : ${house.toFixed(2)} &nbsp; दिवा : ${lighting.toFixed(2)} &nbsp; आरोग्य : ${health.toFixed(2)} &nbsp; पाणी : ${water.toFixed(2)} &nbsp; एकूण : ${total.toFixed(2)}`;
+            // Set the summary in the main footer
+            const footer = document.getElementById('footerSummary');
+            if (footer) footer.innerHTML = summary;
+        }
+        window.onload = function() {
+            updateZoom();
+            showPage(1);
+            updateFooterSummary(); // <-- Add this line
+            // Wire up navigation buttons
+            document.querySelector('button[title="First Page"]').onclick = firstPage;
+            document.querySelector('button[title="Previous Page"]').onclick = prevPage;
+            document.querySelector('button[title="Next Page"]').onclick = nextPage;
+            document.querySelector('button[title="Last Page"]').onclick = lastPage;
+        };
+    </script>
+    <div id="mainContent">
+    {% for village in data %}
+    {% set num_records = village.records|length %}
+    {% set num_pages = (num_records // 2) + (1 if num_records % 2 else 0) %}
+    {% for page in range(num_pages) %}
+        <div class="record-page" style="page-break-after: always;">
+            <!-- Info block: appears once per page -->
+            <div class="report-header">
+                {% if village.records[0].tip %}
+              <div class="report-warning" style="color: red; text-align: center; font-weight: bold; font-size: 14px;">
+                (टीप: सदरचा उत्तारा हा मालकी हक्काचा नसून कर आकारणी साठी आहे. सदरच्या उताऱ्यावरून खरेदी विक्रीचा व्यवहार झाल्यास  त्यास ग्रामपंचायत जबाबदार राहणार नाही. शासन परिपत्रक क्र.पं.रा.स.2016 पं.क्र.17 पं.रा-4 तारीख 18 जुलै 2016.) <br>
+                (*टीप:* शासन परिपत्रक क. VTM२६०३/प्र.क्र.२०६८/पं.रा.४ दि २० नोव्हेंबर २००३ नुसार ग्रामीण भागातील घरांची नोंदणी पती-पत्नी यांच्या संयुक्त नावे करण्यात आलेले आहे.)
+              </div>
+              {% else %}
+              <div class="report-warning" style="color: red; text-align: center; font-weight: bold; font-size: 14px;">
+              </div>
+              {% endif %}
+              <div class="report-info" style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px; flex-wrap: wrap;">
+                <span>ग्राम पंचायत : {{village.records[0].gramPanchayat|default('')}} </span>
+                <span> गाव/ मोहल्ला : {{village.records[0].village|default('')}} </span>
+                <span style="color: green; font-weight: bold; font-size: 16px;">नमुना 8</span>
+                <span>नियम 32 ( 1 ) </span>
+                <span> तालुका: {{village.records[0].taluka|default('')}} </span>
+                <span> जिल्हा : {{village.records[0].jilha|default('')}} </span>
+              </div>
+              <div class="fontSizeData " style="margin-top: 5px; font-size: 12px;text-align: center;">
+                <span>सन {{village.records[0].yearFrom|default('')}} ते {{village.records[0].yearTo|default('')}} </span>
+                <span style="padding-left: 100px;">या वर्षासाठी कर आकारणी नोंदवही</span>
+              </div>
+            </div>
+            {% for i in range(2) %}
+                {% set idx = page * 2 + i %}
+                {% if idx < num_records %}
+                    {% set row = village.records[idx] %}
+                    <div class="record-table-wrapper"
+                        data-house-tax="{{ row.totalHouseTax | default('0') }}"
+                        data-lighting-tax="{{ row.totalLightingTax | default('0') }}"
+                        data-health-tax="{{ row.totalHealthTax | default('0') }}"
+                        data-water-tax="{{ row.totalWaterTax | default('0') }}"
+                        data-total-tax="{{ row.totaltax | default('0') }}"
+                    style="margin-bottom: 18px;">
+                        <!-- Only the tables for each record repeat -->
+                        <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; margin-top: 0; font-size: 14px;">
+                            <tr>
+                                <th rowspan="2" style="width: 2.5%;">अ.क्र.</th>
+                                <th rowspan="2" style="width: 8%;">रस्त्याचे नाव</th>
+                                <th rowspan="2" style="width: 5%;">सिटी सर्व्हे गट</th>
+                                <th rowspan="2" style="width: 6%;">मालमत्ता क्रमांक</th>
+                                <th rowspan="2" style="width: 13%;">मालकाचे नाव</th>
+                                <th rowspan="2" style="width: 7%;">भोगवटादाराचे नाव</th>
+                                <th rowspan="2" style="width: 10%;">मालमत्तेचे वर्णन</th>
+                                <th rowspan="2" style="width: 6%;">मिळकत बांधकामाचे वर्ष</th>
+                                <th rowspan="2" style="width: 10%;">एकूण क्षेत्रफळ चौ.फु.चौ.मी.</th>
+                                <th colspan="3" style="width: 18%;">रेडीरेकनर दर प्रती चौ.मी. (रुपये)</th>
+                                <th rowspan="2" style="width: 4%;">घसारा दर</th>
+                                <th rowspan="2" style="width: 4%;">इमारतीचा वापरानुसार भारांक</th>
+                            </tr>
+                            <tr>
+                                <th style="width: 6%;">जमीन (खुली जागा)</th>
+                                <th style="width: 6%;">इमारत</th>
+                                <th style="width: 6%;">बांधकाम</th>
+                            </tr>
+                            <tr style="text-align: center;font-weight: 700;">
+                                <td>1</td>
+                                <td>2</td>
+                                <td>3</td>
+                                <td>4</td>
+                                <td>5</td>
+                                <td>6</td>
+                                <td>7</td>
+                                <td>8</td>
+                                <td>9</td>
+                                <td>10</td>
+                                <td>11</td>
+                                <td>12</td>
+                                <td>13</td>
+                                <td>14</td>
+                            </tr>
+                            <tr>
+                                <td rowspan="2" > {{row.srNo|default('')}} </td>
+                                <td rowspan="2" style="text-align: left;"> {{row.roadName|default('')}} </td>
+                                <td rowspan="2"> {{row.cityWardGatNumber|default('')}} </td>
+                                <td rowspan="2"> {{row.propertyNumber|default('')}} </td>
+                                <td rowspan="2" style="text-align: left;">
+                                    {{row.ownerName|default('')}}
+                                </td>
+                                <td rowspan="2"> {{row.occupantName|default('')}} </td>
+                                <td rowspan="2" style="text-align: left;">
+                                    {{row.propertyDescription|default('')}}
+                                </td>
+                                <td rowspan="2">
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                        {{ row.constructionType[0].year|default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{ row.constructionType[1].year|default('') }}
+                                    {% endif %}
+                                </td>
+                                <td rowspan="2">{{ row.areaEast|default('') }} x {{row.areaNorth|default('')}}</td>
+                                <td rowspan="2">
+                                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                        {{ row.khaliJaga[0].rate|default('') }} - {{row.khaliJaga[0].totalkhalijagaareainfoot|default('') }}
+                                    {% endif %}
+                                </td>
+                                <td rowspan="2"></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                        {{row.constructionType[0].rate|default('')}}-{{row.constructionType[0].length|default('')}} x {{row.constructionType[0].width|default('')}}<br><br/>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{row.constructionType[1].rate|default('')}}-{{row.constructionType[1].length|default('')}} x {{row.constructionType[1].width|default('')}}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                        {{ row.constructionType[0].depreciation_rate|default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{row.constructionType[1].depreciation_rate|default('')}}<br>
+                                    {% endif %}
+                                    0
+                                </td>
+                                <td>
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                        {{ row.constructionType[0].usageBasedBuildingWeightageFactor|default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{ row.constructionType[1].usageBasedBuildingWeightageFactor|default('') }}<br>
+                                    {% endif %}
+                                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                        {{row.khaliJaga[0].usageBasedBuildingWeightageFactor|default('') }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="8" style="text-align: right; font-weight: bold;">एकूण चौरस फुट </td>
+                                <td> {{row.total_arearinfoot|default('')}} </td>
+                                <td>
+                                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                        {{row.khaliJaga[0].totalkhalijagaareainfoot|default('')}}
+                                    {% endif %}
+                                </td>
+                                <td></td>
+                                <td>{{row.totalconstructionareainfoot|default('')}}</td>   
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td colspan="8" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
+                                <td> {{row.totalconstructionareainmeter|default('')}} </td>
+                                <td>
+                                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                        {{row.khaliJaga[0].totalkhalijagaareainmeters|default('')}}
+                                    {% endif %}
+                                </td>
+                                <td></td>
+                                <td> {{row.totalConstruction|default('')}}  </td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </table>
+                        <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
+                            <tr>
+                                <th rowspan="2">भांडवली मूल्य (रुपये)</th>
+                                <th rowspan="2">कराचे दर (पैसे)</th>
+                                <th colspan="5">कराची रक्कम (रुपये)</th>
+                                <th colspan="5">अपिलाचे निकाल आणि त्यानंतर केलेले फेरफार (रुपये)</th>
+                                <th rowspan="2" colspan="2">नंतर वाढ किंवा घट आलेल्या बांधकामाचे अंदाजित क्षेत्र</th>
+                            </tr>
+                            <tr>
+                                <th>घरपट्टी</th>
+                                <th>दिवाबत्ती</th>
+                                <th>आरोग्यकर</th>
+                                <th>पाणीपट्टी</th>
+                                <th>एकूण</th>
+                                <th>घरपट्टी</th>
+                                <th>दिवाबत्ती</th>
+                                <th>आरोग्यकर</th>
+                                <th>पाणीपट्टी</th>
+                                <th>एकूण</th>
+                            </tr>
+                            <tr style="text-align: center;font-weight: 700;">
+                                <td>15</td>
+                                <td>16</td>
+                                <td>17</td>
+                                <td>18</td>
+                                <td>19</td>
+                                <td>20</td>
+                                <td>21</td>
+                                <td>22</td>
+                                <td>23</td>
+                                <td>24</td>
+                                <td>25</td>
+                                <td>26</td>
+                                <td colspan="2">27</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                        {{ row.constructionType[0].capitalValue|default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{row.constructionType[1].capitalValue|default('')}}<br>
+                                    {% endif %}
+                                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                        {{ row.khaliJaga[0].capitalValue|default('') }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                        {{ row.constructionType[0].taxRates|default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{ row.constructionType[1].taxRates|default('')}}<br>
+                                    {% endif %}
+                                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                        {{ row.khaliJaga[0].taxRates|default('') }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                        {{ row.constructionType[0].houseTax|default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{ row.constructionType[0].houseTax|default('')}}<br>
+                                    {% endif %}
+                                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                        {{row.khaliJaga[0].houseTax|default('')}}
+                                    {% endif %}
+                                </td>
+                                <td>{{ row.lightingTax|default('') }}</td>
+                                <td>{{ row.healthTax|default('') }}</td>
+                                <td>{{ row.waterTax|default('') }}</td>
+                                <td> {{row.totaltax|default('')}} </td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td colspan="2"></td>
+                            </tr>
+                            <tr>
+                                <td> {{row.totalCapitalValue|default('')}} </td>
+                                <td>  </td>
+                                <td> {{row.totalHouseTax|default('')}} </td>
+                                <td> {{row.totalLightingTax|default('')}} </td>
+                                <td> {{row.totalHealthTax|default('')}} </td>
+                                <td> {{row.totalWaterTax|default('')}} </td>
+                                <td> {{row.totaltax|default('')}} </td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </table>
+                        <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
+                            <tr>
+                                <td style="text-align: left; border-right: 1px solid #000;">शौचालय :  {{row.toilet|default('')}} </td>
+                                <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
+                                <td style="text-align: left; border-right: 1px solid #000;">पूर्व :  {{row.boundaryEast|default('')}} </td>
+                                <td style="text-align: left; border-right: 1px solid #000;">पश्चिम :  {{row.boundaryWest|default('')}} </td>
+                                <td style="text-align: left; border-right: 1px solid #000;">उत्तर :  {{row.boundaryNorth|default('')}} </td>
+                                <td style="text-align: left; border-right: 1px solid #000;">दक्षिण :  {{row.boundarySouth|default('')}} </td>
+                            </tr>
+                        </table> 
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endfor %}
+    {% endfor %}
+    </div>
+    
+    <!-- Footer Summary - Outside main content to avoid repetition -->
+    <div class="footer-summary" id="footerSummary" style="margin-top: 20px; text-align: right; font-weight: bold; font-size: 15px;">
+        <!-- Totals will be inserted here by JS -->
+    </div>
+
+<style>
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 6mm;
+  }
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    font-size: 11px;
+  }
+  .report-header, .report-footer, .report-info, .fontSizeData, .report-warning, table {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  table {
+    font-size: 10px !important;
+  }
+  table th, table td {
+    padding: 1px 2px !important;
+  }
+  .report-header, .report-info, .fontSizeData, .report-warning {
+    font-size: 11px !important;
+  }
+  .report-header span[style*="font-size: 16px"] {
+    font-size: 12px !important;
+  }
+  /* Remove forced page breaks */
+  .page-break, br[style*="page-break"] {
+    display: none !important;
+  }
+  /* Remove extra margins/paddings from body */
+  body {
+    margin: 0;
+    padding: 0;
+    max-width: 100vw;
+    max-height: 100vh;
+  }
+  /* Remove extra vertical space */
+  div[style*="height: 20px"] {
+    display: none !important;
+  }
+}
+</style>

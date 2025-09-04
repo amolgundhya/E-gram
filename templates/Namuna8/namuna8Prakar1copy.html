@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>नमुना ८</title>
+    <style>
+        body { font-family: 'Mangal', Arial, sans-serif; }
+        table { border-collapse: collapse; width: 100%; font-size: 13px; }
+        .header-table td { border: none; padding: 2px 4px; }
+        .center { text-align: center; }
+        .left { text-align: left; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        th, td { border: 1px solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
+        th { background: #f0f0f0; }
+        .footer-summary {
+            border: 3px solid #000;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding: 2px 8px;
+            display: inline-block;
+            background: #fff;
+        }
+        tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        .nested-table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .nested-table tr, .nested-table td {
+            height: 100%;
+            vertical-align: stretch;
+            padding: 0;
+            text-align: center;
+            word-break: break-word;
+        }
+        @media print {
+            @page {
+                size: A4 landscape;
+            }
+            #toolbar {
+                display: none !important;
+            }
+            .page-footer {
+                display: none !important; /* Just in case some remnants are left */
+            }
+            /* Ensure footer appears at the end during print */
+            .footer-summary {
+                display: block !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f8f8f8; border-bottom: 1px solid #ccc;">
+        <!-- Left: Icon Buttons & Navigation -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <button title="First Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏮️</button>
+            <button title="Previous Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">◀️</button>
+            <input type="text" value="1" id="pageInput" style="width: 32px; text-align: center; font-size: 14px; border: 1px solid #ccc; border-radius: 2px; margin: 0 2px;" />
+            <span style="font-size: 14px; color: #888;"></span>
+            <button title="Next Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">▶️</button>
+            <button title="Last Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏭️</button>
+            <button title="Zoom Out" onclick="zoomOut()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➖</button>
+            <span id="zoomPercent" style="min-width: 40px; text-align: center; font-size: 14px;">100%</span>
+            <button title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
+        </div>
+        <!-- Right: Print & Exit Buttons -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
+            <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
+        </div>
+    </div>
+    <script>
+        let zoomLevel = 1.0;
+        const minZoom = 0.5;
+        const maxZoom = 2.0;
+        const zoomStep = 0.1;
+        let currentPage = 1;
+        const recordsPerPage = 4; // Set this to the number of records per page for print
+        let totalPages = 0;
+
+        function updateZoom() {
+            document.getElementById('mainContent').style.zoom = zoomLevel;
+            document.getElementById('zoomPercent').innerText = Math.round(zoomLevel * 100) + '%';
+        }
+        function zoomIn() {
+            if (zoomLevel < maxZoom) {
+                zoomLevel += zoomStep;
+                zoomLevel = Math.min(maxZoom, zoomLevel);
+                updateZoom();
+            }
+        }
+        function zoomOut() {
+            if (zoomLevel > minZoom) {
+                zoomLevel -= zoomStep;
+                zoomLevel = Math.max(minZoom, zoomLevel);
+                updateZoom();
+            }
+        }
+        function updateFooterSummary() {
+            // Calculate totals for all records (not just visible ones)
+            const allRows = Array.from(document.querySelectorAll('.record-row'));
+            let house = 0, lighting = 0, health = 0, water = 0, cleaning = 0, toilet = 0, total = 0;
+            allRows.forEach(row => {
+                house += parseFloat(row.dataset.houseTax) || 0;
+                lighting += parseFloat(row.dataset.lightingTax) || 0;
+                health += parseFloat(row.dataset.healthTax) || 0;
+                water += parseFloat(row.dataset.waterTax) || 0;
+                cleaning += parseFloat(row.dataset.cleaningTax) || 0;
+                toilet += parseFloat(row.dataset.toiletTax) || 0;
+                total += parseFloat(row.dataset.totalTax) || 0;
+            });
+            document.getElementById('footerSummary').innerHTML =
+                `एकूण कर : घर : ${house.toFixed(2)} &nbsp; दिवा : ${lighting.toFixed(2)} &nbsp; आरोग्य : ${health.toFixed(2)} &nbsp; पाणी : ${water.toFixed(2)} &nbsp; सफाई : ${cleaning.toFixed(2)} &nbsp; शौ. कर : ${toilet.toFixed(2)} &nbsp; एकूण : ${total.toFixed(2)}`;
+        }
+        function showPage(page) {
+            const records = Array.from(document.querySelectorAll('.record-row'));
+            totalPages = Math.ceil(records.length / recordsPerPage);
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            currentPage = page;
+            records.forEach((el, idx) => {
+                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                el.style.display = (pageIdx === currentPage) ? '' : 'none';
+            });
+            document.getElementById('pageInput').value = currentPage;
+            if(document.getElementById('pageTotal'))
+                document.getElementById('pageTotal').innerText = '/' + totalPages;
+            updateFooterSummary(); // <-- Add this line
+
+            const footerElement = document.getElementById('footerSummary');
+            if (currentPage === totalPages) {
+                footerElement.style.display = 'block';
+            } else {
+                footerElement.style.display = 'none';
+            }
+        }
+        function nextPage() { showPage(currentPage + 1); }
+        function prevPage() { showPage(currentPage - 1); }
+        function firstPage() { showPage(1); }
+        function lastPage() { showPage(totalPages); }
+        function printPage() {
+            // Show all records before printing, then restore current page
+            const records = Array.from(document.querySelectorAll('.record-row'));
+            const prevStates = records.map(el => el.style.display);
+            records.forEach(el => el.style.display = '');
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => {
+                    records.forEach((el, idx) => {
+                        const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                        el.style.display = (pageIdx === currentPage) ? '' : 'none';
+                    });
+                }, 100);
+            }, 50);
+        }
+        function exitPage() {
+            window.close();
+        }
+        window.onload = function() {
+            updateZoom();
+            showPage(1);
+            updateFooterSummary(); // <-- Add this line
+            // Wire up navigation buttons
+            document.querySelector('button[title="First Page"]').onclick = firstPage;
+            document.querySelector('button[title="Previous Page"]').onclick = prevPage;
+            document.querySelector('button[title="Next Page"]').onclick = nextPage;
+            document.querySelector('button[title="Last Page"]').onclick = lastPage;
+        };
+    </script>
+    <div id="mainContent">
+    {% for village in data %}
+    <!-- Main Data Table -->
+    <table class="main-table" style="margin-top:0; width:100%;">
+        <!-- Page Header - Repeats on every page -->
+        <thead class="page-header">
+            <tr>
+                <td colspan="21" style="border:none; padding:0;">
+                    <table class="header-table" style="width:100%; margin:0;">
+                        <tr>
+                            <td class="left" style="width:33%">ग्रामपंचायत : {{ village.records[0].gramPanchayat  | default('') }} <br>गाव/मोहोल्ला : {{ village.records[0].village | default('') }} </td>
+                            <td class="center bold" style="font-size:22px; width:34%">नमुना ८<br><span style="font-size:15px; font-weight:normal;">सन {{ village.records[0].yearFrom | default('') }} <b>ते</b> {{ village.records[0].yearTo  | default('') }} </span></td>
+                            <td class="right" style="width:33%">नियम 32 (1)<br>तालुका : {{ village.records[0].taluka  | default('') }} <br>जिल्हा : {{ village.records[0].jilha  | default('') }} </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <th rowspan="2">अ.क्र.</th>
+                <th rowspan="2">पु.<br>क्र.-</th>
+                <th rowspan="2">मालकाचे नाव</th>
+                <th rowspan="2">भोगवटदाराचे नाव</th>
+                <th rowspan="2">मालमत्तेचे वर्णन</th>
+                <th rowspan="2" style="width: 100px;" >मिळकत<br>बांधकामाचे वर्ष</th>
+                <th rowspan="2" style="width: 100px;">क्षेत्रफळ<br>चौ.फु. चौ.मी.</th>
+                <th colspan="3">रेडीरेकनर दर प्रति चौ.मी. (रु.)</th>
+                <th rowspan="2">घसारा दर</th>
+                <th rowspan="2">इमारतीचा वापर अनुसार भारांक</th>
+                <th rowspan="2">भांडवली मूल्य (रु.)</th>
+                <th rowspan="2">कराचे दर (पैसे)</th>
+                <th colspan="7">कराची रक्कम (रु.)</th>
+            </tr>
+            <tr>
+                <th rowspan="1" style="width: 100px;">जमीन</th>
+                <th rowspan="1" style="width: 100px;">इमारत</th>
+                <th rowspan="1" style="width: 100px;">बांधकाम</th>
+                <th rowspan="1">घर</th>
+                <th rowspan="1">दिवा</th>
+                <th rowspan="1">आरोग्य</th>
+                <th rowspan="1">पाणी</th>
+                <th rowspan="1">सफाई</th>
+                <th rowspan="1">शौ.कर</th>
+                <th rowspan="1">एकूण</th>
+            </tr>
+            <tr>
+                <th rowspan="1">1</th>
+                <th rowspan="1">4</th>
+                <th rowspan="1">5</th>
+                <th rowspan="1">6</th>
+                <th rowspan="1">7</th>
+                <th rowspan="1">8</th>
+                <th rowspan="1">9</th>
+                <th rowspan="1">10</th>
+                <th rowspan="1">11</th>
+                <th rowspan="1">12</th>
+                <th rowspan="1">13</th>
+                <th rowspan="1">14</th>
+                <th rowspan="1">15</th>
+                <th rowspan="1">16</th>
+                <th rowspan="1">17</th>
+                <th rowspan="1">18</th>
+                <th rowspan="1">19</th>
+                <th rowspan="1">20</th>
+                <th rowspan="1"></th>
+                <th rowspan="1"></th>
+                <th rowspan="1">21</th>
+            </tr>
+        </thead>
+        
+        <!-- Page Footer - Repeats on every page -->
+        <tfoot class="page-footer">
+            <tr>
+                <td colspan="21" style="border:none; padding:0;">
+                    <!-- Footer content moved outside tfoot -->
+                </td>
+            </tr>
+        </tfoot>
+        <tbody>
+            {% for row in village.records %}
+            <tr class="record-row"
+                data-house-tax="{{ row.totalHouseTax | default('0') }}"
+                data-lighting-tax="{{ row.lightingTax | default('0') }}"
+                data-health-tax="{{ row.healthTax | default('0') }}"
+                data-water-tax="{{ row.waterTax | default('0') }}"
+                data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
+                data-toilet-tax="{{ row.toiletTax | default('0') }}"
+                data-total-tax="{{ row.totaltax | default('0') }}">
+                <td>{{ row.srNo | default('') }}</td>
+                <td>{{ row.propertyNumber | default('') }}</td>
+                <td style="width: 300px;">{{ row.ownerName | default('') }}</td>
+                <td>{{ row.occupantName | default('') }}</td>
+                <td>
+                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ row.constructionType[0].type | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                        {{ row.constructionType[1].type | default('') }}<br>
+                    {% endif %}
+                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                        {{ row.khaliJaga[0].constructiontype | default('') }}
+                    {% endif %}
+                </td>
+                <td colspan="5" style="padding:0; vertical-align:stretch; height:100%;">
+                    <table class="nested-table">
+                        <tr>
+                            <td style="height: 100px;width: 87px;">
+                                {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                    {{ row.constructionType[0].year | default('') }}<br>
+                                {% endif %}
+                                {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                    {{ row.constructionType[1].year | default('') }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ row.areaEast | default('') }} x {{ row.areaNorth | default('') }}
+                            </td>
+                            <td>
+                                {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                    {{ row.khaliJaga[0].rate | default('') }} - {{ row.khaliJaga[0].totalkhalijagaareainfoot | default('') }}
+                                {% endif %}
+                            </td>
+                            <td></td>
+                            <td>
+                                {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                    {{ row.constructionType[0].rate | default('') }}-{{ row.constructionType[0].length | default('') }} x {{ row.constructionType[0].width | default('') }}<br><br/>
+                                {% endif %}
+                                {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                    {{ row.constructionType[1].rate | default('') }}-{{ row.constructionType[1].length | default('') }} x {{ row.constructionType[1].width | default('') }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="width: 87px;">एकूण चौ. फुट</td>
+                            <td style="width: 87px;">{{ row.total_arearinfoot | default('') }}</td>
+                            <td style="width: 87px;">
+                                {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                    {{ row.khaliJaga[0].totalkhalijagaareainfoot | default('') }}
+                                {% endif %}
+                            </td>
+                            <td style="width: 87px;"></td>
+                            <td style="width: 87px;">
+                                {{ row.totalconstructionareainfoot | default('') }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="width: 87px;">एकूण चौ. मीटर</td>
+                            <td style="width: 87px;">{{ row.totalareainmeters | default('') }}</td>
+                            <td style="width: 87px;">
+                                {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                    {{ row.khaliJaga[0].totalkhalijagaareainmeters | default('') }}
+                                {% endif %}
+                            </td>
+                            <td style="width: 87px;"></td>
+                            <td style="width: 87px;">
+                                {{ row.totalconstructionareainmeter | default('') }}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ row.constructionType[0].depreciation_rate | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                        {{ row.constructionType[1].depreciation_rate | default('') }}<br>
+                    {% endif %}
+                    0
+                </td>
+                <td>
+                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ row.constructionType[0].usageBasedBuildingWeightageFactor | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                        {{ row.constructionType[1].usageBasedBuildingWeightageFactor | default('') }}<br>
+                    {% endif %}
+                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                        {{ row.khaliJaga[0].usageBasedBuildingWeightageFactor | default('') }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ row.constructionType[0].capitalValue | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                        {{ row.constructionType[1].capitalValue | default('') }}<br>
+                    {% endif %}
+                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                        {{ row.khaliJaga[0].capitalValue | default('') }}
+                    {% endif %}
+                    <hr></hr>
+                    {{row.totalCapitalValue}}
+                </td>
+                <td>
+                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ row.constructionType[0].taxRates | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                        {{ row.constructionType[1].taxRates | default('') }}<br>
+                    {% endif %}
+                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                        {{ row.khaliJaga[0].taxRates | default('') }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ row.constructionType[0].houseTax | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                        {{ row.constructionType[1].houseTax | default('') }}<br>
+                    {% endif %}
+                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                        {{ row.khaliJaga[0].houseTax | default('') }}
+                    {% endif %}
+                    <hr></hr>
+                    {{row.totalHouseTax}}
+                </td>
+                <td>{{ row.lightingTax | default('') }}</td>
+                <td>{{ row.healthTax | default('') }}</td>
+                <td>{{ row.waterTax | default('') }}</td>
+                <td>{{ row.cleaningTax | default('') }}</td>
+                <td>{{ row.toiletTax | default('') }}</td>
+                <td>{{ row.totaltax | default('') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% endfor %}
+    </table>
+    
+    <!-- Footer Summary - Outside table to avoid repetition -->
+    <div class="footer-summary" id="footerSummary">
+        <!-- Totals will be inserted here by JS -->
+    </div>
+</div>
+</body>
+</html>
