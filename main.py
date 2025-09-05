@@ -152,5 +152,12 @@ def serve_react_index():
     return FileResponse(os.path.join("static", "index.html"))
 
 if __name__ == "__main__":
+    # Ensure PyInstaller + Windows multiprocessing compatibility
+    import multiprocessing as _mp
+    _mp.freeze_support()
+    try:
+        _mp.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
