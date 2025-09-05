@@ -651,12 +651,12 @@ def update_namuna8_entry(
         wife_name = record_response.get('ownerWifeName', 0)
         
         qr_data = {
-            "srNo": srNo,
-            "ownername": owner_name,
-            "totalArea": totalArea,
-            "constructionArea": constructionArea,
-            "openArea": openArea,
-            "totalTax": totalTax,
+            "अनुक्रमांक": srNo,
+            "मालकाचे नाव": owner_name,
+            "एकूण क्षेत्रफळ": totalArea,
+            "बांधकाम क्षेत्रफळ": constructionArea,
+            "खुली जागा": openArea,
+            "एकूण कर": totalTax,
         }
         if wife_name:
             qr_data["wifename"] = wife_name

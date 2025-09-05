@@ -543,7 +543,7 @@ def get_namuna9_table_data_custom(
     for idx, prop in enumerate(properties, 1):
         prop_data = build_property_response(prop, db, gram_panchayat_id)
         constructions = db.query(namuna8_model.Construction).filter(
-            namuna8_model.Construction.property_anuKramank == prop.anuKramank
+            namuna8_model.Construction.property_id == prop.id
         ).all()
         totalHouseTax = sum([
             c.houseTax or 0

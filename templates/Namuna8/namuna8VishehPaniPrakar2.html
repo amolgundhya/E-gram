@@ -406,15 +406,15 @@
                 <td>{{ row.vpanikar | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{ row.totaltax | default('') }}</td>
-                <td>{{ row.shera | default('') }}</td>
+                <td>{{ row.remarks | default('') }}</td>
             </tr>
             <tr class="record-row">
                 <td colspan="22" style="text-align:center; font-size:15px; font-weight:bold; border-top:none;padding: 3px;">
                     <span style="font-weight:bold;padding-right: 5px;">चातुर्सिमा </span>
-                    <span style="font-weight:bold;">पूर्व:</span> <span style="padding-right:20px;"> {{ boundaryEast | default('') }} </span>
-                    <span style="font-weight:bold;">पश्चिम:</span> <span style="padding-right: 20px;"> {{ boundaryWest | default('') }} </span>
-                    <span style="font-weight:bold;">उत्तर:</span> <span style="padding-right: 20px;"> {{ boundaryNorth | default('') }} </span>
-                    <span style="font-weight:bold;">दक्षिण:</span> <span style="padding-right: 20px;"> {{ boundarySouth | default('') }} </span>
+                    <span style="font-weight:bold;">पूर्व:</span> <span style="padding-right:20px;"> {{ row.boundaryEast | default('') }} </span>
+                    <span style="font-weight:bold;">पश्चिम:</span> <span style="padding-right: 20px;"> {{ row.boundaryWest | default('') }} </span>
+                    <span style="font-weight:bold;">उत्तर:</span> <span style="padding-right: 20px;"> {{ row.boundaryNorth | default('') }} </span>
+                    <span style="font-weight:bold;">दक्षिण:</span> <span style="padding-right: 20px;"> {{ row.boundarySouth | default('') }} </span>
                 </td>
             </tr>
             {% endfor %}
