@@ -70,7 +70,7 @@ class Construction(BaseModel):
 
 # --- Property Schemas ---
 class PropertyBase(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     village_id: int
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
