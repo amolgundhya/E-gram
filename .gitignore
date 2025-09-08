@@ -4,6 +4,9 @@ __pycache__/
 *.pyo
 venv/   # If you use a virtual environment, typically named 'venv' or 'env'
 env/    # Another common virtual environment name
+windows7env/
+namuna8_logs.txt
+reports/qrcode.png
 
 # Database files
 *.db

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="mr">
+<html >
 <head>
     <meta charset="UTF-8">
     <title>नमुना ९ क</title>
@@ -158,10 +158,7 @@
                 <td colspan="2" class="bold" style="border:none;">
                     श्री {{ record.ownerName or '' }}<span> भोगवटदार : {{ record.occupantName or '' }}</span>
                 </td>
-                <td colspan="2" class="bold" style="border:none;">
-                    {{warrantFee or ''}} वारंट फी
-                    {{noticeFee or ''}} नोटीस फी
-                </td>
+                
             </tr>
             <tr>
                 <td style="border:none;">घर क्रमांक : {{ record.houseNumber or '' }}</td>
@@ -230,11 +227,10 @@
 </tr>
         </table>
         <div style="font-size: 13px; margin-top: 4px;">
-            हे बिल आपणास प्राप्त झाल्यापासून देय रकमांचा भरणा १५ दिवसांचे आत करावा
-            अन्यथा ग्रामपंचायत अधिनियमच्या कलम क्र.१२९(२) अन्वये आपल्यावर मागणी बजावण्यात येईल
+            हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या आता करावा. अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये आपल्यावर मागणी बजावाण्यात येईल
         </div>
         <div style="margin-top: 10px; font-size: 13px;">
-            <span class="right">सचिव/सरपंच लिपिकाची अद्याक्षरी</span>
+            <span class="right">ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी</span>
         </div>
         {% if copy == 1 %}
         <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
