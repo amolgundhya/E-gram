@@ -234,8 +234,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
             try:
                 db_property = models.Property(**property_dict, owners=owners, constructions=constructions)
                 db_property.created_at = datetime.now()
-                # print(f"DEBUG: Property model created successfully")
-                # print(f"DEBUG: Property vacantLandType value: {getattr(db_property, 'vacantLandType', 'NOT_FOUND')}")
+                
                 db.add(db_property)
             except Exception as e:
                 raise e
@@ -418,7 +417,6 @@ def update_namuna8_entry(
 ):
     # Map totalArea to totalAreaSqFt if provided
     property_update_data = property_data.dict(exclude={'owners', 'constructions'})
-    print(property_data.totalArea);
     if "totalArea" in property_update_data and property_update_data["totalArea"] is not None:
         property_update_data["totalAreaSqFt"] = property_update_data["totalArea"]
     # Validate location hierarchy
@@ -583,35 +581,39 @@ def update_namuna8_entry(
                 for c in new_constructions
             )
             remaining_area = total_area - used_area
-            if remaining_area > 0:
-                vacant_type_obj = db.query(models.ConstructionType).filter(models.ConstructionType.name == vacant_land_type).first()
-                if vacant_type_obj:
-                    length = remaining_area
-                    width = 1
-                    constructionYear = str(datetime.now().year)
-                    floor = "तळमजला"
-                    bharank = "औद्योगिक"
-                    AreaInMeter = length * width * 0.092903
-                    AnnualLandValueRate = 1000
-                    ConstructionRateAsPerConstruction = vacant_type_obj.bandhmastache_dar
-                    depreciationRate = calculate_depreciation_rate(constructionYear, vacant_type_obj.name)
-                    usageBasedBuildingWeightageFactor = 1
-                    capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                    house_tax = round((getattr(vacant_type_obj, 'rate', 0) / 1000) * capital_value)
-                    new_vacant_land = models.Construction(
-                        construction_type_id=vacant_type_obj.id,
-                        length=length,
-                        width=width,
-                        constructionYear=constructionYear,
-                        floor=floor,
-                        bharank=bharank,
-                        capitalValue=capital_value,
-                        houseTax=house_tax,
-                        district_id=getattr(property_data, 'district_id', None),
-                        taluka_id=getattr(property_data, 'taluka_id', None),
-                        gram_panchayat_id=getattr(property_data, 'gram_panchayat_id', None)
-                    )
-                    new_constructions.append(new_vacant_land)
+            # if remaining_area > 0:
+            #     vacant_type_obj = db.query(models.ConstructionType).filter(models.ConstructionType.name == vacant_land_type).first()
+            #     if vacant_type_obj:
+            #         length = remaining_area
+            #         width = 1
+            #         constructionYear = str(datetime.now().year)
+            #         floor = "तळमजला"
+            #         # bharank = "औद्योगिक"
+            #         if new_constructions:
+            #             bharank = new_constructions[-1].bharank
+            #         else:
+            #             bharank = None
+            #         AreaInMeter = length * width * 0.092903
+            #         AnnualLandValueRate = 1000
+            #         ConstructionRateAsPerConstruction = vacant_type_obj.bandhmastache_dar
+            #         depreciationRate = calculate_depreciation_rate(constructionYear, vacant_type_obj.name)
+            #         usageBasedBuildingWeightageFactor = 1
+            #         capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+            #         house_tax = round((getattr(vacant_type_obj, 'rate', 0) / 1000) * capital_value)
+            #         new_vacant_land = models.Construction(
+            #             construction_type_id=vacant_type_obj.id,
+            #             length=length,
+            #             width=width,
+            #             constructionYear=constructionYear,
+            #             floor=floor,
+            #             bharank=bharank,
+            #             capitalValue=capital_value,
+            #             houseTax=house_tax,
+            #             district_id=getattr(property_data, 'district_id', None),
+            #             taluka_id=getattr(property_data, 'taluka_id', None),
+            #             gram_panchayat_id=getattr(property_data, 'gram_panchayat_id', None)
+            #         )
+            #         new_constructions.append(new_vacant_land)
         # --- END ADDITION ---
         db_property.constructions = new_constructions
     # --- END FIX ---
@@ -1721,12 +1723,6 @@ def get_properties_by_owner_village(
         .filter(models.Owner.village_id == village_id)
         .all()
     )
-
-    for p in properties:
-        print(f"Property ID={p.id}, anuKramank={p.anuKramank}, malmattaKramank={p.malmattaKramank}")
-        for o in p.owners:
-            print(f"   Owner ID={o.id}, Name={o.name}, Village={o.village_id}, Aadhaar={o.aadhaarNumber}")
-
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 
 
@@ -1758,11 +1754,6 @@ def get_properties_by_village(
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
     
     properties = db.query(models.Property).filter(models.Property.village_id == village_id).all()
-
-    for p in properties:
-        print(f"Property ID={p.id}, anuKramank={p.anuKramank}, malmattaKramank={p.malmattaKramank}")
-        for o in p.owners:
-            print(f"   Owner ID={o.id}, Name={o.name}, Aadhaar={o.aadhaarNumber}, Mobile={o.mobileNumber}")
 
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 
