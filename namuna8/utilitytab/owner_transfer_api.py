@@ -179,11 +179,11 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
                 if wife_name:
                     qr_data["wifename"] = wife_name
 
-                qr_dir = os.path.join("uploaded_images", "qrcode", str(property.district_id), str(property.taluka_id), str(property.gram_panchayat_id),str(property.village_id),str(new_anukramank))
+                qr_dir = os.path.join("uploaded_images", "qrcode", str(property.district_id), str(property.taluka_id), str(property.gram_panchayat_id),str(request.to_village_id),str(new_anukramank))
                 # print(f"DEBUG: Creating QR directory: {qr_dir}")
                 os.makedirs(qr_dir, exist_ok=True)
                 qr_path = os.path.join(qr_dir, "qrcode.png")
-                # print(f"DEBUG: QR path: {qr_path}")
+                print(f"DEBUG: QR path: {qr_path}")
                 # print(f"DEBUG: QR data: {qr_data}")
                 QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)
                 # print(f"DEBUG: QR code generated successfully")
