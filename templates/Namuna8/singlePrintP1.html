@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="mr">
+<html >
 <head>
     <meta charset="UTF-8">
     <title>नमूना ८</title>
@@ -111,22 +111,23 @@
         <td style="width: 22%; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
+                    <tr>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-                        <div style="font-size: 12px;">INFORMATION</div>
+
                         <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             <img src={{QRcodeURL | default('')}} alt="Information" style="width: 78px; height: 78px; object-fit: cover;" />
                         </td>
                         <td style="width: 50%; border-right: 1px solid #000; border-bottom: none; border-top: none; border-left: none; text-align: center; vertical-align: top;">
-                            <div style="font-size: 12px;">PHOTO</div>
+
                             <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                                 <img src= {{photoURL | default('')}} alt="Photo" style="width:78px; height: 78px; object-fit: cover;" />
                             </div>
                         </td>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-                        <div style="font-size: 12px;">BANK</div>
+
                         <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             <img src={{bank_qr_code | default('')}} alt="Bank" style="width: 78px; height: 78px; object-fit: cover;" />
-                    </td>   
+                    </td>  
                 </tr>
             </table>
         </td>
@@ -144,10 +145,10 @@
     <tr>
         <th rowspan="2" style="width: 2.5%;">अ.क्र.</th>
         <th rowspan="2" style="width: 8%;">रस्त्याचे नाव</th>
-        <th rowspan="2" style="width: 5%;">सिटी सर्व्हे गट</th>
+        <th rowspan="2" style="width: 5%;">‍सिटी सर्वे गट नं.</th>
         <th rowspan="2" style="width: 6%;">मालमत्ता क्रमांक</th>
-        <th rowspan="2" style="width: 13%;">मालकाचे नाव</th>
-        <th rowspan="2" style="width: 7%;">भोगवटादाराचे नाव</th>
+        <th rowspan="2" style="width: 13%;">मालमत्ता धारकाचे नाव</th>
+        <th rowspan="2" style="width: 7%;">‍भोगवटदाराचे नाव</th>
         <th rowspan="2" style="width: 10%;">मालमत्तेचे वर्णन</th>
         <th rowspan="2" style="width: 6%;">मिळकत बांधकामाचे वर्ष</th>
         <th rowspan="2" style="width: 10%;">एकूण क्षेत्रफळ चौ.फु.चौ.मी.</th>
@@ -162,20 +163,23 @@
     </tr>
     <!-- Number series row -->
     <tr style="text-align: center;font-weight: 700;">
-        <td>1</td>
-        <td>2</td>
-        <td>3</td>
-        <td>4</td>
-        <td>5</td>
-        <td>6</td>
-        <td>7</td>
-        <td>8</td>
-        <td>9</td>
-        <td>10</td>
-        <td>11</td>
-        <td>12</td>
-        <td>13</td>
-        <td>14</td>
+       <td rowspan="2">1</td>
+        <td rowspan="2">2</td>
+        <td rowspan="2">3</td>
+        <td rowspan="2">4</td>
+        <td rowspan="2">5</td>
+        <td rowspan="2">6</td>
+        <td rowspan="2">7</td>
+        <td rowspan="2">8</td>
+        <td >9</td>
+        <td rowspan="2">10</td>
+        <td rowspan="2">11</td>
+        <td rowspan="2">12</td>
+        <td rowspan="2">13</td>
+        <td rowspan="2">14</td>
+    </tr>
+    <tr style>
+        <td>पु.प. x उ.द.</td>
     </tr>
     <tr>
         <td rowspan="2" >{{srNo|default('')}}</td>
@@ -224,8 +228,8 @@
 
 <!-- <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
     <tr>
-        <th rowspan="2">भांडवली मूल्य (रुपये)</th>
-        <th rowspan="2">भांडवली मूल्य (रुपये)</th>
+        <th rowspan="2">भांडवली मुल्य (रुपये)</th>
+        <th rowspan="2">भांडवली मुल्य (रुपये)</th>
         <th colspan="7">कराची रक्कम (रुपये)</th>
         <th colspan="5">अपिलाचे निकाल आणि त्यानंतर केलेले फेरफार (रुपये)</th>
         <th rowspan="2" colspan="2">नंतर वाढ किंवा घट आलेल्या बांधकामाचे अंदाजित क्षेत्र</th>
@@ -234,14 +238,14 @@
         <th>घरपट्टी</th>
         <th>दिवाबत्ती</th>
         <th>आरोग्यकर</th>
-        <th>पाणीपट्टी</th>
+        <th>सा. पाणी पट्टी </th>
         <th>सफाई कर </th>
         <th>शौ.कर</th>
         <th>एकूण</th>
         <th>घरपट्टी</th>
         <th>दिवाबत्ती</th>
         <th>आरोग्यकर</th>
-        <th>पाणीपट्टी</th>
+        <th>सा. पाणी पट्टी </th>
         <th>एकूण</th>
     </tr>
     <tr style="text-align: center;font-weight: 700;">
@@ -321,7 +325,7 @@
         {% endif %}
     </tr>
     <tr>
-        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
+        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">घरकुल : {{house|default('')}}
             {% if date %}
             <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
                 दिनांक : {{todays_date|default('')}} <br>
@@ -341,7 +345,9 @@
         </td>
         {% if sachivSarpanch %}
         <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
-            सचिव/सरपंच ग्रामपंचायत
+            ग्रामपंचायत अधिकारी 
+            ग्रामपंचायत कार्यालय {{gramPanchayat|default('')}} 
+            ता. {{taluka|default('')}} जि. {{jilha|default('')}}
         </td>
         {% else %}
         <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000; height:30px ">

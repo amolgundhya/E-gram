@@ -652,7 +652,7 @@ def update_namuna8_entry(
         
         qr_data = {
             "अनुक्रमांक": srNo,
-            "मालकाचे नाव": owner_name,
+            "मालमत्ता धारकाचे नाव": owner_name,
             "एकूण क्षेत्रफळ": totalArea,
             "बांधकाम क्षेत्रफळ": constructionArea,
             "खुली जागा": openArea,
