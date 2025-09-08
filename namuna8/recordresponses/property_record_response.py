@@ -138,7 +138,7 @@ def get_property_record(
             house_tax = 0
             
         khaliJaga = [{
-            "constructiontype": "खाली जागा",
+            "constructiontype": prop.vacantLandType,
             "length": khali_area,
             "width": 1,
             "year": datetime.now().year,
@@ -147,7 +147,7 @@ def get_property_record(
             "usage": prop.vacantLandType,
             "capitalValue": capital_value,
             "houseTax": house_tax,
-            "usageBasedBuildingWeightageFactor": 1,
+            "usageBasedBuildingWeightageFactor": 0,
             "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
             "totalkhalijagaareainfoot": khali_area,
             "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
@@ -240,8 +240,8 @@ def get_property_record(
         "village": prop.village.name if hasattr(prop, 'village') and prop.village else None,
         "taluka": taluka.name if taluka else None,
         "jilha": district.name if district else None,
-        "yearFrom": year_from,
-        "yearTo": year_to,
+        "yearFrom" : str(year_from) + "-" + str(year_from + 1),
+        "yearTo": str(year_to) + "-" + str(year_to + 1),
         "todays_date" : todays_date,
         "photoURL": photo_url,
         "bank_qr_code": None,
@@ -315,7 +315,7 @@ def get_property_record(
     response.update(checklist_fields)
     # Set QRcodeURL if QR code exists (single property)
     # Use location-based QR path
-    qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.anuKramank), "qrcode.png")
+    qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.village_id),str(prop.anuKramank), "qrcode.png")
     if os.path.exists(qr_path):
         response["QRcodeURL"] = f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}?district_id={prop.district_id}&taluka_id={prop.taluka_id}&gram_panchayat_id={prop.gram_panchayat_id}&village_id={prop.village_id}"
     else:
@@ -528,8 +528,8 @@ def get_property_records_by_village(
             "village": prop.village.name if hasattr(prop, 'village') and prop.village else None,
             "taluka": taluka.name if taluka else None,
             "jilha": district.name if district else None,
-            "yearFrom": year_from,
-            "yearTo": year_to,
+            "yearFrom" : str(year_from) + "-" + str(year_from + 1),
+            "yearTo": str(year_to) + "-" + str(year_to + 1),
             "photoURL": None,
             "QRcodeURL": None,
             "total_arearinfoot": prop.totalAreaSqFt,
@@ -812,8 +812,8 @@ def get_property_records_by_gram_panchayat(
                 "taluka": taluka.name if taluka else None,
                 "jilha": district.name if district else None,
                 "yearFrom": year_from,
-                "yearTo": year_to,
-                "todays_date" : todays_date,
+                "yearFrom" : str(year_from) + "-" + str(year_from + 1),
+                "yearTo": str(year_to) + "-" + str(year_to + 1),
                 "photoURL": None,
                 "bank_qr_code": None,
                 "QRcodeURL": None,
@@ -903,3 +903,5 @@ def get_property_records_by_gram_panchayat(
             response_data[f"{village.name}"] = village_properties
 
     return response_data 
+
+

@@ -70,6 +70,7 @@ class Construction(BaseModel):
 
 # --- Property Schemas ---
 class PropertyBase(BaseModel):
+    id: Optional[int] = None
     village_id: int
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
@@ -233,7 +234,7 @@ class Namuna8SettingChecklistBase(BaseModel):
     roundupArea: bool = False
     boundaryMarking: bool = False
     aadharCard: bool = False
-    mobileNumberAdd: bool = False
+    mobileNumber: bool = False
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
