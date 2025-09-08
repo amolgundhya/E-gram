@@ -126,15 +126,22 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                    
                 # capital_value = 0
                 AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
+                print("AnnualLandValueRate" , AnnualLandValueRate)
                 #for capital_value calculation
                 AreaInMeter = construction_data.length * construction_data.width * 0.092903
+                print("AreaInMeter" , AreaInMeter)
                 ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
+                print("ConstructionRateAsPerConstruction" , ConstructionRateAsPerConstruction)
                 depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
+                print("depreciationRate" , depreciationRate)
                 # Before using usageBasedBuildingWeightageFactor, build the mapping
                 weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+                print("weightage_map" , weightage_map)
                 usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
+                print("usageBasedBuildingWeightageFactor" , usageBasedBuildingWeightageFactor)
                 if formula1:
-                    capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+                    capital_value = (( (construction_data.length * construction_data.width) * AnnualLandValueRate ) + ( (construction_data.length * construction_data.width) * ConstructionRateAsPerConstruction * depreciationRate/100)) * usageBasedBuildingWeightageFactor
+                    # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
                     capital_value = round(capital_value, 2)
                     # print("capital_value_from_formula1" , capital_value)
                 else:
