@@ -112,18 +112,15 @@
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-                        <div style="font-size: 12px;">INFORMATION</div>
                         <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             <img src={{QRcodeURL | default('')}} alt="Information" style="width: 78px; height: 78px; object-fit: cover;" />
                         </td>
                         <td style="width: 50%; border-right: 1px solid #000; border-bottom: none; border-top: none; border-left: none; text-align: center; vertical-align: top;">
-                            <div style="font-size: 12px;">PHOTO</div>
                             <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                                 <img src= {{photoURL | default('')}} alt="Photo" style="width:78px; height: 78px; object-fit: cover;" />
                             </div>
                         </td>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-                        <div style="font-size: 12px;">BANK</div>
                         <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             <img src={{bank_qr_code | default('')}} alt="Bank" style="width: 78px; height: 78px; object-fit: cover;" />
                     </td>   
@@ -292,7 +289,7 @@
         {% endif %}
     </tr>
     <tr>
-        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
+        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">घरकुल : {{house|default('')}}
             {% if date %}
             <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
                 दिनांक : {{todays_date|default('')}} <br>
