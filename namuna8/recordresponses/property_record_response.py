@@ -147,7 +147,7 @@ def get_property_record(
             "usage": prop.vacantLandType,
             "capitalValue": capital_value,
             "houseTax": house_tax,
-            "usageBasedBuildingWeightageFactor": 0,
+            "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
             "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
             "totalkhalijagaareainfoot": khali_area,
             "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
@@ -446,7 +446,7 @@ def get_property_records_by_village(
                 "usage": prop.vacantLandType,
                 "capitalValue": capital_value,
                 "houseTax": house_tax,
-                "usageBasedBuildingWeightageFactor": 1,
+                "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
                 "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
                 "totalkhalijagaareainfoot": khali_area,
                 "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
@@ -727,7 +727,7 @@ def get_property_records_by_gram_panchayat(
                     "usage": prop.vacantLandType,
                     "capitalValue": capital_value,
                     "houseTax": house_tax,
-                    "usageBasedBuildingWeightageFactor": 1,
+                    "usageBasedBuildingWeightageFactor":  weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
                     "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
                     "totalkhalijagaareainfoot": khali_area,
                     "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
