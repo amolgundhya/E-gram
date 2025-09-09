@@ -126,19 +126,13 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                    
                 # capital_value = 0
                 AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
-                print("AnnualLandValueRate" , AnnualLandValueRate)
                 #for capital_value calculation
                 AreaInMeter = construction_data.length * construction_data.width * 0.092903
-                print("AreaInMeter" , AreaInMeter)
                 ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
-                print("ConstructionRateAsPerConstruction" , ConstructionRateAsPerConstruction)
                 depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
-                print("depreciationRate" , depreciationRate)
                 # Before using usageBasedBuildingWeightageFactor, build the mapping
                 weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
-                print("weightage_map" , weightage_map)
                 usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
-                print("usageBasedBuildingWeightageFactor" , usageBasedBuildingWeightageFactor)
                 if formula1:
                     capital_value = (( (construction_data.length * construction_data.width) * AnnualLandValueRate ) + ( (construction_data.length * construction_data.width) * ConstructionRateAsPerConstruction * depreciationRate/100)) * usageBasedBuildingWeightageFactor
                     # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
@@ -540,7 +534,33 @@ def update_namuna8_entry(
             construction_type = db.query(models.ConstructionType).filter_by(name=construction_data.constructionType).first()
             if not construction_type:
                 raise HTTPException(status_code=400, detail=f"Invalid construction type: {construction_data.constructionType}")
-            capital_value = 541133
+            
+            userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
+            if userFormulaPreference:
+                    formula1 = userFormulaPreference.capitalFormula1
+                    formula2 = userFormulaPreference.capitalFormula2
+            else:
+                # print("No user formula preference found")
+                pass
+                
+            # capital_value = 0
+            AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
+            #for capital_value calculation
+            AreaInMeter = construction_data.length * construction_data.width * 0.092903
+            ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
+            depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
+            # Before using usageBasedBuildingWeightageFactor, build the mapping
+            weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+            usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
+            if formula1:
+                capital_value = (( (construction_data.length * construction_data.width) * AnnualLandValueRate ) + ( (construction_data.length * construction_data.width) * ConstructionRateAsPerConstruction * depreciationRate/100)) * usageBasedBuildingWeightageFactor
+                # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+                capital_value = round(capital_value, 2)
+                # print("capital_value_from_formula1" , capital_value)
+            else:
+                capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+                capital_value = round(capital_value, 2)
+                    
             house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * 541133)
             new_construction = models.Construction(
                 construction_type_id=construction_type.id,
@@ -640,9 +660,7 @@ def update_namuna8_entry(
         record_response = get_property_record(db_property.anuKramank,village_id, district_id, taluka_id, gram_panchayat_id, db)
         totalTax = record_response.get('totaltax', 0)
         srNo = response.get('anuKramank') or response.get('srNo') or ''
-        # print(f"DEBUG UPDATE: totalTax: {totalTax}")
-        # print(f"DEBUG UPDATE: srNo: {srNo}")
-        # print(f"DEBUG UPDATE: response keys: {list(response.keys())}")
+      
         east = db_property.eastLength or 0
         west = db_property.westLength or 0
         north = db_property.northLength or 0
@@ -658,15 +676,16 @@ def update_namuna8_entry(
         openArea = totalArea - constructionArea
         owner_name = record_response.get('ownerName', 0)
         wife_name = record_response.get('ownerWifeName', 0)
-        
+        totalArea = record_response.get('totalArea',0)
         qr_data = {
-            "अनुक्रमांक": srNo,
-            "मालमत्ता धारकाचे नाव": owner_name,
-            "एकूण क्षेत्रफळ": totalArea,
-            "बांधकाम क्षेत्रफळ": constructionArea,
-            "खुली जागा": openArea,
-            "एकूण कर": totalTax,
+            "srNo": srNo,
+            "ownername": owner_name,
+            "totalArea": totalArea,
+            "constructionArea": constructionArea,
+            "openArea": openArea,
+            "totalTax": totalTax,
         }
+        
         if wife_name:
             qr_data["wifename"] = wife_name
         
@@ -910,71 +929,133 @@ def create_owner(
         "village_id": new_owner.village_id
     }
 
+# @router.post("/owners/upload_photo/", response_model=str)
+# def upload_owner_photo(owner_id: int = Form(...), file: UploadFile = File(...)):
+#     from sqlalchemy.orm import Session
+#     from database import get_db
+#     import re
+    
+#     db: Session = next(get_db())
+    
+#     try:
+#         # print(f"DEBUG: Starting photo upload for owner_id: {owner_id}")
+        
+#         # Get owner to find location information
+#         owner = db.query(models.Owner).filter(models.Owner.id == owner_id).first()
+#         if not owner:
+#             # print(f"DEBUG: Owner not found with id: {owner_id}")
+#             raise HTTPException(status_code=400, detail="Owner not found")
+        
+#         # print(f"DEBUG: Found owner: {owner.name}, district_id: {owner.district_id}, taluka_id: {owner.taluka_id}, gram_panchayat_id: {owner.gram_panchayat_id}")
+        
+#         # Validate that owner has location information
+#         if not owner.district_id or not owner.taluka_id or not owner.gram_panchayat_id:
+#             # print(f"DEBUG: Owner missing location information")
+#             raise HTTPException(status_code=400, detail="Owner must have complete location information (district_id, taluka_id, gram_panchayat_id)")
+        
+#         # Create directory structure: uploaded_images/owners/{district_id}/{taluka_id}/{gram_panchayat_id}/{owner_id}/
+#         image_dir = os.path.join("uploaded_images", "owners", str(owner.district_id), str(owner.taluka_id), str(owner.gram_panchayat_id), str(owner_id))
+#         # print(f"DEBUG: Creating directory: {image_dir}")
+        
+#         # Ensure the directory exists
+#         os.makedirs(image_dir, exist_ok=True)
+#         # print(f"DEBUG: Directory created successfully")
+        
+#         # Sanitize owner name for filename
+#         ownername = re.sub(r'[^\w\-_]', '_', owner.name) if owner.name else f"owner_{owner_id}"
+#         # print(f"DEBUG: Sanitized owner name: {ownername}")
+        
+#         # Get file extension
+#         ext = os.path.splitext(file.filename)[1] if file.filename else ''
+#         filename = f"{ownername}{ext}"
+#         # print(f"DEBUG: Filename: {filename}")
+        
+#         file_path = os.path.join(image_dir, filename)
+#         # print(f"DEBUG: Full file path: {file_path}")
+        
+#         # Save the file
+#         with open(file_path, "wb") as buffer:
+#             shutil.copyfileobj(file.file, buffer)
+#         # print(f"DEBUG: File saved successfully")
+        
+#         # Convert to forward slashes for database storage
+#         file_location = file_path.replace(os.sep, '/')
+#         # print(f"DEBUG: Database file location: {file_location}")
+        
+#         # Update the owner's photo path in the database
+#         owner.ownerPhoto = file_location
+#         print(owner.ownerPhoto)
+#         db.commit()
+#         # print(f"DEBUG: Database updated successfully")
+        
+#         return file_location
+#     except Exception as e:
+#         # print(f"DEBUG: Error occurred: {str(e)}")
+#         # print(f"DEBUG: Error type: {type(e)}")
+#         import traceback
+#         # print(f"DEBUG: Traceback: {traceback.format_exc()}")
+#         raise HTTPException(status_code=500, detail=f"Error uploading photo: {str(e)}")
+
 @router.post("/owners/upload_photo/", response_model=str)
 def upload_owner_photo(owner_id: int = Form(...), file: UploadFile = File(...)):
     from sqlalchemy.orm import Session
     from database import get_db
     import re
+    import time
     
     db: Session = next(get_db())
     
     try:
-        # print(f"DEBUG: Starting photo upload for owner_id: {owner_id}")
-        
         # Get owner to find location information
         owner = db.query(models.Owner).filter(models.Owner.id == owner_id).first()
         if not owner:
-            # print(f"DEBUG: Owner not found with id: {owner_id}")
             raise HTTPException(status_code=400, detail="Owner not found")
-        
-        # print(f"DEBUG: Found owner: {owner.name}, district_id: {owner.district_id}, taluka_id: {owner.taluka_id}, gram_panchayat_id: {owner.gram_panchayat_id}")
         
         # Validate that owner has location information
         if not owner.district_id or not owner.taluka_id or not owner.gram_panchayat_id:
-            # print(f"DEBUG: Owner missing location information")
-            raise HTTPException(status_code=400, detail="Owner must have complete location information (district_id, taluka_id, gram_panchayat_id)")
+            raise HTTPException(
+                status_code=400,
+                detail="Owner must have complete location information (district_id, taluka_id, gram_panchayat_id)"
+            )
         
-        # Create directory structure: uploaded_images/owners/{district_id}/{taluka_id}/{gram_panchayat_id}/{owner_id}/
-        image_dir = os.path.join("uploaded_images", "owners", str(owner.district_id), str(owner.taluka_id), str(owner.gram_panchayat_id), str(owner_id))
-        # print(f"DEBUG: Creating directory: {image_dir}")
-        
-        # Ensure the directory exists
+        # Create directory structure
+        image_dir = os.path.join(
+            "uploaded_images", "owners",
+            str(owner.district_id),
+            str(owner.taluka_id),
+            str(owner.gram_panchayat_id),
+            str(owner_id)
+        )
         os.makedirs(image_dir, exist_ok=True)
-        # print(f"DEBUG: Directory created successfully")
         
-        # Sanitize owner name for filename
+        # Sanitize owner name
         ownername = re.sub(r'[^\w\-_]', '_', owner.name) if owner.name else f"owner_{owner_id}"
-        # print(f"DEBUG: Sanitized owner name: {ownername}")
         
         # Get file extension
         ext = os.path.splitext(file.filename)[1] if file.filename else ''
-        filename = f"{ownername}{ext}"
-        # print(f"DEBUG: Filename: {filename}")
+        
+        # Add timestamp to make filename unique
+        timestamp = int(time.time())
+        filename = f"{ownername}_{timestamp}{ext}"
         
         file_path = os.path.join(image_dir, filename)
-        # print(f"DEBUG: Full file path: {file_path}")
         
         # Save the file
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        # print(f"DEBUG: File saved successfully")
         
-        # Convert to forward slashes for database storage
+        # Convert to forward slashes for DB
         file_location = file_path.replace(os.sep, '/')
-        # print(f"DEBUG: Database file location: {file_location}")
         
-        # Update the owner's photo path in the database
+        # Update DB with latest photo path
         owner.ownerPhoto = file_location
         db.commit()
-        # print(f"DEBUG: Database updated successfully")
         
         return file_location
     except Exception as e:
-        # print(f"DEBUG: Error occurred: {str(e)}")
-        # print(f"DEBUG: Error type: {type(e)}")
         import traceback
-        # print(f"DEBUG: Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error uploading photo: {str(e)}")
+
 
 def build_property_response(db_property, db, gram_panchayat_id: int):
     # Build constructions with constructionType name
