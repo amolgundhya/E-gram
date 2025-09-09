@@ -89,20 +89,20 @@
     <div id="toolbar" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f8f8f8; border-bottom: 1px solid #ccc;">
         <!-- Left: Icon Buttons & Navigation -->
         <div style="display: flex; align-items: center; gap: 6px;">
-            <button title="First Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏮️</button>
-            <button title="Previous Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">◀️</button>
+            <button type="button" title="First Page" onclick="firstPage()" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏮️</button>
+            <button type="button" title="Previous Page" onclick="prevPage()" style="background: none; border: none; font-size: 16px; cursor: pointer;">◀️</button>
             <input type="text" value="1" id="pageInput" style="width: 32px; text-align: center; font-size: 14px; border: 1px solid #ccc; border-radius: 2px; margin: 0 2px;" />
-            <span style="font-size: 14px; color: #888;">/1</span>
-            <button title="Next Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">▶️</button>
-            <button title="Last Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏭️</button>
-            <button title="Zoom Out" onclick="zoomOut()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➖</button>
+            <span id="pageTotal" style="font-size: 14px; color: #888;"></span>
+            <button type="button" title="Next Page" onclick="nextPage()" style="background: none; border: none; font-size: 16px; cursor: pointer;">▶️</button>
+            <button type="button" title="Last Page" onclick="lastPage()" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏭️</button>
+            <button type="button" title="Zoom Out" onclick="zoomOut()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➖</button>
             <span id="zoomPercent" style="min-width: 40px; text-align: center; font-size: 14px;">100%</span>
-            <button title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
+            <button type="button" title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
         </div>
         <!-- Right: Print & Exit Buttons -->
         <div style="display: flex; align-items: center; gap: 8px;">
-            <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
-            <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
+            <button type="button" onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
+            <button type="button" onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
         </div>
     </div>
     <script>
@@ -110,6 +110,9 @@
         const minZoom = 0.5;
         const maxZoom = 2.0;
         const zoomStep = 0.1;
+        let currentPage = 1;
+        const recordsPerPage = 1; // One 2x2 grid per page
+        let totalPages = 0;
         function updateZoom() {
             document.getElementById('mainContent').style.zoom = zoomLevel;
             document.getElementById('zoomPercent').innerText = Math.round(zoomLevel * 100) + '%';
@@ -128,14 +131,51 @@
                 updateZoom();
             }
         }
+        function updatePagerDisplay() {
+            const input = document.getElementById('pageInput');
+            const total = document.getElementById('pageTotal');
+            if (input) input.value = currentPage;
+            if (total) total.innerText = '/' + totalPages;
+        }
+        function showPage(page) {
+            const grids = Array.from(document.querySelectorAll('.report-grid'));
+            totalPages = Math.ceil(grids.length / recordsPerPage) || 1;
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            currentPage = page;
+            grids.forEach((el, idx) => {
+                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                el.style.display = (pageIdx === currentPage) ? '' : 'none';
+            });
+            updatePagerDisplay();
+        }
+        function nextPage() { showPage(currentPage + 1); }
+        function prevPage() { showPage(currentPage - 1); }
+        function firstPage() { showPage(1); }
+        function lastPage() { showPage(totalPages); }
         function printPage() {
-            window.print();
+            // Show all grids for printing, then restore current page
+            const grids = Array.from(document.querySelectorAll('.report-grid'));
+            const prevStates = grids.map(el => el.style.display);
+            grids.forEach(el => el.style.display = '');
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => {
+                    grids.forEach((el, idx) => {
+                        const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                        el.style.display = (pageIdx === currentPage) ? '' : 'none';
+                    });
+                }, 100);
+            }, 50);
         }
         function exitPage() {
             window.close();
         }
-        // Initialize zoom display
-        window.onload = updateZoom;
+        // Initialize zoom and pagination
+        window.onload = function() {
+            updateZoom();
+            showPage(1);
+        };
     </script>
     <div id="mainContent">
         {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %}
@@ -182,7 +222,7 @@
                             <td>एकूण (रुपये = पै.)</td>
                         </tr>
                         <tr class="center bold">
-                            <td>थकीत </td>
+                            <td>मागील </td>
                             <td>दंड </td>
                             <td></td>
                             <td></td>
@@ -276,7 +316,7 @@
                             <td>एकूण (रुपये = पै.)</td>
                         </tr>
                         <tr class="center bold">
-                            <td>थकीत </td>
+                            <td>मागील </td>
                             <td>दंड </td>
                             <td></td>
                             <td></td>
@@ -371,7 +411,7 @@
                             <td>एकूण (रुपये = पै.)</td>
                         </tr>
                         <tr class="center bold">
-                            <td>थकीत </td>
+                            <td>मागील </td>
                             <td>दंड </td>
                             <td></td>
                             <td></td>
@@ -466,7 +506,7 @@
                             <td>एकूण (रुपये = पै.)</td>
                         </tr>
                         <tr class="center bold">
-                            <td>थकीत </td>
+                            <td>मागील </td>
                             <td>दंड </td>
                             <td></td>
                             <td></td>
