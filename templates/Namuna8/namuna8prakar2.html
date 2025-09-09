@@ -404,7 +404,7 @@
                 <td>{{ row.waterTax | default('') }}</td>
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
-                <td>{{ row.totaltax | default('') }}</td>
+                <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
                 <td>{{ row.remarks | default('') }}</td>
             </tr>
             <tr class="record-row">

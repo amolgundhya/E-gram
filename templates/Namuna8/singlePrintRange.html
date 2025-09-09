@@ -311,7 +311,7 @@
         <td> {{row.sapanikar|default('')}} </td>
         <td> {{row.cleaningTax|default('')}} </td>
         <td> {{row.toiletTax|default('')}} </td>
-        <td> {{row.totaltax|default('')}} </td>
+        <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
         <td></td>
         <td></td>
         <td></td>
@@ -376,7 +376,7 @@
         <td> {{row.sapanikar|default('')}} </td>
         <td> {{row.cleaningTax|default('')}} </td>
         <td> {{row.toiletTax|default('')}} </td>
-        <td> {{row.totaltax|default('')}} </td>
+        <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
         <td></td>
         <td></td>
         <td></td>
