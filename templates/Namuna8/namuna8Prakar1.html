@@ -116,7 +116,7 @@
                 house += parseFloat(row.dataset.houseTax) || 0;
                 lighting += parseFloat(row.dataset.lightingTax) || 0;
                 health += parseFloat(row.dataset.healthTax) || 0;
-                water += parseFloat(row.dataset.waterTax) || 0;
+                water += parseFloat(row.dataset.sapanikar) || 0;
                 cleaning += parseFloat(row.dataset.cleaningTax) || 0;
                 toilet += parseFloat(row.dataset.toiletTax) || 0;
                 total += parseFloat(row.dataset.totalTax) || 0;
@@ -261,7 +261,7 @@
                 data-house-tax="{{ row.totalHouseTax | default('0') }}"
                 data-lighting-tax="{{ row.lightingTax | default('0') }}"
                 data-health-tax="{{ row.healthTax | default('0') }}"
-                data-water-tax="{{ row.waterTax | default('0') }}"
+                data-water-tax="{{ row.sapanikar | default('0') }}"
                 data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
                 data-toilet-tax="{{ row.toiletTax | default('0') }}"
                 data-total-tax="{{ row.totaltax | default('0') }}">
@@ -396,7 +396,7 @@
                 </td>
                 <td>{{ row.lightingTax | default('') }}</td>
                 <td>{{ row.healthTax | default('') }}</td>
-                <td>{{ row.waterTax | default('') }}</td>
+                <td>{{ row.sapanikar | default('') }}</td>
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{ row.totaltax | default('') }}</td>

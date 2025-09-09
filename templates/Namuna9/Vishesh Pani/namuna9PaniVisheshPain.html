@@ -136,7 +136,7 @@
             <td colspan="3" class="center" style="font-size:15px;">नियम 22 (9), 32 (4), 5 (6) व ( 7 ) पाहा</td>
         </tr>
         <tr>
-            <td colspan="3" class="center" style="font-size:15px;">सन {{yearFrom}} - {{yearTo}} या वर्षाची आकारणी केलेल्या करांची मागणी नोंदवही</td>
+            <td colspan="3" class="center" style="font-size:15px;">सन {{selectedYear}} या वर्षाची आकारणी केलेल्या करांची मागणी नोंदवही</td>
         </tr>
         <tr>
             <td  style="width:10%">ग्रामपंचायत : {{gramPanchayat}}</td>
@@ -167,6 +167,27 @@
                 <th style="min-width:32px;">एकुण</th>
             </tr>
         </thead>
+        <tbody>
+            {% for row in data %}
+            <tr class="record-row">
+                <td>{{ row.srNo }}</td>
+                <td>{{ row.propertyNumber }}</td>
+                <td>{{ row.ownerName }}</td>
+                <td>{% if removeDhakit != 'true' %}{{ row.dhakitSaWaterTax }}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{ row.saWaterTax }}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{ row.totalSaWaterTax }}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{ row.dhakitViWaterTax }}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{ row.viWaterTax }}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{ row.totalViWaterTax }}{% endif %}</td>
+                <td>
+                    {% if removeYekun != 'true' %}
+                    {{ (row.totalSaWaterTax|default(0)|float) + (row.totalViWaterTax|default(0)|float) }}
+                    {% endif %}
+                </td>
+                <td>{{ pavatiSRKivyaTarik }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
         <tr>
             <td colspan="2"></td>
             <td style="font-weight:normal; text-align:right;">गोषवारा</td>
@@ -176,6 +197,8 @@
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitViWaterTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='viWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalViWaterTax') }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalSaWaterTax')) + (data | sum(attribute='totalViWaterTax')) }}{% endif %}</td>
+            <td></td>
         </tr>
     </table>
 </body>
