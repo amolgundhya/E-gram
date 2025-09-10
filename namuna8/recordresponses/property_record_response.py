@@ -220,9 +220,13 @@ def get_property_record(
         for c in prop.constructions
         # if not getattr(c.construction_type, 'name', '').strip().startswith('खाली जागा')
     ])
+    if khaliJaga:
+        total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
     
     # Calculate total capital value (excluding khali jagas)
     total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+    if khaliJaga:
+            total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
     todays_date = date.today().strftime("%d-%m-%Y")
     # Calculate total construction area in foot and meter (excluding khali jagas)
     total_construction_area_foot = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
@@ -509,7 +513,11 @@ def get_property_records_by_village(
             for c in prop.constructions
             # if not getattr(c.construction_type, 'name', '').strip().startswith('खाली जागा')
         ])
+        if khaliJaga:
+            total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
         total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+        if khaliJaga:
+                 total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
         total_construction_area_foot = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
         total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
         year_from = datetime.now().year
@@ -788,7 +796,11 @@ def get_property_records_by_gram_panchayat(
                 c.houseTax or 0
                 for c in prop.constructions
             ])
+            if khaliJaga:
+                 total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
             total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+            if khaliJaga:
+                 total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
             total_construction_area_foot = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
             total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
             year_from = datetime.now().year

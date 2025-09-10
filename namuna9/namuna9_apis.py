@@ -126,7 +126,6 @@ def carry_forward_data(data: namuna9_schemas.Namuna9CarryForward, db: Session = 
     # 1. Find the source data from `data.from_year` for the given `data.village`.
     # 2. Select the correct values based on `data.carry_forward_option`.
     # 3. Apply these values to the `data.to_year` records for the `data.village`.
-    print(f"Received carry forward request: {data}")
     return {"message": "Carry forward action received. Logic not yet implemented.", "data": data}
 
 @router.delete("/")
@@ -243,7 +242,7 @@ def create_or_carry_forward_namuna9(
         properties = db.query(namuna8_model.Property).filter(
             namuna8_model.Property.village_id == village
         ).all()
-        property_ids = [p.anuKramank for p in properties]
+        property_ids = [p.id for p in properties]
         new_namuna9 = namuna9_model.Namuna9(
             yearslap=yearslap,
             villageId=village,
@@ -356,14 +355,14 @@ def get_table_data(
         if thakit_rec and thakit_rec.property_ids:
             # Get property data from thakit year
             thakit_properties = db.query(namuna8_model.Property).filter(
-                namuna8_model.Property.anuKramank.in_([int(i) for i in thakit_rec.property_ids])
+                namuna8_model.Property.id.in_([int(i) for i in thakit_rec.property_ids])
             ).all()
             
             # Create a map of property number to thakit data
             for thakit_prop in thakit_properties:
                 thakit_prop_data = build_property_response(thakit_prop, db, gram_panchayat_id)
                 thakit_constructions = db.query(namuna8_model.Construction).filter(
-                    namuna8_model.Construction.property_anuKramank == thakit_prop.anuKramank
+                    namuna8_model.Construction.property_id == thakit_prop.id
                 ).all()
                 
                 thakit_house_tax = sum([c.houseTax or 0 for c in thakit_constructions])
@@ -376,7 +375,7 @@ def get_table_data(
                 # Calculate total for thakit year
                 thakit_total = thakit_house_tax + thakit_lighting_tax + thakit_health_tax + thakit_sapanikar + thakit_vpanikar + thakit_cleaning_tax
                 
-                thakit_data[thakit_prop.anuKramank] = {
+                thakit_data[thakit_prop.id] = {
                     'chaluGhar': thakit_house_tax,
                     'chaluDiva': thakit_lighting_tax,
                     'chaluAarogyaKar': thakit_health_tax,
@@ -421,8 +420,8 @@ def get_table_data(
         shaktiCleaningTax = 0
         
         # Apply thakit logic if enabled
-        if does_thakit and thakit_values and prop.anuKramank in thakit_data:
-            thakit_prop_data = thakit_data[prop.anuKramank]
+        if does_thakit and thakit_values and prop.id in thakit_data:
+            thakit_prop_data = thakit_data[prop.id]
             
             if thakit_values == "chaluGhar":
                 # Use chalu values from thakit year as shakti

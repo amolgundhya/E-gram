@@ -438,7 +438,15 @@ def update_namuna8_entry(
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
-    
+    if db.query(models.Property).filter(
+                models.Property.village_id == property_data.village_id,
+                models.Property.anuKramank == property_data.anuKramank,
+                models.Property.id != property_data.id
+            ).first():
+                raise HTTPException(
+                    status_code=400,
+                    detail="या गावात हा अनुक्रमांक आधीच अस्तित्वात आहे / This anuKramank already exists for this village"
+                )
     db_property = db.query(models.Property).filter(
         models.Property.village_id == village_id,
         models.Property.anuKramank == anu_kramank,
@@ -558,7 +566,7 @@ def update_namuna8_entry(
                 capital_value = round(capital_value, 2)
                 # print("capital_value_from_formula1" , capital_value)
             else:
-                capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+                capital_value = (construction_data.length * construction_data.width) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
                 capital_value = round(capital_value, 2)
                     
             house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value  ,2)
