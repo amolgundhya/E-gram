@@ -566,7 +566,7 @@ def update_namuna8_entry(
                 capital_value = round(capital_value, 2)
                 # print("capital_value_from_formula1" , capital_value)
             else:
-                capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+                capital_value = (construction_data.length * construction_data.width) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
                 capital_value = round(capital_value, 2)
                     
             house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value  ,2)
