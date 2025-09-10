@@ -502,7 +502,7 @@
                     <td>{{ row.lightingTax | default('') }}</td>
                     <td>{{ row.healthTax | default('') }}</td>
                     <td>{{ row.waterTax | default('') }}</td>
-                    <td>{{ row.totaltax | default('') }}</td>
+                    <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
                     <td></td>
                     <td></td>
                     <td></td>
