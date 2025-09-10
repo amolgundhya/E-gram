@@ -124,9 +124,9 @@ def get_property_record(
                 
                 # Calculate capital value - exact same logic as Namuna8
                 if formula1:
-                    capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+                    capital_value = (khali_area * AnnualLandValueRate)
                 else:
-                    capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+                    capital_value = AreaInMeter * AnnualLandValueRate
                 
                 # Calculate house tax - exact same logic as Namuna8
                 house_tax = round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)

@@ -139,7 +139,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     capital_value = round(capital_value, 2)
                     # print("capital_value_from_formula1" , capital_value)
                 else:
-                    capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+                    capital_value = (construction_data.length * construction_data.width) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
                     capital_value = round(capital_value, 2)
                     # print("capital_value_from_formula2" , capital_value)
                     
@@ -561,7 +561,7 @@ def update_namuna8_entry(
                 capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
                 capital_value = round(capital_value, 2)
                     
-            house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * 541133)
+            house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value  ,2)
             new_construction = models.Construction(
                 construction_type_id=construction_type.id,
                 length=construction_data.length,
