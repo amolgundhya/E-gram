@@ -220,6 +220,8 @@ def get_property_record(
         for c in prop.constructions
         # if not getattr(c.construction_type, 'name', '').strip().startswith('खाली जागा')
     ])
+    if khaliJaga:
+        total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
     
     # Calculate total capital value (excluding khali jagas)
     total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
