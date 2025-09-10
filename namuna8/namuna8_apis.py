@@ -770,13 +770,13 @@ def get_bulk_edit_property_list(
             return getattr(water_settings, 'houseTax', 0)
         elif facility == 'व्यावसायिक नळ':
             return getattr(water_settings, 'commercialTax', 0)
-        elif facility == 'कारस पात्र नसलेली इमारत':
+        elif facility == 'करास पात्र नसलेली इमारत':
             return getattr(water_settings, 'exemptRate', 0)
-        elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+        elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-        elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+        elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWater301_700', 0)
-        elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+        elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
             return getattr(water_slab_settings, 'generalWaterAbove700', 0)
         return 0
     result = []
@@ -800,13 +800,13 @@ def get_bulk_edit_property_list(
 @router.post("/bulk_update/")
 def bulk_update_properties(update: schemas.BulkEditUpdateRequest, db: Session = Depends(database.get_db)):
     valid_water_facilities = [
-        "सामान्य पाणिकर",
+        "सामान्य पाणीकर",
         "घरगुती नळ",
         "व्यावसायिक नळ",
-        "कारस पात्र नसलेली इमारत",
-        "सामान्य पाणिकर १ ते ३०० ची फु.",
-        "सामान्य पाणिकर ३०१ ते ७०० ची फु.",
-        "सामान्य पाणिकर ७०० ची फु. वरील",
+        "करास पात्र नसलेली इमारत",
+        "सामान्य पाणीकर १ ते ३०० चौ. फु.",
+        "सामान्य पाणीकर ३०१ ते ७०० चौ. फु.",
+        "सामान्य पाणीकर ७०० चौ. फु. वरील",
         None
     ]
     updated_count = 0
@@ -1124,13 +1124,13 @@ def build_property_response(db_property, db, gram_panchayat_id: int):
             return getattr(water_settings, 'houseTax', 0)
         elif facility == 'व्यावसायिक नळ':
             return getattr(water_settings, 'commercialTax', 0)
-        elif facility == 'कारस पात्र नसलेली इमारत':
+        elif facility == 'करास पात्र नसलेली इमारत':
             return getattr(water_settings, 'exemptRate', 0)
-        elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+        elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-        elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+        elif facility == ['सामान्य पाणीकर ३०१ ते ७०० चौ. फु.','सामान्य पाणीकर ३०१ ते ७०० चौ. फु.']:
             return getattr(water_slab_settings, 'generalWater301_700', 0)
-        elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+        elif facility == ['सामान्य पाणीकर ७०० चौ. फु. वरील','सामान्य पाणीकर ७०० चौ. फु. वरील']:
             return getattr(water_slab_settings, 'generalWaterAbove700', 0)
         return 0
     total_area = db_property.totalAreaSqFt or 0

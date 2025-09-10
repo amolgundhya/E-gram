@@ -57,7 +57,6 @@ async def prakar1(request : Request):
         gram_panchayat_id = requestData.get("gram_panchayat_id")
         
         checkbox = requestData.get("checkbox")
-        print("checkbox" , checkbox)
 
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
@@ -1017,7 +1016,6 @@ async def singlePrint(request : Request):
         
         # Load template
         template = env.get_template('singlePrint1.html')
-        print("anuKramank" , anuKramank)
 
         # Call API
         try:
@@ -1031,7 +1029,7 @@ async def singlePrint(request : Request):
             if response.status_code != 200:
                 raise Exception(f"API error {response.status_code}: {response.text}")
         except Exception as e:
-            print("Error" , e)
+           
             with open(file_path, "a", encoding="utf-8") as f:
                 f.write(str(e))
 
@@ -1069,7 +1067,7 @@ async def singlePrint(request : Request):
         
 
     except Exception as e:
-        print(e)
+       
         with open(file_path, "a", encoding="utf-8") as f:
             f.write(str(e))
         return JSONResponse(
