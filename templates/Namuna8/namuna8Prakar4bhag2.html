@@ -428,8 +428,8 @@
                 data-house-tax="{{ row.totalHouseTax | default('0') }}"
                 data-lighting-tax="{{ row.lightingTax | default('0') }}"
                 data-health-tax="{{ row.healthTax | default('0') }}"
-                data-water-tax="{{ row.waterTax | default('0') }}"
-                data-total-tax="{{ row.totaltax | default('0') }}"
+                data-water-tax="{{ (row.sapanikar if row.sapanikar is defined else row.waterTax) | default('0') }}"
+                data-total-tax="{{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }}"
                 style="margin-bottom: 16px">
                 <table
                   style="
@@ -517,8 +517,8 @@
               </td>
                     <td>{{ row.lightingTax | default('') }}</td>
                     <td>{{ row.healthTax | default('') }}</td>
-                    <td>{{ row.waterTax | default('') }}</td>
-                    <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
+                    <td>{{ (row.sapanikar if row.sapanikar is defined else row.waterTax) | default('') }}</td>
+                    <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }} </td>
                     <td></td>
                     <td></td>
                     <td></td>

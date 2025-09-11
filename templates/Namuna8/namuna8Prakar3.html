@@ -206,8 +206,8 @@
                         data-house-tax="{{ row.totalHouseTax | default('0') }}"
                         data-lighting-tax="{{ row.totalLightingTax | default('0') }}"
                         data-health-tax="{{ row.totalHealthTax | default('0') }}"
-                        data-water-tax="{{ row.totalWaterTax | default('0') }}"
-                        data-total-tax="{{ row.totaltax | default('0') }}"
+                        data-water-tax="{{ (row.sapanikar if row.sapanikar is defined else row.totalWaterTax) | default('0') }}"
+                        data-total-tax="{{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }}"
                     style="margin-bottom: 18px;">
                         <!-- Only the tables for each record repeat -->
                         <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; margin-top: 0; font-size: 14px;">
@@ -402,8 +402,8 @@
                                 </td>
                                 <td>{{ row.lightingTax|default('') }}</td>
                                 <td>{{ row.healthTax|default('') }}</td>
-                                <td>{{ row.waterTax|default('') }}</td>
-                                <td> {{row.totaltax|default('')}} </td>
+                                <td> {{ (row.sapanikar if row.sapanikar is defined else row.totalWaterTax) | default('') }} </td>
+                                <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }} </td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
@@ -417,8 +417,8 @@
                                 <td> {{row.totalHouseTax|default('')}} </td>
                                 <td> {{row.totalLightingTax|default('')}} </td>
                                 <td> {{row.totalHealthTax|default('')}} </td>
-                                <td> {{row.totalWaterTax|default('')}} </td>
-                                <td> {{row.totaltax|default('')}} </td>
+                                <td>  </td>
+                                <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }} </td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
