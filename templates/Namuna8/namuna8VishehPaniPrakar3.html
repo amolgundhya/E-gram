@@ -261,8 +261,8 @@
                                 data-house-tax="{{ row.totalHouseTax | default('0') }}"
                                 data-lighting-tax="{{ row.lightingTax | default('0') }}"
                                 data-health-tax="{{ row.healthTax | default('0') }}"
-                                data-sa-water-tax="{{ row.saWaterTax | default('0') }}"
-                                data-vsa-water-tax="{{ row.vsaWaterTax | default('0') }}"
+                                data-sa-water-tax="{{ row.sapanikar | default('0') }}"
+                                data-vsa-water-tax="{{ row.vpanikar | default('0') }}"
                                 data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
                                 data-toilet-tax="{{ row.toiletTax | default('0') }}"
                                 data-total-tax="{{ row.totaltax | default('0') }}">
@@ -391,13 +391,23 @@
                             </tr>
                             <tr>
                                 <td> {{ row.totalCapitalValue | default('') }} </td>
-                                <td>  </td>
+                                <td>
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                        {{ row.constructionType[0].taxRates | default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{ row.constructionType[1].taxRates | default('') }}<br>
+                                    {% endif %}
+                                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                        {{ row.khaliJaga[0].taxRates | default('') }}
+                                    {% endif %}
+                                </td>
                                 <td> {{ row.totalHouseTax | default('') }} </td>
-                                <td> {{ row.totalLightingTax | default('') }} </td>
-                                <td> {{ row.totalHealthTax | default('') }} </td>
-                                <td> {{ row.totalWaterTax | default('') }} </td>
+                                <td> {{ row.lightingTax | default('') }} </td>
+                                <td> {{ row.healthTax | default('') }} </td>
+                                <td> {{ row.sapanikar | default('') }} </td>
+                                <td> {{ row.vpanikar | default('') }} </td>
                                 <td> {{ row.totaltax | default('') }} </td>
-                                <td></td>
                                 <td></td>
                                 <td></td>
                                 <td></td>

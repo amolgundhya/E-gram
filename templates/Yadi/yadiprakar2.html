@@ -193,15 +193,15 @@
                 <td>{{ row.totalHouseTax }}</td>
                 <td>{{ row.lightingTax }}</td>
                 <td>{{ row.healthTax }}</td>
-                <td>{{ row.waterTax }}</td>
-                <td>{{ row.totaltax }}</td>
+                <td>{{ row.sapanikar }}</td>
+                <td>{{ (row.totalHouseTax|default(0)) + (row.lightingTax|default(0)) + (row.healthTax|default(0)) + (row.sapanikar|default(0)) }}</td>
             </tr>
             {% endfor %}
             <!-- Totals row: each total below its respective column -->
             <tr>
                 <td class="right" colspan="21" style="border:none; padding:0;">
                     <div class="footer-summary">
-                        घर कर : {{ data | sum(attribute='totalHouseTax') }} &nbsp; दिवा कर : {{ data | sum(attribute='lightingTax') }} &nbsp; आ. कर : {{ data | sum(attribute='healthTax') }} &nbsp; पाणी कर : {{ data | sum(attribute='waterTax') }} &nbsp;एकूण : {{ data | sum(attribute='totaltax') }}
+                        घर कर : {{ data | sum(attribute='totalHouseTax') }} &nbsp; दिवा कर : {{ data | sum(attribute='lightingTax') }} &nbsp; आ. कर : {{ data | sum(attribute='healthTax') }} &nbsp; पाणी कर : {{ data | sum(attribute='waterTax') }} &nbsp;एकूण : {{ (data | sum(attribute='totalHouseTax')) + (data | sum(attribute='lightingTax')) + (data | sum(attribute='healthTax')) + (data | sum(attribute='sapanikar')) }}
                     </div>
                 </td>
             </tr>
@@ -211,8 +211,8 @@
         <tr>
             <td style="border:none;">दिनांक </td>
             <td style="border:none;padding-left: 80px;">ग्रामपंचायत चा शिक्का</td>
-            <td style="border:none;padding-left: 80px;">सचिव</td>
-            <td style="border:none;padding-left: 80px;">सरपंच</td>
+            <td style="border:none;padding-left: 80px;">ग्रामपंचायत अधिकारी</td>
+            <td style="border:none;padding-left: 80px;">ग्रामपंचायत कार्यालय</td>
         </tr>
     </table>
 </body>

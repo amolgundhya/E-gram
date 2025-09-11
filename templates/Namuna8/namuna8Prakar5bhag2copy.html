@@ -356,7 +356,7 @@
     </script>
     <div id="mainContent">
       {% for village in data %}
-      {% set num_records = data|length %}
+      {% set num_records = village.records|length %}
       {% set num_pages = (num_records // 2) + (1 if num_records % 2 else 0) %}
       {% for page in range(num_pages) %}
         <!-- Header Section: Place this at the top of your HTML file -->
@@ -451,10 +451,10 @@
                       data-house-tax="{{ row.totalHouseTax | default('0') }}"
                       data-lighting-tax="{{ row.lightingTax | default('0') }}"
                       data-health-tax="{{ row.healthTax | default('0') }}"
-                      data-water-tax="{{ row.waterTax | default('0') }}"
+                      data-water-tax="{{ (row.sapanikar if row.sapanikar is defined else row.waterTax) | default('0') }}"
                       data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
                       data-toilet-tax="{{ row.toiletTax | default('0') }}"
-                      data-total-tax="{{ row.totaltax | default('0') }}">
+                      data-total-tax="{{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }}">
                     <td>
                       {% if row.constructionType is defined and row.constructionType|length > 0 %}
                           {{ row.constructionType[0].capitalValue | default('') }}<br>
@@ -492,8 +492,8 @@
               </td>
                     <td>{{ row.lightingTax | default('') }}</td>
                     <td>{{ row.healthTax | default('') }}</td>
-                    <td>{{ row.waterTax | default('') }}</td>
-                    <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
+                    <td>{{ (row.sapanikar if row.sapanikar is defined else row.waterTax) | default('') }}</td>
+                    <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }} </td>
                     <td></td>
                     <td></td>
                     <td></td>

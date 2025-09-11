@@ -205,7 +205,7 @@
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitCleaningTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.cleaningTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalCleaningTax}}{% endif %}</td>
-                <td>{% if removePurnaYekun != 'true' %}{{row.totaltax}}{% endif %}</td>
+                <td>{% if removePurnaYekun != 'true' %}{{ (row.totaltax) - (row.totalViWaterTax|default(0)) - (row.totalSaWaterTax|default(0)) }}{% endif %}</td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -242,7 +242,9 @@
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitCleaningTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='cleaningTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalCleaningTax') }}{% endif %}</td>
-            <td>{% if removePurnaYekun != 'true' %}{{ data | sum(attribute='totaltax') }}{% endif %}</td>
+            <td>{% if removePurnaYekun != 'true' %}{{ (data | map(attribute='totaltax') | sum)
+                - (data | map(attribute='totalViWaterTax') | sum)
+                - (data | map(attribute='totalSaWaterTax') | sum) }}{% endif %}</td>
         </tr>
     </table>
 </body>
