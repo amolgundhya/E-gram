@@ -368,6 +368,20 @@ def sync_all_tables(db : Session=Depends(database.get_db)):
                 # print(f"Error syncing table '{table_name}': {e}")
                 continue
 
+        # Manually include many-to-many association table (no declarative model)
+        try:
+            assoc_table = None
+            if 'property_owner_associationowners' in all_tables:
+                assoc_table = 'property_owner_associationowners'
+            elif 'property_owner_association' in all_tables:
+                assoc_table = 'property_owner_association'
+            if assoc_table:
+                assoc_rows = db.execute(text(f"SELECT id, owner_id FROM {assoc_table}"))
+                # Alias to Python key expected by PHP (Livecode normalizes this key)
+                data_to_sync['property_owner_association'] = [dict(r) for r in assoc_rows.mappings()]
+        except Exception:
+            pass
+
         # print(f"Tables found: {ordered_tables}")
         # print(f"Total tables with data: {len(data_to_sync)}")
         # print(f"Tables successfully synced: {list(data_to_sync.keys())}")
@@ -448,6 +462,15 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
                 "message": f"Failed to fetch from hosted server: {response.status_code}",
             }
         sync_data = response.json().get("sync_data", {})
+        
+        # Debug logging for property_owner_association
+        if "property_owner_association" in sync_data:
+            rows = sync_data["property_owner_association"]
+            print(f"DEBUG: Received {len(rows)} rows for property_owner_association")
+            if len(rows) > 0:
+                print(f"DEBUG: Sample row: {rows[0]}")
+        else:
+            print("DEBUG: No property_owner_association data in response")
 
         # 2. Order of deletion
         truncate_order = [
@@ -572,8 +595,18 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
                     attr = getattr(module, attr_name)
                     if hasattr(attr, "__tablename__") and hasattr(attr, "__table__"):
                         all_models[attr.__tablename__] = attr
+                    # Also check for Table objects (like property_owner_association)
+                    elif hasattr(attr, "name") and hasattr(attr, "columns"):
+                        all_models[attr.name] = attr
             except ImportError:
                 continue
+        
+        # Debug: Print loaded models
+        print(f"DEBUG: Loaded models: {list(all_models.keys())}")
+        if "property_owner_association" in all_models:
+            print("DEBUG: property_owner_association model found")
+        else:
+            print("DEBUG: property_owner_association model NOT found")
 
         # 4. Date/boolean parsing helper
         def parse_datetime_fields(row, model):
@@ -633,8 +666,16 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
             for table in insert_order:
                 rows = sync_data.get(table, [])
                 model = all_models.get(table)
-                if not model or not rows:
+                if table == "property_owner_association":
+                    print(f"DEBUG: Processing table {table} - model: {model is not None}, rows: {len(rows) if rows else 0}")
+                if model is None or not rows:
+                    if table == "property_owner_association":
+                        print(f"DEBUG: Skipping {table} - model: {model is not None}, rows: {len(rows) if rows else 0}")
                     continue
+                
+                if table == "property_owner_association":
+                    print(f"DEBUG: Processing {len(rows)} rows for {table}")
+                    print(f"DEBUG: Model type: {type(model)}")
                 for row in rows:
                     if table == "namuna9" and "property_ids" in row and isinstance(row["property_ids"], str):
                         import json
@@ -643,12 +684,28 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
                             row["property_ids"] = json.loads(row["property_ids"])
                         except Exception:
                             pass
-                    row = parse_datetime_fields(row, model)
-                    try:
-                        db.add(model(**row))
-                    except Exception:
-                        pass
+                    
+                    # Handle Table objects differently from Model classes
+                    if table == "property_owner_association":
+                        # For association tables, use direct insert
+                        print(f"DEBUG: Attempting to insert row: {row}")
+                        try:
+                            result = db.execute(text(f"INSERT INTO {table} (id, owner_id) VALUES (:id, :owner_id)"), row)
+                            print(f"DEBUG: Successfully inserted row: {row}")
+                        except Exception as e:
+                            print(f"DEBUG: Error inserting {table} row: {e}")
+                            pass
+                    else:
+                        # For regular models, use ORM
+                        try:
+                            row = parse_datetime_fields(row, model)
+                            db.add(model(**row))
+                        except Exception as e:
+                            print(f"DEBUG: Error inserting {table} row: {e}")
+                            pass
 
+        db.commit()
+        print("DEBUG: Transaction committed successfully")
         return {"success": True, "message": "Local DB replaced with hosted data"}
 
     except Exception as e:
