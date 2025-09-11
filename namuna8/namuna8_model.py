@@ -8,7 +8,7 @@ import uuid
 
 # Association table for many-to-many relationship between Property and Owner
 property_owner_association = Table(
-    "property_owner_associationowners",
+    "property_owner_association",
     Base.metadata,
     Column("id", Integer, ForeignKey("properties.id")),
     Column("owner_id", Integer, ForeignKey("owners.id"))
