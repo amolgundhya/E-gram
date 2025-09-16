@@ -23,11 +23,11 @@ from namuna8.mastertab.mastertabmodels import GeneralSetting, BuildingUsageWeigh
 from location_management import models as location_models
 import logging
 
-logging.basicConfig(
-    filename="namuna8_logs.txt",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+# logging.basicConfig(
+#     filename="namuna8_logs.txt",
+#     level=logging.INFO,
+#     format="%(asctime)s - %(levelname)s - %(message)s"
+# )
 
 router = APIRouter(
     prefix="/namuna8",
@@ -418,7 +418,6 @@ def update_namuna8_entry(
 ):
     # Map totalArea to totalAreaSqFt if provided
     property_update_data = property_data.dict(exclude={'owners', 'constructions'})
-    print(property_data.totalArea);
     if "totalArea" in property_update_data and property_update_data["totalArea"] is not None:
         property_update_data["totalAreaSqFt"] = property_update_data["totalArea"]
     # Validate location hierarchy
@@ -1722,10 +1721,10 @@ def get_properties_by_owner_village(
         .all()
     )
 
-    for p in properties:
-        print(f"Property ID={p.id}, anuKramank={p.anuKramank}, malmattaKramank={p.malmattaKramank}")
-        for o in p.owners:
-            print(f"   Owner ID={o.id}, Name={o.name}, Village={o.village_id}, Aadhaar={o.aadhaarNumber}")
+    # for p in properties:
+    #     print(f"Property ID={p.id}, anuKramank={p.anuKramank}, malmattaKramank={p.malmattaKramank}")
+    #     for o in p.owners:
+    #         print(f"   Owner ID={o.id}, Name={o.name}, Village={o.village_id}, Aadhaar={o.aadhaarNumber}")
 
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 
@@ -1759,10 +1758,10 @@ def get_properties_by_village(
     
     properties = db.query(models.Property).filter(models.Property.village_id == village_id).all()
 
-    for p in properties:
-        print(f"Property ID={p.id}, anuKramank={p.anuKramank}, malmattaKramank={p.malmattaKramank}")
-        for o in p.owners:
-            print(f"   Owner ID={o.id}, Name={o.name}, Aadhaar={o.aadhaarNumber}, Mobile={o.mobileNumber}")
+    # for p in properties:
+    #     print(f"Property ID={p.id}, anuKramank={p.anuKramank}, malmattaKramank={p.malmattaKramank}")
+    #     for o in p.owners:
+    #         print(f"   Owner ID={o.id}, Name={o.name}, Aadhaar={o.aadhaarNumber}, Mobile={o.mobileNumber}")
 
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 
