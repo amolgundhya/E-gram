@@ -45,6 +45,8 @@ from certificates.no_arrears_certificate_model import NoArrearsCertificate
 from namuna8.namuna8_model import Property
 from namuna8.property_owner_history_model import PropertyOwnerHistory
 from namuna8.owner_history_model import OwnerHistory
+from sqlalchemy.orm import Session
+from namuna8.namuna8_model import ConstructionType
 Base.metadata.create_all(bind=engine, checkfirst=True)
 
 # Ensure critical certificate tables are created explicitly (helps in packaged/installer runs)
@@ -55,6 +57,90 @@ except Exception:
     # Safe to ignore; if engine is read-only or tables already exist
     pass
 
+def init_construction_types():
+    defaults = [
+        {
+            "id": 1,
+            "name": "आर सी सी इमारत",
+            "rate": 0.0,
+            "bandhmastache_dar": 0.0,
+            "bandhmastache_prakar": 0,
+            "gharache_prakar": 0,
+            "annualLandValueRate": 0.0,
+            "district_id": 1,
+            "taluka_id": 1,
+            "gram_panchayat_id": 1
+        },
+        {
+            "id": 2,
+            "name": "दगड विट सिमेंटची इमारत",
+            "rate": 0.0,
+            "bandhmastache_dar": 0.0,
+            "bandhmastache_prakar": 0,
+            "gharache_prakar": 0,
+            "annualLandValueRate": 0.0,
+            "district_id": 1,
+            "taluka_id": 1,
+            "gram_panchayat_id": 1
+        },
+        {
+            "id": 3,
+            "name": "दगड मातीची इमारत",
+            "rate": 0.0,
+            "bandhmastache_dar": 0.0,
+            "bandhmastache_prakar": 0,
+            "gharache_prakar": 0,
+            "annualLandValueRate": 0.0,
+            "district_id": 1,
+            "taluka_id": 1,
+            "gram_panchayat_id": 1
+        },
+        {
+            "id": 4,
+            "name": "झोपडी मातीचे इमारत",
+            "rate": 0.0,
+            "bandhmastache_dar": 0.0,
+            "bandhmastache_prakar": 0,
+            "gharache_prakar": 0,
+            "annualLandValueRate": 0.0,
+            "district_id": 1,
+            "taluka_id": 1,
+            "gram_panchayat_id": 1
+        },
+        {
+            "id": 5,
+            "name": "टिन शेड",
+            "rate": 0.0,
+            "bandhmastache_dar": 0.0,
+            "bandhmastache_prakar": 0,
+            "gharache_prakar": 0,
+            "annualLandValueRate": 0.0,
+            "district_id": 1,
+            "taluka_id": 1,
+            "gram_panchayat_id": 1
+        },
+        {
+            "id": 6,
+            "name": "खाली जागा",
+            "rate": 0.0,
+            "bandhmastache_dar": 0.0,
+            "bandhmastache_prakar": 0,
+            "gharache_prakar": 0,
+            "annualLandValueRate": 0.0,
+            "district_id": 1,
+            "taluka_id": 1,
+            "gram_panchayat_id": 1
+        }
+    ]
+    with Session(engine) as db:
+        for row in defaults:
+            exists = db.query(ConstructionType).filter_by(name=row["name"]).first()
+            if not exists:
+                db.add(ConstructionType(**row))
+        db.commit()
+
+# Call initializer after tables are created
+init_construction_types()
 app = FastAPI()
 
 # Remove or comment out the old static mount

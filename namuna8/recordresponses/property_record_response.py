@@ -204,13 +204,13 @@ def get_property_record(
             return getattr(water_settings, 'houseTax', 0)
         elif facility == 'व्यावसायिक नळ':
             return getattr(water_settings, 'commercialTax', 0)
-        elif facility == 'कारस पात्र नसलेली इमारत':
+        elif facility == 'करास पात्र नसलेली इमारत':
             return getattr(water_settings, 'exemptRate', 0)
-        elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+        elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-        elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+        elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWater301_700', 0)
-        elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+        elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
             return getattr(water_slab_settings, 'generalWaterAbove700', 0)
         return 0
     total_area = prop.totalAreaSqFt or 0
@@ -497,13 +497,13 @@ def get_property_records_by_village(
                 return getattr(water_settings, 'houseTax', 0)
             elif facility == 'व्यावसायिक नळ':
                 return getattr(water_settings, 'commercialTax', 0)
-            elif facility == 'कारस पात्र नसलेली इमारत':
+            elif facility == 'करास पात्र नसलेली इमारत':
                 return getattr(water_settings, 'exemptRate', 0)
-            elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+            elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
                 return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-            elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+            elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
                 return getattr(water_slab_settings, 'generalWater301_700', 0)
-            elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+            elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
                 return getattr(water_slab_settings, 'generalWaterAbove700', 0)
             return 0
         total_area = prop.totalAreaSqFt or 0
@@ -781,13 +781,13 @@ def get_property_records_by_gram_panchayat(
                     return getattr(water_settings, 'houseTax', 0)
                 elif facility == 'व्यावसायिक नळ':
                     return getattr(water_settings, 'commercialTax', 0)
-                elif facility == 'कारस पात्र नसलेली इमारत':
+                elif facility == 'करास पात्र नसलेली इमारत':
                     return getattr(water_settings, 'exemptRate', 0)
-                elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+                elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
                     return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-                elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+                elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
                     return getattr(water_slab_settings, 'generalWater301_700', 0)
-                elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+                elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
                     return getattr(water_slab_settings, 'generalWaterAbove700', 0)
                 return 0
 

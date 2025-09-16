@@ -9,12 +9,12 @@ router = APIRouter()
 # Load templates from the 'templates' folder (adjust path as needed)
 # Init environment
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..' ,'..'))
-print("base_dir ---->",base_dir)
+
 template_dir = os.path.join(base_dir, 'templates')
-print("template dir ---> " , template_dir)
+
 namuna7_template_dir = os.path.join(template_dir ,'Namuna7' )
 
-print("namuna7_template dir ---> " , namuna7_template_dir)
+
 home_path = os.path.expanduser("~")
 
 # Path to: C:\Users\<User>\AppData\Local\grampanchayat\reports
@@ -40,7 +40,7 @@ async def receipt(request : Request):
             raise Exception(f"API error {response.status_code}: {response.text}")
 
         # Debug print the response text
-        print("API response text:", response.text)
+       
 
         # Check for empty or invalid JSON response
         if not response.text.strip():
