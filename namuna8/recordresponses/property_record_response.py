@@ -124,34 +124,32 @@ def get_property_record(
                 
                 # Calculate capital value - exact same logic as Namuna8
                 if formula1:
-                    capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+                    capital_value = (khali_area * AnnualLandValueRate)
                 else:
-                    capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+                    capital_value = AreaInMeter * AnnualLandValueRate
                 
                 # Calculate house tax - exact same logic as Namuna8
                 house_tax = round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
             else:
                 capital_value = 0
                 house_tax = 0
-        else:
-            capital_value = 0
-            house_tax = 0
             
-        khaliJaga = [{
-            "constructiontype": "खाली जागा",
-            "length": khali_area,
-            "width": 1,
-            "year": datetime.now().year,
-            "rate": khali_jaga_rate,
-            "floor": "तळमजला",
-            "usage": prop.vacantLandType,
-            "capitalValue": capital_value,
-            "houseTax": house_tax,
-            "usageBasedBuildingWeightageFactor": 1,
-            "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
-            "totalkhalijagaareainfoot": khali_area,
-            "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
-        }]
+                
+            khaliJaga = [{
+                "constructiontype": prop.vacantLandType,
+                "length": khali_area,
+                "width": 1,
+                "year": datetime.now().year,
+                "rate": khali_jaga_rate,
+                "floor": "तळमजला",
+                "usage": prop.vacantLandType,
+                "capitalValue": capital_value,
+                "houseTax": house_tax,
+                "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
+                "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
+                "totalkhalijagaareainfoot": khali_area,
+                "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
+            }]
     # else: khaliJaga remains []
     # Fetch weightage mapping for usage
     weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
@@ -206,13 +204,13 @@ def get_property_record(
             return getattr(water_settings, 'houseTax', 0)
         elif facility == 'व्यावसायिक नळ':
             return getattr(water_settings, 'commercialTax', 0)
-        elif facility == 'कारस पात्र नसलेली इमारत':
+        elif facility == 'करास पात्र नसलेली इमारत':
             return getattr(water_settings, 'exemptRate', 0)
-        elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+        elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-        elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+        elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWater301_700', 0)
-        elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+        elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
             return getattr(water_slab_settings, 'generalWaterAbove700', 0)
         return 0
     total_area = prop.totalAreaSqFt or 0
@@ -222,9 +220,13 @@ def get_property_record(
         for c in prop.constructions
         # if not getattr(c.construction_type, 'name', '').strip().startswith('खाली जागा')
     ])
+    if khaliJaga:
+        total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
     
     # Calculate total capital value (excluding khali jagas)
     total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+    if khaliJaga:
+            total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
     todays_date = date.today().strftime("%d-%m-%Y")
     # Calculate total construction area in foot and meter (excluding khali jagas)
     total_construction_area_foot = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
@@ -240,8 +242,8 @@ def get_property_record(
         "village": prop.village.name if hasattr(prop, 'village') and prop.village else None,
         "taluka": taluka.name if taluka else None,
         "jilha": district.name if district else None,
-        "yearFrom": year_from,
-        "yearTo": year_to,
+        "yearFrom" : str(year_from) + "-" + str(year_from + 1),
+        "yearTo": str(year_to) + "-" + str(year_to + 1),
         "todays_date" : todays_date,
         "photoURL": photo_url,
         "bank_qr_code": None,
@@ -315,7 +317,7 @@ def get_property_record(
     response.update(checklist_fields)
     # Set QRcodeURL if QR code exists (single property)
     # Use location-based QR path
-    qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.anuKramank), "qrcode.png")
+    qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.village_id),str(prop.anuKramank), "qrcode.png")
     if os.path.exists(qr_path):
         response["QRcodeURL"] = f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}?district_id={prop.district_id}&taluka_id={prop.taluka_id}&gram_panchayat_id={prop.gram_panchayat_id}&village_id={prop.village_id}"
     else:
@@ -432,25 +434,22 @@ def get_property_records_by_village(
                 else:
                     capital_value = 0
                     house_tax = 0
-            else:
-                capital_value = 0
-                house_tax = 0
                 
-            khaliJaga = [{
-                "constructiontype": "खाली जागा",
-                "length": khali_area,
-                "width": 1,
-                "year": datetime.now().year,
-                "rate": khali_jaga_rate,
-                "floor": "तळमजला",
-                "usage": prop.vacantLandType,
-                "capitalValue": capital_value,
-                "houseTax": house_tax,
-                "usageBasedBuildingWeightageFactor": 1,
-                "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
-                "totalkhalijagaareainfoot": khali_area,
-                "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
-            }]
+                khaliJaga = [{
+                    "constructiontype": "खाली जागा",
+                    "length": khali_area,
+                    "width": 1,
+                    "year": datetime.now().year,
+                    "rate": khali_jaga_rate,
+                    "floor": "तळमजला",
+                    "usage": prop.vacantLandType,
+                    "capitalValue": capital_value,
+                    "houseTax": house_tax,
+                    "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
+                    "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
+                    "totalkhalijagaareainfoot": khali_area,
+                    "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
+                }]
         # else: khaliJaga remains []
         # Fetch weightage mapping for usage
         weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
@@ -491,19 +490,20 @@ def get_property_records_by_village(
                 return 0
             if not water_settings or not water_slab_settings:
                 return 0
-            if facility == 'सामान्य पाणिकर':
+            # Accept both spellings for 'सामान्य पाणिकर' and 'सामान्य पाणीकर'
+            if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
                 return getattr(water_settings, 'generalWater', 0)
             elif facility == 'घरगुती नळ':
                 return getattr(water_settings, 'houseTax', 0)
             elif facility == 'व्यावसायिक नळ':
                 return getattr(water_settings, 'commercialTax', 0)
-            elif facility == 'कारस पात्र नसलेली इमारत':
+            elif facility == 'करास पात्र नसलेली इमारत':
                 return getattr(water_settings, 'exemptRate', 0)
-            elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+            elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
                 return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-            elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+            elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
                 return getattr(water_slab_settings, 'generalWater301_700', 0)
-            elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+            elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
                 return getattr(water_slab_settings, 'generalWaterAbove700', 0)
             return 0
         total_area = prop.totalAreaSqFt or 0
@@ -513,7 +513,11 @@ def get_property_records_by_village(
             for c in prop.constructions
             # if not getattr(c.construction_type, 'name', '').strip().startswith('खाली जागा')
         ])
+        if khaliJaga:
+            total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
         total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+        if khaliJaga:
+                 total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
         total_construction_area_foot = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
         total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
         year_from = datetime.now().year
@@ -528,8 +532,8 @@ def get_property_records_by_village(
             "village": prop.village.name if hasattr(prop, 'village') and prop.village else None,
             "taluka": taluka.name if taluka else None,
             "jilha": district.name if district else None,
-            "yearFrom": year_from,
-            "yearTo": year_to,
+            "yearFrom" : str(year_from) + "-" + str(year_from + 1),
+            "yearTo": str(year_to) + "-" + str(year_to + 1),
             "photoURL": None,
             "QRcodeURL": None,
             "total_arearinfoot": prop.totalAreaSqFt,
@@ -601,9 +605,9 @@ def get_property_records_by_village(
         response["bank_qr_code"] = None
         # Set QRcodeURL if QR code exists (bulk)
         # Use location-based QR path
-        qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.anuKramank), "qrcode.png")
+        qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id),str(prop.village_id), str(prop.anuKramank), "qrcode.png")
         if os.path.exists(qr_path):
-            response["QRcodeURL"] = f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}?district_id={prop.district_id}&taluka_id={prop.taluka_id}&gram_panchayat_id={prop.gram_panchayat_id}"
+            response["QRcodeURL"] = f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}?district_id={prop.district_id}&taluka_id={prop.taluka_id}&gram_panchayat_id={prop.gram_panchayat_id}&village_id={prop.village_id}"
         else:
             response["QRcodeURL"] = None
         
@@ -713,25 +717,22 @@ def get_property_records_by_gram_panchayat(
                     else:
                         capital_value = 0
                         house_tax = 0
-                else:
-                    capital_value = 0
-                    house_tax = 0
 
-                khaliJaga = [{
-                    "constructiontype": "खाली जागा",
-                    "length": khali_area,
-                    "width": 1,
-                    "year": datetime.now().year,
-                    "rate": khali_jaga_rate,
-                    "floor": "तळमजला",
-                    "usage": prop.vacantLandType,
-                    "capitalValue": capital_value,
-                    "houseTax": house_tax,
-                    "usageBasedBuildingWeightageFactor": 1,
-                    "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
-                    "totalkhalijagaareainfoot": khali_area,
-                    "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
-                }]
+                    khaliJaga = [{
+                        "constructiontype": "खाली जागा",
+                        "length": khali_area,
+                        "width": 1,
+                        "year": datetime.now().year,
+                        "rate": khali_jaga_rate,
+                        "floor": "तळमजला",
+                        "usage": prop.vacantLandType,
+                        "capitalValue": capital_value,
+                        "houseTax": house_tax,
+                        "usageBasedBuildingWeightageFactor":  weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
+                        "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
+                        "totalkhalijagaareainfoot": khali_area,
+                        "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
+                    }]
 
             weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
             constructionType = [
@@ -780,13 +781,13 @@ def get_property_records_by_gram_panchayat(
                     return getattr(water_settings, 'houseTax', 0)
                 elif facility == 'व्यावसायिक नळ':
                     return getattr(water_settings, 'commercialTax', 0)
-                elif facility == 'कारस पात्र नसलेली इमारत':
+                elif facility == 'करास पात्र नसलेली इमारत':
                     return getattr(water_settings, 'exemptRate', 0)
-                elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+                elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
                     return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-                elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+                elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
                     return getattr(water_slab_settings, 'generalWater301_700', 0)
-                elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+                elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
                     return getattr(water_slab_settings, 'generalWaterAbove700', 0)
                 return 0
 
@@ -795,7 +796,11 @@ def get_property_records_by_gram_panchayat(
                 c.houseTax or 0
                 for c in prop.constructions
             ])
+            if khaliJaga:
+                 total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
             total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+            if khaliJaga:
+                 total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
             total_construction_area_foot = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
             total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
             year_from = datetime.now().year
@@ -812,8 +817,8 @@ def get_property_records_by_gram_panchayat(
                 "taluka": taluka.name if taluka else None,
                 "jilha": district.name if district else None,
                 "yearFrom": year_from,
-                "yearTo": year_to,
-                "todays_date" : todays_date,
+                "yearFrom" : str(year_from) + "-" + str(year_from + 1),
+                "yearTo": str(year_to) + "-" + str(year_to + 1),
                 "photoURL": None,
                 "bank_qr_code": None,
                 "QRcodeURL": None,
@@ -884,9 +889,9 @@ def get_property_records_by_gram_panchayat(
                     break
             response["photoURL"] = photo_url
 
-            qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.anuKramank), "qrcode.png")
+            qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id),str(prop.village_id), str(prop.anuKramank), "qrcode.png")
             if os.path.exists(qr_path):
-                response["QRcodeURL"] = f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}?district_id={prop.district_id}&taluka_id={prop.taluka_id}&gram_panchayat_id={prop.gram_panchayat_id}"
+                response["QRcodeURL"] = f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}?district_id={prop.district_id}&taluka_id={prop.taluka_id}&gram_panchayat_id={prop.gram_panchayat_id}&village_id={prop.village_id}"
             else:
                 response["QRcodeURL"] = None
 
@@ -903,3 +908,5 @@ def get_property_records_by_gram_panchayat(
             response_data[f"{village.name}"] = village_properties
 
     return response_data 
+
+

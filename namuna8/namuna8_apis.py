@@ -134,11 +134,12 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
                 usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
                 if formula1:
-                    capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+                    capital_value = (( (construction_data.length * construction_data.width) * AnnualLandValueRate ) + ( (construction_data.length * construction_data.width) * ConstructionRateAsPerConstruction * depreciationRate/100)) * usageBasedBuildingWeightageFactor
+                    # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
                     capital_value = round(capital_value, 2)
                     # print("capital_value_from_formula1" , capital_value)
                 else:
-                    capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+                    capital_value = (construction_data.length * construction_data.width) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
                     capital_value = round(capital_value, 2)
                     # print("capital_value_from_formula2" , capital_value)
                     
@@ -234,8 +235,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
             try:
                 db_property = models.Property(**property_dict, owners=owners, constructions=constructions)
                 db_property.created_at = datetime.now()
-                # print(f"DEBUG: Property model created successfully")
-                # print(f"DEBUG: Property vacantLandType value: {getattr(db_property, 'vacantLandType', 'NOT_FOUND')}")
+                
                 db.add(db_property)
             except Exception as e:
                 raise e
@@ -438,7 +438,15 @@ def update_namuna8_entry(
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
-    
+    if db.query(models.Property).filter(
+                models.Property.village_id == property_data.village_id,
+                models.Property.anuKramank == property_data.anuKramank,
+                models.Property.id != property_data.id
+            ).first():
+                raise HTTPException(
+                    status_code=400,
+                    detail="या गावात हा अनुक्रमांक आधीच अस्तित्वात आहे / This anuKramank already exists for this village"
+                )
     db_property = db.query(models.Property).filter(
         models.Property.village_id == village_id,
         models.Property.anuKramank == anu_kramank,
@@ -534,8 +542,34 @@ def update_namuna8_entry(
             construction_type = db.query(models.ConstructionType).filter_by(name=construction_data.constructionType).first()
             if not construction_type:
                 raise HTTPException(status_code=400, detail=f"Invalid construction type: {construction_data.constructionType}")
-            capital_value = 541133
-            house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * 541133)
+            
+            userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
+            if userFormulaPreference:
+                    formula1 = userFormulaPreference.capitalFormula1
+                    formula2 = userFormulaPreference.capitalFormula2
+            else:
+                # print("No user formula preference found")
+                pass
+                
+            # capital_value = 0
+            AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
+            #for capital_value calculation
+            AreaInMeter = construction_data.length * construction_data.width * 0.092903
+            ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
+            depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
+            # Before using usageBasedBuildingWeightageFactor, build the mapping
+            weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+            usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
+            if formula1:
+                capital_value = (( (construction_data.length * construction_data.width) * AnnualLandValueRate ) + ( (construction_data.length * construction_data.width) * ConstructionRateAsPerConstruction * depreciationRate/100)) * usageBasedBuildingWeightageFactor
+                # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+                capital_value = round(capital_value, 2)
+                # print("capital_value_from_formula1" , capital_value)
+            else:
+                capital_value = (construction_data.length * construction_data.width) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
+                capital_value = round(capital_value, 2)
+                    
+            house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value  ,2)
             new_construction = models.Construction(
                 construction_type_id=construction_type.id,
                 length=construction_data.length,
@@ -582,35 +616,39 @@ def update_namuna8_entry(
                 for c in new_constructions
             )
             remaining_area = total_area - used_area
-            if remaining_area > 0:
-                vacant_type_obj = db.query(models.ConstructionType).filter(models.ConstructionType.name == vacant_land_type).first()
-                if vacant_type_obj:
-                    length = remaining_area
-                    width = 1
-                    constructionYear = str(datetime.now().year)
-                    floor = "तळमजला"
-                    bharank = "औद्योगिक"
-                    AreaInMeter = length * width * 0.092903
-                    AnnualLandValueRate = 1000
-                    ConstructionRateAsPerConstruction = vacant_type_obj.bandhmastache_dar
-                    depreciationRate = calculate_depreciation_rate(constructionYear, vacant_type_obj.name)
-                    usageBasedBuildingWeightageFactor = 1
-                    capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                    house_tax = round((getattr(vacant_type_obj, 'rate', 0) / 1000) * capital_value)
-                    new_vacant_land = models.Construction(
-                        construction_type_id=vacant_type_obj.id,
-                        length=length,
-                        width=width,
-                        constructionYear=constructionYear,
-                        floor=floor,
-                        bharank=bharank,
-                        capitalValue=capital_value,
-                        houseTax=house_tax,
-                        district_id=getattr(property_data, 'district_id', None),
-                        taluka_id=getattr(property_data, 'taluka_id', None),
-                        gram_panchayat_id=getattr(property_data, 'gram_panchayat_id', None)
-                    )
-                    new_constructions.append(new_vacant_land)
+            # if remaining_area > 0:
+            #     vacant_type_obj = db.query(models.ConstructionType).filter(models.ConstructionType.name == vacant_land_type).first()
+            #     if vacant_type_obj:
+            #         length = remaining_area
+            #         width = 1
+            #         constructionYear = str(datetime.now().year)
+            #         floor = "तळमजला"
+            #         # bharank = "औद्योगिक"
+            #         if new_constructions:
+            #             bharank = new_constructions[-1].bharank
+            #         else:
+            #             bharank = None
+            #         AreaInMeter = length * width * 0.092903
+            #         AnnualLandValueRate = 1000
+            #         ConstructionRateAsPerConstruction = vacant_type_obj.bandhmastache_dar
+            #         depreciationRate = calculate_depreciation_rate(constructionYear, vacant_type_obj.name)
+            #         usageBasedBuildingWeightageFactor = 1
+            #         capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+            #         house_tax = round((getattr(vacant_type_obj, 'rate', 0) / 1000) * capital_value)
+            #         new_vacant_land = models.Construction(
+            #             construction_type_id=vacant_type_obj.id,
+            #             length=length,
+            #             width=width,
+            #             constructionYear=constructionYear,
+            #             floor=floor,
+            #             bharank=bharank,
+            #             capitalValue=capital_value,
+            #             houseTax=house_tax,
+            #             district_id=getattr(property_data, 'district_id', None),
+            #             taluka_id=getattr(property_data, 'taluka_id', None),
+            #             gram_panchayat_id=getattr(property_data, 'gram_panchayat_id', None)
+            #         )
+            #         new_constructions.append(new_vacant_land)
         # --- END ADDITION ---
         db_property.constructions = new_constructions
     # --- END FIX ---
@@ -630,9 +668,7 @@ def update_namuna8_entry(
         record_response = get_property_record(db_property.anuKramank,village_id, district_id, taluka_id, gram_panchayat_id, db)
         totalTax = record_response.get('totaltax', 0)
         srNo = response.get('anuKramank') or response.get('srNo') or ''
-        # print(f"DEBUG UPDATE: totalTax: {totalTax}")
-        # print(f"DEBUG UPDATE: srNo: {srNo}")
-        # print(f"DEBUG UPDATE: response keys: {list(response.keys())}")
+      
         east = db_property.eastLength or 0
         west = db_property.westLength or 0
         north = db_property.northLength or 0
@@ -648,15 +684,16 @@ def update_namuna8_entry(
         openArea = totalArea - constructionArea
         owner_name = record_response.get('ownerName', 0)
         wife_name = record_response.get('ownerWifeName', 0)
-        
+        totalArea = record_response.get('totalArea',0)
         qr_data = {
-            "अनुक्रमांक": srNo,
-            "मालकाचे नाव": owner_name,
-            "एकूण क्षेत्रफळ": totalArea,
-            "बांधकाम क्षेत्रफळ": constructionArea,
-            "खुली जागा": openArea,
-            "एकूण कर": totalTax,
+            "srNo": srNo,
+            "ownername": owner_name,
+            "totalArea": totalArea,
+            "constructionArea": constructionArea,
+            "openArea": openArea,
+            "totalTax": totalTax,
         }
+        
         if wife_name:
             qr_data["wifename"] = wife_name
         
@@ -733,13 +770,13 @@ def get_bulk_edit_property_list(
             return getattr(water_settings, 'houseTax', 0)
         elif facility == 'व्यावसायिक नळ':
             return getattr(water_settings, 'commercialTax', 0)
-        elif facility == 'कारस पात्र नसलेली इमारत':
+        elif facility == 'करास पात्र नसलेली इमारत':
             return getattr(water_settings, 'exemptRate', 0)
-        elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+        elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-        elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+        elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWater301_700', 0)
-        elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+        elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
             return getattr(water_slab_settings, 'generalWaterAbove700', 0)
         return 0
     result = []
@@ -763,13 +800,13 @@ def get_bulk_edit_property_list(
 @router.post("/bulk_update/")
 def bulk_update_properties(update: schemas.BulkEditUpdateRequest, db: Session = Depends(database.get_db)):
     valid_water_facilities = [
-        "सामान्य पाणिकर",
+        "सामान्य पाणीकर",
         "घरगुती नळ",
         "व्यावसायिक नळ",
-        "कारस पात्र नसलेली इमारत",
-        "सामान्य पाणिकर १ ते ३०० ची फु.",
-        "सामान्य पाणिकर ३०१ ते ७०० ची फु.",
-        "सामान्य पाणिकर ७०० ची फु. वरील",
+        "करास पात्र नसलेली इमारत",
+        "सामान्य पाणीकर १ ते ३०० चौ. फु.",
+        "सामान्य पाणीकर ३०१ ते ७०० चौ. फु.",
+        "सामान्य पाणीकर ७०० चौ. फु. वरील",
         None
     ]
     updated_count = 0
@@ -900,71 +937,133 @@ def create_owner(
         "village_id": new_owner.village_id
     }
 
+# @router.post("/owners/upload_photo/", response_model=str)
+# def upload_owner_photo(owner_id: int = Form(...), file: UploadFile = File(...)):
+#     from sqlalchemy.orm import Session
+#     from database import get_db
+#     import re
+    
+#     db: Session = next(get_db())
+    
+#     try:
+#         # print(f"DEBUG: Starting photo upload for owner_id: {owner_id}")
+        
+#         # Get owner to find location information
+#         owner = db.query(models.Owner).filter(models.Owner.id == owner_id).first()
+#         if not owner:
+#             # print(f"DEBUG: Owner not found with id: {owner_id}")
+#             raise HTTPException(status_code=400, detail="Owner not found")
+        
+#         # print(f"DEBUG: Found owner: {owner.name}, district_id: {owner.district_id}, taluka_id: {owner.taluka_id}, gram_panchayat_id: {owner.gram_panchayat_id}")
+        
+#         # Validate that owner has location information
+#         if not owner.district_id or not owner.taluka_id or not owner.gram_panchayat_id:
+#             # print(f"DEBUG: Owner missing location information")
+#             raise HTTPException(status_code=400, detail="Owner must have complete location information (district_id, taluka_id, gram_panchayat_id)")
+        
+#         # Create directory structure: uploaded_images/owners/{district_id}/{taluka_id}/{gram_panchayat_id}/{owner_id}/
+#         image_dir = os.path.join("uploaded_images", "owners", str(owner.district_id), str(owner.taluka_id), str(owner.gram_panchayat_id), str(owner_id))
+#         # print(f"DEBUG: Creating directory: {image_dir}")
+        
+#         # Ensure the directory exists
+#         os.makedirs(image_dir, exist_ok=True)
+#         # print(f"DEBUG: Directory created successfully")
+        
+#         # Sanitize owner name for filename
+#         ownername = re.sub(r'[^\w\-_]', '_', owner.name) if owner.name else f"owner_{owner_id}"
+#         # print(f"DEBUG: Sanitized owner name: {ownername}")
+        
+#         # Get file extension
+#         ext = os.path.splitext(file.filename)[1] if file.filename else ''
+#         filename = f"{ownername}{ext}"
+#         # print(f"DEBUG: Filename: {filename}")
+        
+#         file_path = os.path.join(image_dir, filename)
+#         # print(f"DEBUG: Full file path: {file_path}")
+        
+#         # Save the file
+#         with open(file_path, "wb") as buffer:
+#             shutil.copyfileobj(file.file, buffer)
+#         # print(f"DEBUG: File saved successfully")
+        
+#         # Convert to forward slashes for database storage
+#         file_location = file_path.replace(os.sep, '/')
+#         # print(f"DEBUG: Database file location: {file_location}")
+        
+#         # Update the owner's photo path in the database
+#         owner.ownerPhoto = file_location
+#         print(owner.ownerPhoto)
+#         db.commit()
+#         # print(f"DEBUG: Database updated successfully")
+        
+#         return file_location
+#     except Exception as e:
+#         # print(f"DEBUG: Error occurred: {str(e)}")
+#         # print(f"DEBUG: Error type: {type(e)}")
+#         import traceback
+#         # print(f"DEBUG: Traceback: {traceback.format_exc()}")
+#         raise HTTPException(status_code=500, detail=f"Error uploading photo: {str(e)}")
+
 @router.post("/owners/upload_photo/", response_model=str)
 def upload_owner_photo(owner_id: int = Form(...), file: UploadFile = File(...)):
     from sqlalchemy.orm import Session
     from database import get_db
     import re
+    import time
     
     db: Session = next(get_db())
     
     try:
-        # print(f"DEBUG: Starting photo upload for owner_id: {owner_id}")
-        
         # Get owner to find location information
         owner = db.query(models.Owner).filter(models.Owner.id == owner_id).first()
         if not owner:
-            # print(f"DEBUG: Owner not found with id: {owner_id}")
             raise HTTPException(status_code=400, detail="Owner not found")
-        
-        # print(f"DEBUG: Found owner: {owner.name}, district_id: {owner.district_id}, taluka_id: {owner.taluka_id}, gram_panchayat_id: {owner.gram_panchayat_id}")
         
         # Validate that owner has location information
         if not owner.district_id or not owner.taluka_id or not owner.gram_panchayat_id:
-            # print(f"DEBUG: Owner missing location information")
-            raise HTTPException(status_code=400, detail="Owner must have complete location information (district_id, taluka_id, gram_panchayat_id)")
+            raise HTTPException(
+                status_code=400,
+                detail="Owner must have complete location information (district_id, taluka_id, gram_panchayat_id)"
+            )
         
-        # Create directory structure: uploaded_images/owners/{district_id}/{taluka_id}/{gram_panchayat_id}/{owner_id}/
-        image_dir = os.path.join("uploaded_images", "owners", str(owner.district_id), str(owner.taluka_id), str(owner.gram_panchayat_id), str(owner_id))
-        # print(f"DEBUG: Creating directory: {image_dir}")
-        
-        # Ensure the directory exists
+        # Create directory structure
+        image_dir = os.path.join(
+            "uploaded_images", "owners",
+            str(owner.district_id),
+            str(owner.taluka_id),
+            str(owner.gram_panchayat_id),
+            str(owner_id)
+        )
         os.makedirs(image_dir, exist_ok=True)
-        # print(f"DEBUG: Directory created successfully")
         
-        # Sanitize owner name for filename
+        # Sanitize owner name
         ownername = re.sub(r'[^\w\-_]', '_', owner.name) if owner.name else f"owner_{owner_id}"
-        # print(f"DEBUG: Sanitized owner name: {ownername}")
         
         # Get file extension
         ext = os.path.splitext(file.filename)[1] if file.filename else ''
-        filename = f"{ownername}{ext}"
-        # print(f"DEBUG: Filename: {filename}")
+        
+        # Add timestamp to make filename unique
+        timestamp = int(time.time())
+        filename = f"{ownername}_{timestamp}{ext}"
         
         file_path = os.path.join(image_dir, filename)
-        # print(f"DEBUG: Full file path: {file_path}")
         
         # Save the file
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        # print(f"DEBUG: File saved successfully")
         
-        # Convert to forward slashes for database storage
+        # Convert to forward slashes for DB
         file_location = file_path.replace(os.sep, '/')
-        # print(f"DEBUG: Database file location: {file_location}")
         
-        # Update the owner's photo path in the database
+        # Update DB with latest photo path
         owner.ownerPhoto = file_location
         db.commit()
-        # print(f"DEBUG: Database updated successfully")
         
         return file_location
     except Exception as e:
-        # print(f"DEBUG: Error occurred: {str(e)}")
-        # print(f"DEBUG: Error type: {type(e)}")
         import traceback
-        # print(f"DEBUG: Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error uploading photo: {str(e)}")
+
 
 def build_property_response(db_property, db, gram_panchayat_id: int):
     # Build constructions with constructionType name
@@ -1025,13 +1124,13 @@ def build_property_response(db_property, db, gram_panchayat_id: int):
             return getattr(water_settings, 'houseTax', 0)
         elif facility == 'व्यावसायिक नळ':
             return getattr(water_settings, 'commercialTax', 0)
-        elif facility == 'कारस पात्र नसलेली इमारत':
+        elif facility == 'करास पात्र नसलेली इमारत':
             return getattr(water_settings, 'exemptRate', 0)
-        elif facility == 'सामान्य पाणिकर १ ते ३०० ची फु.':
+        elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-        elif facility == 'सामान्य पाणिकर ३०१ ते ७०० ची फु.':
+        elif facility == ['सामान्य पाणीकर ३०१ ते ७०० चौ. फु.','सामान्य पाणीकर ३०१ ते ७०० चौ. फु.']:
             return getattr(water_slab_settings, 'generalWater301_700', 0)
-        elif facility == 'सामान्य पाणिकर ७०० ची फु. वरील':
+        elif facility == ['सामान्य पाणीकर ७०० चौ. फु. वरील','सामान्य पाणीकर ७०० चौ. फु. वरील']:
             return getattr(water_slab_settings, 'generalWaterAbove700', 0)
         return 0
     total_area = db_property.totalAreaSqFt or 0
@@ -1720,12 +1819,6 @@ def get_properties_by_owner_village(
         .filter(models.Owner.village_id == village_id)
         .all()
     )
-
-    # for p in properties:
-    #     print(f"Property ID={p.id}, anuKramank={p.anuKramank}, malmattaKramank={p.malmattaKramank}")
-    #     for o in p.owners:
-    #         print(f"   Owner ID={o.id}, Name={o.name}, Village={o.village_id}, Aadhaar={o.aadhaarNumber}")
-
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 
 
@@ -1757,11 +1850,6 @@ def get_properties_by_village(
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
     
     properties = db.query(models.Property).filter(models.Property.village_id == village_id).all()
-
-    # for p in properties:
-    #     print(f"Property ID={p.id}, anuKramank={p.anuKramank}, malmattaKramank={p.malmattaKramank}")
-    #     for o in p.owners:
-    #         print(f"   Owner ID={o.id}, Name={o.name}, Aadhaar={o.aadhaarNumber}, Mobile={o.mobileNumber}")
 
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 

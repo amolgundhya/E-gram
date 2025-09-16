@@ -40,7 +40,7 @@ async def receipt(request : Request):
             raise Exception(f"API error {response.status_code}: {response.text}")
 
         # Debug print the response text
-        print("API response text:", response.text)
+       
 
         # Check for empty or invalid JSON response
         if not response.text.strip():
