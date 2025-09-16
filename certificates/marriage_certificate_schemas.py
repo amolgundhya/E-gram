@@ -40,4 +40,4 @@ class MarriageCertificateRead(MarriageCertificateBase):
     taluka: Optional[str] = None
     jilha: Optional[str] = None
     class Config:
-        from_attributes = True 
+        orm_mode = True

@@ -23,6 +23,8 @@ class BirthDeathUnavailabilityCertificateCreate(BirthDeathUnavailabilityCertific
     pass
 
 class BirthDeathUnavailabilityCertificateRead(BirthDeathUnavailabilityCertificateBase):
+    class Config:
+        orm_mode = True
     id: int
     barcode: Optional[str] = None
     barcode_url: Optional[str] = None

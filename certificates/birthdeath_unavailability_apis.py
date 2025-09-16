@@ -48,13 +48,19 @@ def list_certificates(
     db: Session = Depends(get_db)
 ):
     query = db.query(BirthDeathUnavailabilityCertificate)
+    
     if district_id:
         query = query.filter(BirthDeathUnavailabilityCertificate.district_id == district_id)
     if taluka_id:
         query = query.filter(BirthDeathUnavailabilityCertificate.taluka_id == taluka_id)
     if gram_panchayat_id:
         query = query.filter(BirthDeathUnavailabilityCertificate.gram_panchayat_id == gram_panchayat_id)
-    return query.all()
+
+    certs = query.all()
+
+   
+    return [BirthDeathUnavailabilityCertificateRead.from_orm(cert) for cert in certs]
+
 
 @router.get("/birthdeath-unavailability/{id}", response_model=BirthDeathUnavailabilityCertificateRead)
 def get_birthdeath_unavailability_certificate(id: int, request: Request, db: Session = Depends(get_db)):

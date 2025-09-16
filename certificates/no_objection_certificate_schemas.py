@@ -35,6 +35,5 @@ class NoObjectionCertificateRead(NoObjectionCertificateBase):
     gramPanchayat: Optional[str] = None
     taluka: Optional[str] = None
     jilha: Optional[str] = None
-    model_config = {
-        "from_attributes": True
-    } 
+    class Config:
+        orm_mode = True
