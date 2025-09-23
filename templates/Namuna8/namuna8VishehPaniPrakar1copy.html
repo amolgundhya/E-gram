@@ -274,8 +274,8 @@
                 data-house-tax="{{ row.totalHouseTax | default('0') }}"
                 data-lighting-tax="{{ row.lightingTax | default('0') }}"
                 data-health-tax="{{ row.healthTax | default('0') }}"
-                data-sa-water-tax="{{ row.saWaterTax | default('0') }}"
-                data-vsa-water-tax="{{ row.vsaWaterTax | default('0') }}"
+                data-sa-water-tax="{{ (row.saWaterTax if row.saWaterTax is defined else row.sapanikar) | default('0') }}"
+                data-vsa-water-tax="{{ (row.vsaWaterTax if row.vsaWaterTax is defined else row.vpanikar) | default('0') }}"
                 data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
                 data-toilet-tax="{{ row.toiletTax | default('0') }}"
                 data-total-tax="{{ row.totaltax | default('0') }}">
@@ -304,6 +304,7 @@
                                 {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                     {{ row.constructionType[1].year | default('') }}
                                 {% endif %}
+                                {{row.khaliJaga[0].year if row.khaliJaga and row.khaliJaga|length > 0 else ''}}
                             </td>
                             <td >{{ row.areaEast | default('') }} x {{ row.areaNorth | default('') }} </td>
                             <td>

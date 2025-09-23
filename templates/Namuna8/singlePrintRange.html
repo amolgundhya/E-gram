@@ -226,7 +226,7 @@
         </td>
         <td rowspan="2">{{row.occupantName|default('')}}</td>
         <td rowspan="2" style="text-align: left;"> {{row.constructionType[0].type if row.constructionType and row.constructionType|length > 0 else ''}} <br> {{row.constructionType[1].type if row.constructionType and row.constructionType|length > 1 else ''}} <br/> {{row.khaliJaga[0].constructiontype if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
-        <td rowspan="2"> {{row.constructionType[0].year if row.constructionType and row.constructionType|length > 0 else ''}} <br>{{row.constructionType[1].year if row.constructionType and row.constructionType|length > 1 else ''}}<br/></td>
+        <td rowspan="2"> {{row.constructionType[0].year if row.constructionType and row.constructionType|length > 0 else ''}} <br>{{row.constructionType[1].year if row.constructionType and row.constructionType|length > 1 else ''}}<br/> {{row.khaliJaga[0].year if row.khaliJaga and row.khaliJaga|length > 0 else ''}}<br></td>
         <td rowspan="2">{{row.areaEast|default('')}} x {{row.areaNorth|default('')}}</td>
         <td rowspan="2">{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}}</td>
         <td rowspan="2"></td>

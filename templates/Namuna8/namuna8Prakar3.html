@@ -204,8 +204,8 @@
                     {% set row = data[idx] %}
                     <div class="record-table-wrapper"
                         data-house-tax="{{ row.totalHouseTax | default('0') }}"
-                        data-lighting-tax="{{ row.totalLightingTax | default('0') }}"
-                        data-health-tax="{{ row.totalHealthTax | default('0') }}"
+                        data-lighting-tax="{{ (row.totalLightingTax if row.totalLightingTax is defined else row.lightingTax) | default('0') }}"
+                        data-health-tax="{{ (row.totalHealthTax if row.totalHealthTax is defined else row.healthTax) | default('0') }}"
                         data-water-tax="{{ (row.sapanikar if row.sapanikar is defined else row.totalWaterTax) | default('0') }}"
                         data-total-tax="{{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }}"
                     style="margin-bottom: 18px;">
@@ -256,7 +256,15 @@
                                 </td>
                                 <td rowspan="2"> {{row.occupantName|default('')}} </td>
                                 <td rowspan="2" style="text-align: left;">
-                                    {{row.propertyDescription|default('')}}
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ row.constructionType[0].type | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                        {{ row.constructionType[1].type | default('') }}<br>
+                    {% endif %}
+                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                        {{ row.khaliJaga[0].constructiontype | default('') }}
+                    {% endif %}
                                 </td>
                                 <td rowspan="2">
                                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
@@ -265,6 +273,7 @@
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{ row.constructionType[1].year|default('') }}
                                     {% endif %}
+                                    {{row.khaliJaga[0].year if row.khaliJaga and row.khaliJaga|length > 0 else ''}}
                                 </td>
                                 <td rowspan="2">{{ row.areaEast|default('') }} x {{row.areaNorth|default('')}}</td>
                                 <td rowspan="2">

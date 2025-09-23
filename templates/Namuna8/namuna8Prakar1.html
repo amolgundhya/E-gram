@@ -116,7 +116,7 @@
                 house += parseFloat(row.dataset.houseTax) || 0;
                 lighting += parseFloat(row.dataset.lightingTax) || 0;
                 health += parseFloat(row.dataset.healthTax) || 0;
-                water += parseFloat(row.dataset.sapanikar) || 0;
+                water += parseFloat(row.dataset.waterTax) || 0; // use the correct dataset key for data-water-tax
                 cleaning += parseFloat(row.dataset.cleaningTax) || 0;
                 toilet += parseFloat(row.dataset.toiletTax) || 0;
                 total += parseFloat(row.dataset.totalTax) || 0;
@@ -290,6 +290,7 @@
                                 {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                     {{ row.constructionType[1].year | default('') }}
                                 {% endif %}
+                                {{row.khaliJaga[0].year if row.khaliJaga and row.khaliJaga|length > 0 else ''}}
                             </td>
                             <td>
                                 {{ row.areaEast | default('') }} x {{ row.areaNorth | default('') }}
