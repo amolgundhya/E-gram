@@ -208,6 +208,7 @@
         <td rowspan="2">
             {{constructionType[0].year if constructionType and constructionType|length > 0 else ''}}<br>
             {{constructionType[1].year if constructionType and constructionType|length > 1 else ''}}<br>
+            {{khaliJaga[0].year if khaliJaga and khaliJaga|length > 0 else ''}}<br>
         </td>
         <td rowspan="2">{{areaEast|default('')}} x {{areaNorth|default('')}}</td>
         <td rowspan="2">{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}}</td>

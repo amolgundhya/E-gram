@@ -234,7 +234,7 @@
                         data-house-tax="{{ row.totalHouseTax | default('0') }}"
                         data-lighting-tax="{{ row.lightingTax | default('0') }}"
                         data-health-tax="{{ row.healthTax | default('0') }}"
-                        data-water-tax="{{ row.waterTax | default('0') }}"
+                        data-water-tax="{{ row.sapanikar | default('0') }}"
                         data-total-tax="{{ row.totaltax | default('0') }}"
                     style="margin-bottom: 16px;">
                         <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; margin-top: 0; font-size: 14px;">
@@ -283,7 +283,15 @@
                                 </td>
                                 <td rowspan="2"> {{row.occupantName|default('')}} </td>
                                 <td rowspan="2" style="text-align: left;">
-                                    {{row.propertyDescription|default('')}}
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ row.constructionType[0].type | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                        {{ row.constructionType[1].type | default('') }}<br>
+                    {% endif %}
+                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                        {{ row.khaliJaga[0].constructiontype | default('') }}
+                    {% endif %}
                                 </td>
                                 <td rowspan="2">
                                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
@@ -292,6 +300,7 @@
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{ row.constructionType[1].year|default('') }}
                                     {% endif %}
+                                    {{row.khaliJaga[0].year if row.khaliJaga and row.khaliJaga|length > 0 else ''}}
                                 </td>
                                 <td rowspan="2">{{ row.areaEast|default('') }} x {{row.areaNorth|default('')}}</td>
                                 <td rowspan="2">

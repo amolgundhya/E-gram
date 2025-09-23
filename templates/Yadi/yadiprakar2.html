@@ -201,7 +201,7 @@
             <tr>
                 <td class="right" colspan="21" style="border:none; padding:0;">
                     <div class="footer-summary">
-                        घर कर : {{ data | sum(attribute='totalHouseTax') }} &nbsp; दिवा कर : {{ data | sum(attribute='lightingTax') }} &nbsp; आ. कर : {{ data | sum(attribute='healthTax') }} &nbsp; पाणी कर : {{ data | sum(attribute='waterTax') }} &nbsp;एकूण : {{ (data | sum(attribute='totalHouseTax')) + (data | sum(attribute='lightingTax')) + (data | sum(attribute='healthTax')) + (data | sum(attribute='sapanikar')) }}
+                        घर कर : {{ data | sum(attribute='totalHouseTax') }} &nbsp; दिवा कर : {{ data | sum(attribute='lightingTax') }} &nbsp; आ. कर : {{ data | sum(attribute='healthTax') }} &nbsp; पाणी कर : {{ data | sum(attribute='sapanikar') }} &nbsp;एकूण : {{ (data | sum(attribute='totalHouseTax')) + (data | sum(attribute='lightingTax')) + (data | sum(attribute='healthTax')) + (data | sum(attribute='sapanikar')) }}
                     </div>
                 </td>
             </tr>

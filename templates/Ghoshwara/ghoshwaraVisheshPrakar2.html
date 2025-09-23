@@ -189,7 +189,7 @@
                 <td>{{ row.sapanikar }}</td>
                 <td>{{ row.vpanikar }}</td>
                 <td>{{ row.cleaningTax }}</td>
-                <td>{{ row.totaltax }}</td>
+                <td>{{ (row.totalHouseTax|default(0)) + (row.lightingTax|default(0)) + (row.healthTax|default(0)) + (row.sapanikar|default(0)) + (row.vpanikar|default(0)) + (row.cleaningTax|default(0)) }}</td>
             </tr>
             {% endfor %}
             <!-- Totals row: each total below its respective column -->
@@ -201,7 +201,7 @@
                 <td>{{ data | sum(attribute='sapanikar') }}</td>
                 <td>{{ data | sum(attribute='vpanikar') }}</td>
                 <td>{{ data | sum(attribute='cleaningTax') }}</td>
-                <td><b>{{ data | sum(attribute='totaltax') }}</b></td>
+                <td><b>{{ (data | sum(attribute='totalHouseTax')) + (data | sum(attribute='lightingTax')) + (data | sum(attribute='healthTax')) + (data | sum(attribute='sapanikar')) + (data | sum(attribute='vpanikar')) + (data | sum(attribute='cleaningTax')) }}</b></td>
             </tr>
         </tbody>
     </table>

@@ -5,6 +5,7 @@ from namuna9 import namuna9_model, namuna9_schemas
 from namuna9.namuna9settings import Namuna9Settings
 from namuna9.namuna9_schemas import Namuna9SettingsCreate, Namuna9SettingsRead, Namuna9SettingsUpdate
 from namuna8 import namuna8_model
+from namuna8.mastertab import mastertabmodels as settingModels
 from sqlalchemy.exc import IntegrityError
 from namuna8.namuna8_apis import build_property_response
 from location_management import models as location_models
@@ -397,11 +398,26 @@ def get_table_data(
         constructions = db.query(namuna8_model.Construction).filter(
             namuna8_model.Construction.property_id == prop.id
         ).all()
-        # Calculate totalHouseTax as the sum of all houseTax in constructions (excluding 'खाली जागा')
-        totalHouseTax = sum([
-            c.houseTax or 0
-            for c in constructions
-        ])
+        # Calculate totalHouseTax from constructions (includes 'खाली जागा' constructions) and add synthetic khali jaga if any leftover area exists
+        totalHouseTax = sum([(c.houseTax or 0) for c in constructions])
+        # Khali jaga addition similar to Namuna8 property_record_response
+        vacant_land_type = getattr(prop, 'vacantLandType', None)
+        if vacant_land_type not in [None, '', 'null']:
+            total_area = prop.totalAreaSqFt or 0
+            used_area = sum((c.length or 0) * (c.width or 0) for c in constructions)
+            khali_area = max(total_area - used_area, 0)
+            if khali_area > 0:
+                khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == "खाली जागा").first()
+                if khali_construction_type:
+                    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
+                    formula1 = userFormulaPreference.capitalFormula1 if userFormulaPreference else None
+                    area_in_meter = khali_area * 0.092903
+                    annual_land_value_rate = getattr(khali_construction_type, 'annualLandValueRate', 1)
+                    if formula1:
+                        capital_value_kj = (khali_area * annual_land_value_rate)
+                    else:
+                        capital_value_kj = (area_in_meter * annual_land_value_rate)
+                    totalHouseTax += round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj)
         # Join all owner names
         owner_names = ', '.join([o.get('name', '') for o in prop_data.get('owners', [])])
         # lightingTax, healthTax, sapanikar, vpanikar, cleaningTax
@@ -456,15 +472,16 @@ def get_table_data(
         ekunVpanikar = shaktiVpanikar + vpanikar
         ekunCleaningTax = shaktiCleaningTax + cleaningTax
         
-        # Total = sum of all numeric columns except serial, property no, owner name
+        # Total should reflect final totals (ekun columns) plus fees, not double-count shakti/chalu
         total = (
-            shaktiGhar + 0 + totalHouseTax + ekunGhar + 
-            shaktiDiva + lightingTax + ekunDiva + 
-            shaktiAarogyaKar + healthTax + ekunAarogyaKar + 
-            shaktiSapanikar + sapanikar + ekunSapanikar + 
-            shaktiVpanikar + vpanikar + ekunVpanikar + 
-            shaktiCleaningTax + cleaningTax + ekunCleaningTax + 
-            warrant_fee + notice_fee
+            ekunGhar +
+            ekunDiva +
+            ekunAarogyaKar +
+            ekunSapanikar +
+            ekunVpanikar +
+            ekunCleaningTax +
+            warrant_fee +
+            notice_fee
         )
         
         row = {
@@ -544,10 +561,24 @@ def get_namuna9_table_data_custom(
         constructions = db.query(namuna8_model.Construction).filter(
             namuna8_model.Construction.property_id == prop.id
         ).all()
-        totalHouseTax = sum([
-            c.houseTax or 0
-            for c in constructions
-        ])
+        totalHouseTax = sum([(c.houseTax or 0) for c in constructions])
+        vacant_land_type = getattr(prop, 'vacantLandType', None)
+        if vacant_land_type not in [None, '', 'null']:
+            total_area = prop.totalAreaSqFt or 0
+            used_area = sum((c.length or 0) * (c.width or 0) for c in constructions)
+            khali_area = max(total_area - used_area, 0)
+            if khali_area > 0:
+                khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == "खाली जागा").first()
+                if khali_construction_type:
+                    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
+                    formula1 = userFormulaPreference.capitalFormula1 if userFormulaPreference else None
+                    area_in_meter = khali_area * 0.092903
+                    annual_land_value_rate = getattr(khali_construction_type, 'annualLandValueRate', 1)
+                    if formula1:
+                        capital_value_kj = (khali_area * annual_land_value_rate)
+                    else:
+                        capital_value_kj = (area_in_meter * annual_land_value_rate)
+                    totalHouseTax += round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj)
         lightingTax = prop_data.get('divaKar', 0) or prop_data.get('lightingTax', 0) or 0
         healthTax = prop_data.get('aarogyaKar', 0) or prop_data.get('healthTax', 0) or 0
         saWaterTax = prop_data.get('sapanikar', 0) or 0

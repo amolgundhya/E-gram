@@ -198,7 +198,7 @@
                 <td>{% if removeChalu != 'true' %}{{row.cleaningTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalCleaningTax}}{% endif %}</td>
                 <td></td>
-                <td>{% if removePurnaYekun != 'true' %}{{ (row.totaltax) - (row.totalViWaterTax|default(0)) - (row.totalSaWaterTax|default(0)) }}{% endif %}</td>
+                <td>{% if removePurnaYekun != 'true' %}{{ (row.totaltax) - (row.totalViWaterTax|default(0)) - (row.totalSaWaterTax|default(0)) - (row.totlaToiletTax|default(0)) }}{% endif %}</td>
                 <td>{{pavatiSRKivyaTarik}}</td>
             </tr>
             {% endfor  %}
