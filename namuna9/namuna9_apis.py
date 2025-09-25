@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import database
 from namuna9 import namuna9_model, namuna9_schemas
 from namuna9.namuna9settings import Namuna9Settings
-from namuna9.namuna9_schemas import Namuna9SettingsCreate, Namuna9SettingsRead, Namuna9SettingsUpdate
+from namuna9.namuna9_schemas import Namuna9SettingsCreate, Namuna9SettingsRead, Namuna9SettingsUpdate, Namuna9PropertyDataCreate, Namuna9PropertyDataUpdate, Namuna9PropertyDataRead, Namuna9BulkPropertyDataUpdate
 from namuna8 import namuna8_model
 from namuna8.mastertab import mastertabmodels as settingModels
 from sqlalchemy.exc import IntegrityError
@@ -389,6 +389,15 @@ def get_table_data(
     property_ids = getattr(rec, 'property_ids', None)
     if not isinstance(property_ids, list) or len(property_ids) == 0:
         return []
+    
+    # Fetch saved property data from database
+    saved_property_data = db.query(namuna9_model.Namuna9PropertyData).filter(
+        namuna9_model.Namuna9PropertyData.namuna9_id == rec.id
+    ).all()
+    
+    # Create a map of property_id to saved data
+    saved_data_map = {data.property_id: data for data in saved_property_data}
+    
     # Fetch all property details
     properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.id.in_([int(i) for i in property_ids])).all()
     rows = []
@@ -427,16 +436,45 @@ def get_table_data(
         vpanikar = prop_data.get('vpanikar', 0) or 0
         cleaningTax = prop_data.get('cleaningTax', 0) or 0
         
-        # Initialize thakit values
-        shaktiGhar = 0
-        shaktiDiva = 0
-        shaktiAarogyaKar = 0
-        shaktiSapanikar = 0
-        shaktiVpanikar = 0
-        shaktiCleaningTax = 0
+        # Check if we have saved data for this property
+        saved_data = saved_data_map.get(prop.anuKramank)
         
-        # Apply thakit logic if enabled
-        if does_thakit and thakit_values and prop.id in thakit_data:
+        # Initialize thakit values (use saved data if available, otherwise calculate)
+        if saved_data:
+            shaktiGhar = saved_data.shaktiGhar or 0
+            shaktiDiva = saved_data.shaktiDiva or 0
+            shaktiAarogyaKar = saved_data.shaktiAarogyaKar or 0
+            shaktiSapanikar = saved_data.shaktiSapanikar or 0
+            shaktiVpanikar = saved_data.shaktiVpanikar or 0
+            shaktiCleaningTax = saved_data.shaktiCleaningTax or 0
+            dand = saved_data.dand or 0
+            chaluGhar = saved_data.chaluGhar or totalHouseTax
+            chaluDiva = saved_data.chaluDiva or lightingTax
+            chaluAarogyaKar = saved_data.chaluAarogyaKar or healthTax
+            chaluSapanikar = saved_data.chaluSapanikar or sapanikar
+            chaluVpanikar = saved_data.chaluVpanikar or vpanikar
+            chaluCleaningTax = saved_data.chaluCleaningTax or cleaningTax
+            warrantFee = saved_data.warrantFee or warrant_fee
+            noticeFee = saved_data.noticeFee or notice_fee
+        else:
+            shaktiGhar = 0
+            shaktiDiva = 0
+            shaktiAarogyaKar = 0
+            shaktiSapanikar = 0
+            shaktiVpanikar = 0
+            shaktiCleaningTax = 0
+            dand = 0
+            chaluGhar = totalHouseTax
+            chaluDiva = lightingTax
+            chaluAarogyaKar = healthTax
+            chaluSapanikar = sapanikar
+            chaluVpanikar = vpanikar
+            chaluCleaningTax = cleaningTax
+            warrantFee = warrant_fee
+            noticeFee = notice_fee
+        
+        # Apply thakit logic if enabled and no saved data
+        if not saved_data and does_thakit and thakit_values and prop.id in thakit_data:
             thakit_prop_data = thakit_data[prop.id]
             
             if thakit_values == "chaluGhar":
@@ -464,52 +502,65 @@ def get_table_data(
                 shaktiVpanikar = thakit_prop_data['chaluVpanikar']
                 shaktiCleaningTax = thakit_prop_data['chaluCleaningTax']
         
-        # Calculate ekun (total) values
-        ekunGhar = shaktiGhar + totalHouseTax
-        ekunDiva = shaktiDiva + lightingTax
-        ekunAarogyaKar = shaktiAarogyaKar + healthTax
-        ekunSapanikar = shaktiSapanikar + sapanikar
-        ekunVpanikar = shaktiVpanikar + vpanikar
-        ekunCleaningTax = shaktiCleaningTax + cleaningTax
+        # Calculate ekun (total) values - use saved data if available
+        if saved_data:
+            ekunGhar = saved_data.ekunGhar or (shaktiGhar + chaluGhar)
+            ekunDiva = saved_data.ekunDiva or (shaktiDiva + chaluDiva)
+            ekunAarogyaKar = saved_data.ekunAarogyaKar or (shaktiAarogyaKar + chaluAarogyaKar)
+            ekunSapanikar = saved_data.ekunSapanikar or (shaktiSapanikar + chaluSapanikar)
+            ekunVpanikar = saved_data.ekunVpanikar or (shaktiVpanikar + chaluVpanikar)
+            ekunCleaningTax = saved_data.ekunCleaningTax or (shaktiCleaningTax + chaluCleaningTax)
+        else:
+            ekunGhar = shaktiGhar + chaluGhar
+            ekunDiva = shaktiDiva + chaluDiva
+            ekunAarogyaKar = shaktiAarogyaKar + chaluAarogyaKar
+            ekunSapanikar = shaktiSapanikar + chaluSapanikar
+            ekunVpanikar = shaktiVpanikar + chaluVpanikar
+            ekunCleaningTax = shaktiCleaningTax + chaluCleaningTax
         
-        # Total should reflect final totals (ekun columns) plus fees, not double-count shakti/chalu
-        total = (
-            ekunGhar +
-            ekunDiva +
-            ekunAarogyaKar +
-            ekunSapanikar +
-            ekunVpanikar +
-            ekunCleaningTax +
-            warrant_fee +
-            notice_fee
-        )
+        # Total reflects ekun columns + fees + dand, avoiding double-count of shakti/chalu
+        if saved_data and saved_data.total is not None:
+            total = saved_data.total
+        else:
+            total = (
+                    (ekunGhar or 0) +
+                    (ekunDiva or 0) +
+                    (ekunAarogyaKar or 0) +
+                    (ekunSapanikar or 0) +
+                    (ekunVpanikar or 0) +
+                    (ekunCleaningTax or 0) +
+                    (warrantFee or 0) +
+                    (noticeFee or 0) +
+                    (dand or 0)
+            )
         
         row = {
             "anukramk": idx,
+            "property_id": getattr(prop, 'anuKramank', None),
             "malmattaKramank": prop_data.get('malmattaKramank', ''),
             "ownerNames": owner_names,
             "shaktiGhar": shaktiGhar,
-            "dand": 0,
-            "chaluGhar": totalHouseTax,
+            "dand": dand,
+            "chaluGhar": chaluGhar,
             "ekunGhar": ekunGhar,
             "totalHouseTax": totalHouseTax,
             "shaktiDiva": shaktiDiva,
-            "chaluDiva": lightingTax,
+            "chaluDiva": chaluDiva,
             "ekunDiva": ekunDiva,
             "shaktiAarogyaKar": shaktiAarogyaKar,
-            "chaluAarogyaKar": healthTax,
+            "chaluAarogyaKar": chaluAarogyaKar,
             "ekunAarogyaKar": ekunAarogyaKar,
             "shaktiSapanikar": shaktiSapanikar,
-            "chaluSapanikar": sapanikar,
+            "chaluSapanikar": chaluSapanikar,
             "ekunSapanikar": ekunSapanikar,
             "shaktiVpanikar": shaktiVpanikar,
-            "chaluVpanikar": vpanikar,
+            "chaluVpanikar": chaluVpanikar,
             "ekunVpanikar": ekunVpanikar,
             "shaktiCleaningTax": shaktiCleaningTax,
-            "chaluCleaningTax": cleaningTax,
+            "chaluCleaningTax": chaluCleaningTax,
             "ekunCleaningTax": ekunCleaningTax,
-            "warrantFee": warrant_fee,
-            "noticeFee": notice_fee,
+            "warrantFee": warrantFee,
+            "noticeFee": noticeFee,
             "total": total,
             "doesThakit": does_thakit,
             "thakitValues": thakit_values,
