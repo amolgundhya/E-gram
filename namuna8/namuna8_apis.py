@@ -764,8 +764,8 @@ def get_bulk_edit_property_list(
             return 0
         if not water_settings or not water_slab_settings:
             return 0
-        # Accept both spellings for 'सामान्य पाणिकर' and 'सामान्य पाणीकर'
-        if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
+        # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
+        if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
             return getattr(water_settings, 'generalWater', 0)
         elif facility == 'घरगुती नळ':
             return getattr(water_settings, 'houseTax', 0)
@@ -1118,8 +1118,8 @@ def build_property_response(db_property, db, gram_panchayat_id: int):
             return 0
         if not water_settings or not water_slab_settings:
             return 0
-        # Accept both spellings for 'सामान्य पाणिकर' and 'सामान्य पाणीकर'
-        if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
+        # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
+        if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
             return getattr(water_settings, 'generalWater', 0)
         elif facility == 'घरगुती नळ':
             return getattr(water_settings, 'houseTax', 0)

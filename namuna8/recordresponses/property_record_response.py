@@ -197,8 +197,8 @@ def get_property_record(
             return 0
         if not water_settings or not water_slab_settings:
             return 0
-        # Accept both spellings for 'सामान्य पाणिकर' and 'सामान्य पाणीकर'
-        if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
+        # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
+        if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
             return getattr(water_settings, 'generalWater', 0)
         elif facility == 'घरगुती नळ':
             return getattr(water_settings, 'houseTax', 0)
@@ -490,8 +490,8 @@ def get_property_records_by_village(
                 return 0
             if not water_settings or not water_slab_settings:
                 return 0
-            # Accept both spellings for 'सामान्य पाणिकर' and 'सामान्य पाणीकर'
-            if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
+            # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
+            if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
                 return getattr(water_settings, 'generalWater', 0)
             elif facility == 'घरगुती नळ':
                 return getattr(water_settings, 'houseTax', 0)
@@ -775,7 +775,7 @@ def get_property_records_by_gram_panchayat(
                     return 0
                 if not water_settings or not water_slab_settings:
                     return 0
-                if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
+                if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
                     return getattr(water_settings, 'generalWater', 0)
                 elif facility == 'घरगुती नळ':
                     return getattr(water_settings, 'houseTax', 0)
