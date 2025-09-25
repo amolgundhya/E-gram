@@ -299,7 +299,7 @@
                                 {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                     {{ row.constructionType[1].year | default('') }}
                                 {% endif %}
-                                {{row.khaliJaga[0].year if row.khaliJaga and row.khaliJaga|length > 0 else ''}}
+                                
                             </td>
                             <td>
                                 {{ row.areaEast | default('') }} x {{ row.areaNorth | default('') }}
