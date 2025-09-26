@@ -289,6 +289,9 @@
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].type | default('') }}<br>
                     {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].type | default('') }}<br>
+                    {% endif %}
                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                         {{ row.khaliJaga[0].constructiontype | default('') }}
                     {% endif %}
@@ -299,6 +302,9 @@
                                     {% endif %}
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{ row.constructionType[1].year|default('') }}
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{ row.constructionType[2].year|default('') }}
                                     {% endif %}
                                     
                                 </td>
@@ -318,6 +324,9 @@
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{row.constructionType[1].rate|default('')}}-{{row.constructionType[1].length|default('')}} x {{row.constructionType[1].width|default('')}}
                                     {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{row.constructionType[2].rate|default('')}}-{{row.constructionType[2].length|default('')}} x {{row.constructionType[2].width|default('')}}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
@@ -325,6 +334,9 @@
                                     {% endif %}
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{row.constructionType[1].depreciation_rate|default('')}}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{row.constructionType[2].depreciation_rate|default('')}}<br>
                                     {% endif %}
                                     0
                                 </td>
@@ -334,6 +346,9 @@
                                     {% endif %}
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{ row.constructionType[1].usageBasedBuildingWeightageFactor|default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{ row.constructionType[2].usageBasedBuildingWeightageFactor|default('') }}<br>
                                     {% endif %}
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                         {{row.khaliJaga[0].usageBasedBuildingWeightageFactor|default('') }}

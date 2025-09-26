@@ -196,9 +196,9 @@
         <td>30</td>
     </tr>
     <tr>
-        <td>{{constructionType[0].capitalValue if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].capitalValue if constructionType and constructionType|length > 1 else ''}}<br>{{khaliJaga[0].capitalValue if khaliJaga and khaliJaga|length > 0 else ''}}</td>
-        <td>{{constructionType[0].taxRates if constructionType and constructionType|length > 0 else ''}}<br> {{constructionType[1].taxRates if constructionType and constructionType|length > 1 else ''}} <br> {{khaliJaga[0].taxRates if khaliJaga and khaliJaga|length > 0 else ''}} </td>
-        <td> {{constructionType[0].houseTax if constructionType and constructionType|length > 0 else ''}} <br> {{constructionType[1].houseTax if constructionType and constructionType|length > 1 else ''}} <br> {{khaliJaga[0].houseTax if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td>{{constructionType[0].capitalValue if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].capitalValue if constructionType and constructionType|length > 1 else ''}}<br>{{constructionType[2].capitalValue if constructionType and constructionType|length > 2 else ''}}<br>{{khaliJaga[0].capitalValue if khaliJaga and khaliJaga|length > 0 else ''}}</td>
+        <td>{{constructionType[0].taxRates if constructionType and constructionType|length > 0 else ''}}<br> {{constructionType[1].taxRates if constructionType and constructionType|length > 1 else ''}} <br> {{constructionType[2].taxRates if constructionType and constructionType|length > 2 else ''}} <br> {{khaliJaga[0].taxRates if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td> {{constructionType[0].houseTax if constructionType and constructionType|length > 0 else ''}} <br> {{constructionType[1].houseTax if constructionType and constructionType|length > 1 else ''}} <br> {{constructionType[2].houseTax if constructionType and constructionType|length > 2 else ''}} <br> {{khaliJaga[0].houseTax if khaliJaga and khaliJaga|length > 0 else ''}} </td>
         <td> {{lightingTax|default('')}} </td>
         <td> {{healthTax|default('')}} </td>
         <td> {{sapanikar|default('')}} </td>
@@ -237,7 +237,7 @@
                     <div style="flex: 1;">
                         <div style="height: 80px; border-bottom: 1px solid #666; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
                             बांधकाम <br>
-                            {{constructionType[0].length if constructionType and constructionType|length > 0 else ''}} x {{constructionType[0].width if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].length if constructionType and constructionType|length > 1 else ''}} x {{constructionType[1].width if constructionType and constructionType|length > 1 else ''}}<br/>
+                            {{constructionType[0].length if constructionType and constructionType|length > 0 else ''}} x {{constructionType[0].width if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].length if constructionType and constructionType|length > 1 else ''}} x {{constructionType[1].width if constructionType and constructionType|length > 1 else ''}}<br>{{constructionType[2].length if constructionType and constructionType|length > 2 else ''}} x {{constructionType[2].width if constructionType and constructionType|length > 2 else ''}}<br/>
                             
                         </div>
                         <div style="height: 10px; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">

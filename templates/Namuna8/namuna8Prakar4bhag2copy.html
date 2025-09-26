@@ -471,6 +471,9 @@
                       {% if row.constructionType is defined and row.constructionType|length > 1 %}
                           {{ row.constructionType[1].capitalValue | default('') }}<br>
                       {% endif %}
+                      {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                          {{ row.constructionType[2].capitalValue | default('') }}<br>
+                      {% endif %}
                       {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                           {{ row.khaliJaga[0].capitalValue | default('') }}
                       {% endif %}
@@ -484,6 +487,9 @@
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].depreciation_rate | default('') }}<br>
                     {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].depreciation_rate | default('') }}<br>
+                    {% endif %}
                     0
                 </td>
                 <td>
@@ -492,6 +498,9 @@
                   {% endif %}
                   {% if row.constructionType is defined and row.constructionType|length > 1 %}
                       {{ row.constructionType[1].houseTax | default('') }}<br>
+                  {% endif %}
+                  {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                      {{ row.constructionType[2].houseTax | default('') }}<br>
                   {% endif %}
                   {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                       {{ row.khaliJaga[0].houseTax | default('') }}
