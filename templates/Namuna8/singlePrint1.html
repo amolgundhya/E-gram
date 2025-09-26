@@ -133,18 +133,18 @@
                 <tr>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
 
-                        <div style=" width:90px; height: 90px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                        <div style=" width:140px; height: 140px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             {% if QRcodeURL %}
-                                <img src="{{ QRcodeURL | default('') }}" style="width: 90px; height: 90px; image-rendering: pixelated;" />
+                                <img src="{{ QRcodeURL | default('') }}" style="width: 140px; height: 140px; image-rendering: pixelated;" />
                             {% else %}
                                 <div></div>
                             {% endif %}
                         </td>
                         <td style="width: 50%; border-right: 1px solid #000; border-bottom: none; border-top: none; border-left: none; text-align: center; vertical-align: top;">
 
-                            <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                            <div style="border: 1px solid #000; width: 140px; height: 140px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                                 {% if photoURL %}
-                                    <img src="{{ photoURL }}" style="width:78px; height:78px; object-fit: cover;" />
+                                    <img src="{{ photoURL }}" style="width:140px; height:140px; object-fit: cover;" />
                                 {% else %}
                                     <div></div>
                                 {% endif %}
@@ -152,9 +152,9 @@
                         </td>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
 
-                        <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                        <div style="border: 1px solid #000; width: 140px; height: 140px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             {% if bank_qr_code %}
-                                <img src="{{ bank_qr_code }}" style="width: 78px; height: 78px; object-fit: cover;" />
+                                <img src="{{ bank_qr_code }}" style="width: 140px; height: 140px; object-fit: cover;" />
                             {% else %}
                                 <div></div>
                             {% endif %}

@@ -32,7 +32,8 @@ def create_property_data(property_data: Namuna9PropertyDataCreate, db: Session =
                 continue
             setattr(existing, field, value)
         # Recompute ekun and total consistently
-        existing.ekunGhar = (existing.shaktiGhar or 0) + (existing.chaluGhar or 0)
+        # Include dand in ekunGhar (house total)
+        existing.ekunGhar = (existing.shaktiGhar or 0) + (existing.chaluGhar or 0) + (existing.dand or 0)
         existing.ekunDiva = (existing.shaktiDiva or 0) + (existing.chaluDiva or 0)
         existing.ekunAarogyaKar = (existing.shaktiAarogyaKar or 0) + (existing.chaluAarogyaKar or 0)
         existing.ekunSapanikar = (existing.shaktiSapanikar or 0) + (existing.chaluSapanikar or 0)
@@ -45,7 +46,8 @@ def create_property_data(property_data: Namuna9PropertyDataCreate, db: Session =
 
     db_property_data = namuna9_model.Namuna9PropertyData(**property_data.dict())
     # Initialize ekun and total on create too
-    db_property_data.ekunGhar = (db_property_data.shaktiGhar or 0) + (db_property_data.chaluGhar or 0)
+    # Include dand in ekunGhar (house total)
+    db_property_data.ekunGhar = (db_property_data.shaktiGhar or 0) + (db_property_data.chaluGhar or 0) + (db_property_data.dand or 0)
     db_property_data.ekunDiva = (db_property_data.shaktiDiva or 0) + (db_property_data.chaluDiva or 0)
     db_property_data.ekunAarogyaKar = (db_property_data.shaktiAarogyaKar or 0) + (db_property_data.chaluAarogyaKar or 0)
     db_property_data.ekunSapanikar = (db_property_data.shaktiSapanikar or 0) + (db_property_data.chaluSapanikar or 0)
@@ -130,7 +132,8 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
             for field, value in updates.items():
                 setattr(existing, field, value)
             # Recompute ekun and total after updates
-            existing.ekunGhar = (existing.shaktiGhar or 0) + (existing.chaluGhar or 0)
+            # Include dand in ekunGhar (house total)
+            existing.ekunGhar = (existing.shaktiGhar or 0) + (existing.chaluGhar or 0) + (existing.dand or 0)
             existing.ekunDiva = (existing.shaktiDiva or 0) + (existing.chaluDiva or 0)
             existing.ekunAarogyaKar = (existing.shaktiAarogyaKar or 0) + (existing.chaluAarogyaKar or 0)
             existing.ekunSapanikar = (existing.shaktiSapanikar or 0) + (existing.chaluSapanikar or 0)
@@ -145,7 +148,8 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
                 **updates
             )
             # Initialize ekun and total on create
-            new_data.ekunGhar = (new_data.shaktiGhar or 0) + (new_data.chaluGhar or 0)
+            # Include dand in ekunGhar (house total)
+            new_data.ekunGhar = (new_data.shaktiGhar or 0) + (new_data.chaluGhar or 0) + (new_data.dand or 0)
             new_data.ekunDiva = (new_data.shaktiDiva or 0) + (new_data.chaluDiva or 0)
             new_data.ekunAarogyaKar = (new_data.shaktiAarogyaKar or 0) + (new_data.chaluAarogyaKar or 0)
             new_data.ekunSapanikar = (new_data.shaktiSapanikar or 0) + (new_data.chaluSapanikar or 0)
@@ -219,7 +223,8 @@ def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(data
     apply('warrantFee', 'vasuliWarrantFee', payload.vasuliWarrantFee)
 
     # Recompute ekun and total
-    data.ekunGhar = (data.shaktiGhar or 0) + (data.chaluGhar or 0)
+    # Include dand in ekunGhar recompute
+    data.ekunGhar = (data.shaktiGhar or 0) + (data.chaluGhar or 0) + (data.dand or 0)
     data.ekunDiva = (data.shaktiDiva or 0) + (data.chaluDiva or 0)
     data.ekunAarogyaKar = (data.shaktiAarogyaKar or 0) + (data.chaluAarogyaKar or 0)
     data.ekunSapanikar = (data.shaktiSapanikar or 0) + (data.chaluSapanikar or 0)

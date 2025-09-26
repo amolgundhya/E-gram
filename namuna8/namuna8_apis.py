@@ -323,11 +323,9 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     "मालकाचे नाव": owner_name,
                     "एकूण क्षेत्र": totalArea,
                     "बांधकाम क्षेत्र": constructionArea,
-                    "मोकळी जागा": openArea,
-                    "एकूण कर": totalTax,
                 }
                 if wife_name:
-                    qr_data["wife name"] = wife_name
+                    qr_data["पत्नीचे नाव"] = wife_name
                 # Create location-based QR directory structure
                 qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id),str(db_property.anuKramank))
                 # print(f"DEBUG: Creating QR directory: {qr_dir}")
@@ -758,12 +756,10 @@ def update_namuna8_entry(
             "मालकाचे नाव": owner_name,
             "एकूण क्षेत्र": totalArea,
             "बांधकाम क्षेत्र": constructionArea,
-            "मोकळी जागा": openArea,
-            "एकूण कर": totalTax,
         }
 
         if wife_name:
-            qr_data["wife name"] = wife_name
+            qr_data["पत्नीचे नाव"] = wife_name
         
         # Create location-based QR directory structure
         qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id), str(db_property.anuKramank))

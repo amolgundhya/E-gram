@@ -506,14 +506,16 @@ def get_table_data(
         
         # Calculate ekun (total) values - use saved data if available
         if saved_data:
-            ekunGhar = round(saved_data.ekunGhar or (shaktiGhar + chaluGhar), 2)
+            # Include dand in ekunGhar (house total)
+            ekunGhar = round(saved_data.ekunGhar or (shaktiGhar + chaluGhar + (dand or 0)), 2)
             ekunDiva = round(saved_data.ekunDiva or (shaktiDiva + chaluDiva), 2)
             ekunAarogyaKar = round(saved_data.ekunAarogyaKar or (shaktiAarogyaKar + chaluAarogyaKar), 2)
             ekunSapanikar = round(saved_data.ekunSapanikar or (shaktiSapanikar + chaluSapanikar), 2)
             ekunVpanikar = round(saved_data.ekunVpanikar or (shaktiVpanikar + chaluVpanikar), 2)
             ekunCleaningTax = round(saved_data.ekunCleaningTax or (shaktiCleaningTax + chaluCleaningTax), 2)
         else:
-            ekunGhar = round(shaktiGhar + chaluGhar, 2)
+            # Include dand in ekunGhar when no saved_data
+            ekunGhar = round(shaktiGhar + chaluGhar + (dand or 0), 2)
             ekunDiva = round(shaktiDiva + chaluDiva, 2)
             ekunAarogyaKar = round(shaktiAarogyaKar + chaluAarogyaKar, 2)
             ekunSapanikar = round(shaktiSapanikar + chaluSapanikar, 2)
