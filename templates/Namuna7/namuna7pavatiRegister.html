@@ -50,6 +50,7 @@
             #toolbar {
                 display: none !important;
             }
+            .record-row { display: table-row !important; }
         }
     </style>
 </head>
@@ -118,21 +119,8 @@
         function firstPage() { showPage(1); }
         function lastPage() { showPage(totalPages); }
         function printPage() {
-            // Show only current page's records before printing, then restore
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            const prevStates = records.map(el => el.style.display);
-            records.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                el.style.display = (pageIdx === currentPage) ? '' : 'none';
-            });
-            setTimeout(() => {
-                window.print();
-                setTimeout(() => {
-                    records.forEach((el, idx) => {
-                        el.style.display = prevStates[idx];
-                    });
-                }, 100);
-            }, 50);
+            // Print all pages; visibility handled by @media print CSS
+            window.print();
         }
         function exitPage() {
             window.close();
