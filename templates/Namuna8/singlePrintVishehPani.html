@@ -113,24 +113,34 @@
         <td style="width: 22%; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
-                    <tr>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
 
                         <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            <img src={{QRcodeURL | default('')}} alt="Information" style="width: 78px; height: 78px; object-fit: cover;" />
+                            {% if QRcodeURL %}
+                                <img src={{QRcodeURL | default('')}}  style="width: 78px; height: 78px; object-fit: cover;" />
+                            {% else %}
+                                <div></div>
+                            {% endif %}
                         </td>
                         <td style="width: 50%; border-right: 1px solid #000; border-bottom: none; border-top: none; border-left: none; text-align: center; vertical-align: top;">
 
                             <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                                <img src= {{photoURL | default('')}} alt="Photo" style="width:78px; height: 78px; object-fit: cover;" />
+                                {% if photoURL %}
+                                    <img src="{{ photoURL }}" style="width:78px; height:78px; object-fit: cover;" />
+                                {% else %}
+                                    <div></div>
+                                {% endif %}
                             </div>
                         </td>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
 
                         <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            <img src={{bank_qr_code | default('')}} alt="Bank" style="width: 78px; height: 78px; object-fit: cover;" />
-                    </td>   
-                </tr>
+                            {% if bank_qr_code %}
+                                <img src="{{ bank_qr_code }}" style="width: 78px; height: 78px; object-fit: cover;" />
+                            {% else %}
+                                <div></div>
+                            {% endif %}
+                    </td>
             </table>
         </td>
     </tr>
@@ -193,16 +203,16 @@
             {{ownerName|default('')}}
         </td>
         <td rowspan="2">{{occupantName|default('')}}</td>
-        <td rowspan="2" style="text-align: left;"> {{constructionType[0].type if constructionType and constructionType|length > 0 else ''}} <br> {{constructionType[1].type if constructionType and constructionType|length > 1 else ''}} <br/> {{khaliJaga[0].constructiontype if khaliJaga and khaliJaga|length > 0 else ''}} </td>
-        <td rowspan="2"> {{constructionType[0].year if constructionType and constructionType|length > 0 else ''}} <br>{{constructionType[1].year if constructionType and constructionType|length > 1 else ''}}<br/> {{khaliJaga[0].year if khaliJaga and khaliJaga|length > 0 else ''}}<br></td>
+        <td rowspan="2" style="text-align: left;"> {{constructionType[0].type if constructionType and constructionType|length > 0 else ''}} <br> {{constructionType[1].type if constructionType and constructionType|length > 1 else ''}} <br> {{constructionType[2].type if constructionType and constructionType|length > 2 else ''}} <br/> {{khaliJaga[0].constructiontype if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td rowspan="2"> {{constructionType[0].year if constructionType and constructionType|length > 0 else ''}} <br>{{constructionType[1].year if constructionType and constructionType|length > 1 else ''}} <br>{{constructionType[2].year if constructionType and constructionType|length > 2 else ''}}<br/> </td>
         <td rowspan="2">{{areaEast|default('')}} x {{areaNorth|default('')}}</td>
         <td rowspan="2">{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}}</td>
         <td rowspan="2"></td>
     </tr>
     <tr>
-    <td> {{constructionType[0].rate if constructionType and constructionType|length > 0 else ''}}-{{constructionType[0].length if constructionType and constructionType|length > 0 else ''}}x{{constructionType[0].width if constructionType and constructionType|length > 0 else ''}} <br>{{constructionType[1].rate if constructionType and constructionType|length > 1 else ''}}-{{constructionType[1].length if constructionType and constructionType|length > 1 else ''}}x{{constructionType[1].width if constructionType and constructionType|length > 1 else ''}}<br/></td>
-        <td>{{constructionType[0].depreciation_rate if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].depreciation_rate if constructionType and constructionType|length > 1 else ''}}<br/>0</td>
-        <td>{{constructionType[0].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 0 else ''}}<br> {{constructionType[1].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 1 else ''}} <br/> {{khaliJaga[0].usageBasedBuildingWeightageFactor if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+    <td> {{constructionType[0].rate if constructionType and constructionType|length > 0 else ''}}-{{constructionType[0].length if constructionType and constructionType|length > 0 else ''}}x{{constructionType[0].width if constructionType and constructionType|length > 0 else ''}} <br>{{constructionType[1].rate if constructionType and constructionType|length > 1 else ''}}-{{constructionType[1].length if constructionType and constructionType|length > 1 else ''}}x{{constructionType[1].width if constructionType and constructionType|length > 1 else ''}} <br>{{constructionType[2].rate if constructionType and constructionType|length > 2 else ''}}-{{constructionType[2].length if constructionType and constructionType|length > 2 else ''}}x{{constructionType[2].width if constructionType and constructionType|length > 2 else ''}}<br/></td>
+        <td>{{constructionType[0].depreciation_rate if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].depreciation_rate if constructionType and constructionType|length > 1 else ''}}<br>{{constructionType[2].depreciation_rate if constructionType and constructionType|length > 2 else ''}}<br/>0</td>
+        <td>{{constructionType[0].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 0 else ''}}<br> {{constructionType[1].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 1 else ''}} <br> {{constructionType[2].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 2 else ''}} <br/> {{khaliJaga[0].usageBasedBuildingWeightageFactor if khaliJaga and khaliJaga|length > 0 else ''}} </td>
     </tr>
 
     <tr>
@@ -275,9 +285,9 @@
         <td>32</td>
     </tr>
     <tr>
-        <td>{{constructionType[0].capitalValue if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].capitalValue if constructionType and constructionType|length > 1 else ''}}<br>{{khaliJaga[0].capitalValue if khaliJaga and khaliJaga|length > 0 else ''}}</td>
-        <td>{{constructionType[0].taxRates if constructionType and constructionType|length > 0 else ''}}<br> {{constructionType[1].taxRates if constructionType and constructionType|length > 1 else ''}} <br> {{khaliJaga[0].taxRates if khaliJaga and khaliJaga|length > 0 else ''}} </td>
-        <td> {{constructionType[0].houseTax if constructionType and constructionType|length > 0 else ''}} <br> {{constructionType[1].houseTax if constructionType and constructionType|length > 1 else ''}} <br> {{khaliJaga[0].houseTax if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td>{{constructionType[0].capitalValue if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].capitalValue if constructionType and constructionType|length > 1 else ''}}<br>{{constructionType[2].capitalValue if constructionType and constructionType|length > 2 else ''}}<br>{{khaliJaga[0].capitalValue if khaliJaga and khaliJaga|length > 0 else ''}}</td>
+        <td>{{constructionType[0].taxRates if constructionType and constructionType|length > 0 else ''}}<br> {{constructionType[1].taxRates if constructionType and constructionType|length > 1 else ''}} <br> {{constructionType[2].taxRates if constructionType and constructionType|length > 2 else ''}} <br> {{khaliJaga[0].taxRates if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td> {{constructionType[0].houseTax if constructionType and constructionType|length > 0 else ''}} <br> {{constructionType[1].houseTax if constructionType and constructionType|length > 1 else ''}} <br> {{constructionType[2].houseTax if constructionType and constructionType|length > 2 else ''}} <br> {{khaliJaga[0].houseTax if khaliJaga and khaliJaga|length > 0 else ''}} </td>
         <td> {{lightingTax|default('')}} </td>
         <td> {{healthTax|default('')}} </td>
         <td> {{sapanikar|default('')}} </td>
@@ -299,7 +309,7 @@
                 <div style="height: 40px; border-bottom: 1px solid #666; display: flex; align-items: center; justify-content: center;">
                     द.: {{boundarySouth|default('')}} <br>
                     एकूण क्षेत्रफळ : 
-                    {{areaEast|default('')}} x {{areaNorth|default('')}} (फुट)
+                    {{areaEast|default('')}} x {{areaNorth|default('')}}
 
                 </div>
                 
@@ -318,12 +328,12 @@
                     <div style="flex: 1;">
                         <div style="height: 80px; border-bottom: 1px solid #666; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
                             बांधकाम <br>
-                            {{constructionType[0].length if constructionType and constructionType|length > 0 else ''}} x {{constructionType[0].width if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].length if constructionType and constructionType|length > 1 else ''}} x {{constructionType[1].width if constructionType and constructionType|length > 1 else ''}}<br/>
+                            {{constructionType[0].length if constructionType and constructionType|length > 0 else ''}} x {{constructionType[0].width if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].length if constructionType and constructionType|length > 1 else ''}} x {{constructionType[1].width if constructionType and constructionType|length > 1 else ''}}<br>{{constructionType[2].length if constructionType and constructionType|length > 2 else ''}} x {{constructionType[2].width if constructionType and constructionType|length > 2 else ''}}<br/>
                             
                         </div>
                         <div style="height: 10px; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
                             खुली जागा <br>
-                            {{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}} x 1
+                            {{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}}
                         </div>
                     </div>
                     

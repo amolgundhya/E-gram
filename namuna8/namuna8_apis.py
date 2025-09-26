@@ -134,12 +134,13 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
                 usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
                 if formula1:
-                    capital_value = (( (construction_data.length * construction_data.width) * AnnualLandValueRate ) + ( (construction_data.length * construction_data.width) * ConstructionRateAsPerConstruction * depreciationRate/100)) * usageBasedBuildingWeightageFactor
+                    # capital_value = (( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * AnnualLandValueRate ) + ( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
+                    capital_value = (( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                     # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
                     capital_value = round(capital_value, 2)
                     # print("capital_value_from_formula1" , capital_value)
                 else:
-                    capital_value = (construction_data.length * construction_data.width) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
+                    capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
                     capital_value = round(capital_value, 2)
                     # print("capital_value_from_formula2" , capital_value)
                     
@@ -239,20 +240,19 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 db.add(db_property)
             except Exception as e:
                 raise e
-            # Ensure totalAreaSqFt is set on the db_property object before saving
+            # Ensure totalAreaSqFt is set on the db_property object before saving (rounded to 2 decimals)
             if not db_property.totalAreaSqFt or db_property.totalAreaSqFt == 0:
                 east = db_property.eastLength or 0
                 west = db_property.westLength or 0
                 north = db_property.northLength or 0
                 south = db_property.southLength or 0
                 if east == 0 and west == 0 and north == 0 and south == 0:
-            # All lengths empty, use totalArea from payload
-                     
-                     db_property.totalAreaSqFt = property_data.totalArea
+                    # All lengths empty, use totalArea from payload
+                    db_property.totalAreaSqFt = round(property_data.totalArea or 0, 2)
                 else:
                     avg_length = (east + west) / 2
                     avg_width = (north + south) / 2
-                    db_property.totalAreaSqFt = avg_length * avg_width if avg_length and avg_width else 0
+                    db_property.totalAreaSqFt = round(avg_length * avg_width, 2) if avg_length and avg_width else 0
             # Only set boolean fields and toilet (not calculated tax fields)
             db_property.divaArogyaKar = bool(property_data.divaArogyaKar)
             db_property.safaiKar = bool(property_data.safaiKar)
@@ -276,7 +276,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 totalTax = record_response.get('totaltax', 0)
                 srNo = response.get('anuKramank') or response.get('srNo') or ''
                 # totalArea = avg_length * avg_width if avg_length and avg_width else 0
-                totalArea = record_response.get('totalArea',0)
+                totalArea = round(record_response.get('totalArea', 0) or 0, 2)
                 owner_name = owners[0].name if owners else None
                 wife_name = owners[0].wifeName if owners and getattr(owners[0], "wifeName", None) else None
                 # Construction area (exclude 'खाली जागा')
@@ -285,8 +285,9 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     for c in response.get('constructions', [])
                     if not (c.get('constructionType', '').strip().startswith('खाली जागा'))
                 )
+                constructionArea = round(constructionArea, 2)
                 # Open area: totalArea - constructionArea
-                openArea = totalArea - constructionArea
+                openArea = round(totalArea - constructionArea, 2)
                 qr_data = {
                     "srNo": srNo,
                     "ownername": owner_name,
@@ -460,7 +461,7 @@ def update_namuna8_entry(
     for key, value in property_update_data.items():
         setattr(db_property, key, value)
     db_property.updated_at = datetime.now()
-    # After setting all fields, always recalculate totalAreaSqFt from lengths
+    # After setting all fields, always recalculate totalAreaSqFt from lengths (rounded to 2 decimals)
     try:
         east = float(db_property.eastLength) if db_property.eastLength is not None else 0
         west = float(db_property.westLength) if db_property.westLength is not None else 0
@@ -469,14 +470,14 @@ def update_namuna8_entry(
 
         if east == 0 and west == 0 and north == 0 and south == 0:
             # Fallback to totalArea when no side lengths are available
-            db_property.totalAreaSqFt = db_property.totalArea if db_property.totalArea else 0
+            db_property.totalAreaSqFt = round(db_property.totalArea or 0, 2)
         else:
             avg_length = (east + west) / 2 if (east or west) else 0
             avg_width = (north + south) / 2 if (north or south) else 0
-            db_property.totalAreaSqFt = avg_length * avg_width if avg_length and avg_width else 0
+            db_property.totalAreaSqFt = round(avg_length * avg_width, 2) if avg_length and avg_width else 0
 
     except Exception:
-        db_property.totalAreaSqFt = db_property.totalArea if db_property.totalArea else 0
+        db_property.totalAreaSqFt = round(db_property.totalArea or 0, 2)
 
 
     if property_data.owners:
@@ -561,12 +562,12 @@ def update_namuna8_entry(
             weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
             usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
             if formula1:
-                capital_value = (( (construction_data.length * construction_data.width) * AnnualLandValueRate ) + ( (construction_data.length * construction_data.width) * ConstructionRateAsPerConstruction * depreciationRate/100)) * usageBasedBuildingWeightageFactor
+                capital_value =(( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                 # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
                 capital_value = round(capital_value, 2)
                 # print("capital_value_from_formula1" , capital_value)
             else:
-                capital_value = (construction_data.length * construction_data.width) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
+                capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
                 capital_value = round(capital_value, 2)
                     
             house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value  ,2)
@@ -676,15 +677,17 @@ def update_namuna8_entry(
         avg_length = (east + west) / 2 if (east or west) else 0
         avg_width = (north + south) / 2 if (north or south) else 0
         totalArea = avg_length * avg_width if avg_length and avg_width else 0
+        totalArea = round(totalArea, 2)
         constructionArea = sum(
             (c['length'] or 0) * (c['width'] or 0)
             for c in response.get('constructions', [])
             if not (c.get('constructionType', '').strip().startswith('खाली जागा'))
         )
-        openArea = totalArea - constructionArea
+        constructionArea = round(constructionArea, 2)
+        openArea = round(totalArea - constructionArea, 2)
         owner_name = record_response.get('ownerName', 0)
         wife_name = record_response.get('ownerWifeName', 0)
-        totalArea = record_response.get('totalArea',0)
+        totalArea = round(record_response.get('totalArea', 0) or 0, 2)
         qr_data = {
             "srNo": srNo,
             "ownername": owner_name,
@@ -763,8 +766,8 @@ def get_bulk_edit_property_list(
             return 0
         if not water_settings or not water_slab_settings:
             return 0
-        # Accept both spellings for 'सामान्य पाणिकर' and 'सामान्य पाणीकर'
-        if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
+        # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
+        if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
             return getattr(water_settings, 'generalWater', 0)
         elif facility == 'घरगुती नळ':
             return getattr(water_settings, 'houseTax', 0)
@@ -1117,8 +1120,8 @@ def build_property_response(db_property, db, gram_panchayat_id: int):
             return 0
         if not water_settings or not water_slab_settings:
             return 0
-        # Accept both spellings for 'सामान्य पाणिकर' and 'सामान्य पाणीकर'
-        if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
+        # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
+        if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
             return getattr(water_settings, 'generalWater', 0)
         elif facility == 'घरगुती नळ':
             return getattr(water_settings, 'houseTax', 0)

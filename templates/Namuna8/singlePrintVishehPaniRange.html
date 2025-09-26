@@ -146,24 +146,34 @@
         <td style="width: 22%; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
-                    <tr>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
 
                         <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            <img src={{row.QRcodeURL | default('')}} alt="Information" style="width: 78px; height: 78px; object-fit: cover;" />
+                            {% if row.QRcodeURL %}
+                                <img src={{row.QRcodeURL | default('')}}  style="width: 78px; height: 78px; object-fit: cover;" />
+                            {% else %}
+                                <div></div>
+                            {% endif %}
                         </td>
                         <td style="width: 50%; border-right: 1px solid #000; border-bottom: none; border-top: none; border-left: none; text-align: center; vertical-align: top;">
 
                             <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                                <img src= {{row.photoURL | default('')}} alt="Photo" style="width:78px; height: 78px; object-fit: cover;" />
+                                {% if row.photoURL %}
+                                    <img src="{{ row.photoURL }}" style="width:78px; height:78px; object-fit: cover;" />
+                                {% else %}
+                                    <div></div>
+                                {% endif %}
                             </div>
                         </td>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
 
                         <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            <img src={{row.bank_qr_code | default('')}} alt="Bank" style="width: 78px; height: 78px; object-fit: cover;" />
-                    </td> 
-                </tr>
+                            {% if row.bank_qr_code %}
+                                <img src="{{ row.bank_qr_code }}" style="width: 78px; height: 78px; object-fit: cover;" />
+                            {% else %}
+                                <div></div>
+                            {% endif %}
+                    </td>
             </table>
         </td>
     </tr>
@@ -226,16 +236,16 @@
             {{row.ownerName|default('')}}
         </td>
         <td rowspan="2">{{row.occupantName|default('')}}</td>
-        <td rowspan="2" style="text-align: left;">{{row.constructionType[0].type if row.constructionType and row.constructionType|length > 0 else ''}} <br> {{row.constructionType[1].type if row.constructionType and row.constructionType|length > 1 else ''}} <br/> {{row.khaliJaga[0].constructiontype if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
-        <td rowspan="2">{{row.constructionType[0].year if row.constructionType and row.constructionType|length > 0 else ''}} <br>{{row.constructionType[1].year if row.constructionType and row.constructionType|length > 1 else ''}}<br/> {{row.khaliJaga[0].year if row.khaliJaga and row.khaliJaga|length > 0 else ''}}<br></td>
+        <td rowspan="2" style="text-align: left;">{{row.constructionType[0].type if row.constructionType and row.constructionType|length > 0 else ''}} <br> {{row.constructionType[1].type if row.constructionType and row.constructionType|length > 1 else ''}} <br> {{row.constructionType[2].type if row.constructionType and row.constructionType|length > 2 else ''}} <br/> {{row.khaliJaga[0].constructiontype if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
+        <td rowspan="2">{{row.constructionType[0].year if row.constructionType and row.constructionType|length > 0 else ''}} <br>{{row.constructionType[1].year if row.constructionType and row.constructionType|length > 1 else ''}} <br>{{row.constructionType[2].year if row.constructionType and row.constructionType|length > 2 else ''}}<br/> <br></td>
         <td rowspan="2">{{row.areaEast|default('')}} x {{row.areaNorth|default('')}}</td>
         <td rowspan="2">{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}}</td>
         <td rowspan="2"></td>
     </tr>
     <tr>
-    <td> {{row.constructionType[0].rate if row.constructionType and row.constructionType|length > 0 else ''}}-{{row.constructionType[0].length if row.constructionType and row.constructionType|length > 0 else ''}}x{{row.constructionType[0].width if row.constructionType and row.constructionType|length > 0 else ''}} <br>{{row.constructionType[1].rate if row.constructionType and row.constructionType|length > 1 else ''}}-{{row.constructionType[1].length if row.constructionType and row.constructionType|length > 1 else ''}}x{{row.constructionType[1].width if row.constructionType and row.constructionType|length > 1 else ''}}<br/></td>
-        <td>{{row.constructionType[0].depreciation_rate if row.constructionType and row.constructionType|length > 0 else ''}}<br>{{row.constructionType[1].depreciation_rate if row.constructionType and row.constructionType|length > 1 else ''}}<br/>0</td>
-        <td>{{row.constructionType[0].usageBasedBuildingWeightageFactor if row.constructionType and row.constructionType|length > 0 else ''}}<br> {{row.constructionType[1].usageBasedBuildingWeightageFactor if row.constructionType and row.constructionType|length > 1 else ''}} <br/> {{row.khaliJaga[0].usageBasedBuildingWeightageFactor if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
+    <td> {{row.constructionType[0].rate if row.constructionType and row.constructionType|length > 0 else ''}}-{{row.constructionType[0].length if row.constructionType and row.constructionType|length > 0 else ''}}x{{row.constructionType[0].width if row.constructionType and row.constructionType|length > 0 else ''}} <br>{{row.constructionType[1].rate if row.constructionType and row.constructionType|length > 1 else ''}}-{{row.constructionType[1].length if row.constructionType and row.constructionType|length > 1 else ''}}x{{row.constructionType[1].width if row.constructionType and row.constructionType|length > 1 else ''}} <br>{{row.constructionType[2].rate if row.constructionType and row.constructionType|length > 2 else ''}}-{{row.constructionType[2].length if row.constructionType and row.constructionType|length > 2 else ''}}x{{row.constructionType[2].width if row.constructionType and row.constructionType|length > 2 else ''}}<br/></td>
+        <td>{{row.constructionType[0].depreciation_rate if row.constructionType and row.constructionType|length > 0 else ''}}<br>{{row.constructionType[1].depreciation_rate if row.constructionType and row.constructionType|length > 1 else ''}}<br>{{row.constructionType[2].depreciation_rate if row.constructionType and row.constructionType|length > 2 else ''}}<br/>0</td>
+        <td>{{row.constructionType[0].usageBasedBuildingWeightageFactor if row.constructionType and row.constructionType|length > 0 else ''}}<br> {{row.constructionType[1].usageBasedBuildingWeightageFactor if row.constructionType and row.constructionType|length > 1 else ''}} <br> {{row.constructionType[2].usageBasedBuildingWeightageFactor if row.constructionType and row.constructionType|length > 2 else ''}} <br/> {{row.khaliJaga[0].usageBasedBuildingWeightageFactor if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
     </tr>
 
     <tr>
@@ -308,9 +318,9 @@
         <td>32</td>
     </tr>
     <tr>
-        <td>{{row.khaliJaga[0].capitalValue if row.khaliJaga and row.khaliJaga|length > 0 else ''}}<br>{{row.constructionType[0].capitalValue if row.constructionType and row.constructionType|length > 0 else ''}}<br>{{row.constructionType[1].capitalValue if row.constructionType and row.constructionType|length > 1 else ''}}</td>
-        <td>{{row.constructionType[0].taxRates if row.constructionType and row.constructionType|length > 0 else ''}}<br> {{row.constructionType[1].taxRates if row.constructionType and row.constructionType|length > 1 else ''}} <br> {{row.khaliJaga[0].taxRates if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
-        <td> {{row.constructionType[0].houseTax if row.constructionType and row.constructionType|length > 0 else ''}} <br> {{row.constructionType[1].houseTax if row.constructionType and row.constructionType|length > 1 else ''}} <br> {{row.khaliJaga[0].houseTax if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
+        <td>{{row.khaliJaga[0].capitalValue if row.khaliJaga and row.khaliJaga|length > 0 else ''}}<br>{{row.constructionType[0].capitalValue if row.constructionType and row.constructionType|length > 0 else ''}}<br>{{row.constructionType[1].capitalValue if row.constructionType and row.constructionType|length > 1 else ''}}<br>{{row.constructionType[2].capitalValue if row.constructionType and row.constructionType|length > 2 else ''}}</td>
+        <td>{{row.constructionType[0].taxRates if row.constructionType and row.constructionType|length > 0 else ''}}<br> {{row.constructionType[1].taxRates if row.constructionType and row.constructionType|length > 1 else ''}} <br> {{row.constructionType[2].taxRates if row.constructionType and row.constructionType|length > 2 else ''}} <br> {{row.khaliJaga[0].taxRates if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
+        <td> {{row.constructionType[0].houseTax if row.constructionType and row.constructionType|length > 0 else ''}} <br> {{row.constructionType[1].houseTax if row.constructionType and row.constructionType|length > 1 else ''}} <br> {{row.constructionType[2].houseTax if row.constructionType and row.constructionType|length > 2 else ''}} <br> {{row.khaliJaga[0].houseTax if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
         <td> {{row.lightingTax|default('')}} </td>
         <td> {{row.healthTax|default('')}} </td>
         <td> {{row.sapanikar|default('')}} </td>
@@ -332,7 +342,7 @@
                 <div style="height: 40px; border-bottom: 1px solid #666; display: flex; align-items: center; justify-content: center;">
                     द.: {{row.boundarySouth|default('')}} <br>
                     एकूण क्षेत्रफळ : 
-                    {{row.areaEast|default('')}} x {{row.areaNorth|default('')}} (फुट)
+                    {{row.areaEast|default('')}} x {{row.areaNorth|default('')}}
 
                 </div>
                 
@@ -351,12 +361,12 @@
                     <div style="flex: 1;">
                         <div style="height: 80px; border-bottom: 1px solid #666; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
                             बांधकाम <br>
-                            {{row.constructionType[0].length if row.constructionType and row.constructionType|length > 0 else ''}} x {{row.constructionType[0].width if row.constructionType and row.constructionType|length > 0 else ''}}<br>{{row.constructionType[1].length if row.constructionType and row.constructionType|length > 1 else ''}} x {{row.constructionType[1].width if row.constructionType and row.constructionType|length > 1 else ''}}<br/>
+                            {{row.constructionType[0].length if row.constructionType and row.constructionType|length > 0 else ''}} x {{row.constructionType[0].width if row.constructionType and row.constructionType|length > 0 else ''}}<br>{{row.constructionType[1].length if row.constructionType and row.constructionType|length > 1 else ''}} x {{row.constructionType[1].width if row.constructionType and row.constructionType|length > 1 else ''}}<br>{{row.constructionType[2].length if row.constructionType and row.constructionType|length > 2 else ''}} x {{row.constructionType[2].width if row.constructionType and row.constructionType|length > 2 else ''}}<br/>
                             
                         </div>
                         <div style="height: 10px; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
                             खुली जागा <br>
-                            {{row.khaliJaga[0].length if row.khaliJaga and row.khaliJaga|length > 0 else ''}} x 1
+                            {{row.khaliJaga[0].length if row.khaliJaga and row.khaliJaga|length > 0 else ''}} 
                         </div>
                     </div>
                     
