@@ -199,10 +199,24 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
 @router.post("/property-data/collect")
 def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(database.get_db)):
     """Apply collections to arrears and store vasuli amounts."""
+    # Debug logging
+    print(f"[DEBUG] Collect request: namuna9_id={payload.namuna9_id}, property_id={payload.property_id}")
+    print(f"[DEBUG] Payload: {payload.dict()}")
+    
+    # Validate input data
+    if not payload.namuna9_id or payload.namuna9_id <= 0:
+        raise HTTPException(status_code=422, detail="Invalid namuna9_id")
+    if not payload.property_id or payload.property_id <= 0:
+        raise HTTPException(status_code=422, detail="Invalid property_id")
+    
     # Ensure Namuna9 exists
     rec = db.query(namuna9_model.Namuna9).filter(namuna9_model.Namuna9.id == payload.namuna9_id).first()
     if not rec:
         raise HTTPException(status_code=404, detail="Namuna9 record not found")
+
+    # Validate that property exists in the namuna9 record
+    if not rec.property_ids or payload.property_id not in rec.property_ids:
+        raise HTTPException(status_code=422, detail="Property not found in this Namuna9 record")
 
     data = db.query(namuna9_model.Namuna9PropertyData).filter(
         namuna9_model.Namuna9PropertyData.namuna9_id == payload.namuna9_id,
@@ -286,6 +300,20 @@ def get_next_receipt_number(gram_panchayat_id: int, village_id: int = None, db: 
 
 @router.post("/receipt", response_model=Namuna9ReceiptRead)
 def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database.get_db)):
+    # Debug logging
+    print(f"[DEBUG] Receipt creation request: namuna9_id={payload.namuna9_id}, property_id={payload.property_id}")
+    print(f"[DEBUG] Receipt payload: {payload.dict()}")
+    
+    # Validate input data
+    if not payload.namuna9_id or payload.namuna9_id <= 0:
+        raise HTTPException(status_code=422, detail="Invalid namuna9_id")
+    if not payload.property_id or payload.property_id <= 0:
+        raise HTTPException(status_code=422, detail="Invalid property_id")
+    if not payload.gram_panchayat_id or payload.gram_panchayat_id <= 0:
+        raise HTTPException(status_code=422, detail="Invalid gram_panchayat_id")
+    if not payload.pavti_kramank or payload.pavti_kramank <= 0:
+        raise HTTPException(status_code=422, detail="Invalid pavti_kramank")
+    
     # Normalize pavti_date to datetime if provided as ISO string
     pavti_dt = None
     if payload.pavti_date:
@@ -366,7 +394,13 @@ def list_receipts(
     prop_ids_subq = db.query(namuna8_model.Property.id).filter(namuna8_model.Property.village_id == village_id).subquery()
     q = q.filter(namuna9_model.Namuna9Receipt.property_id.in_(prop_ids_subq))
     if receipt_id:
-        q = q.filter(namuna9_model.Namuna9Receipt.id == receipt_id)
+        print(f"[DEBUG] Searching for receipt_id: {receipt_id} (type: {type(receipt_id)})")
+        # Search by both id and pavti_kramank to handle both cases
+        q = q.filter(
+            (namuna9_model.Namuna9Receipt.id == receipt_id) | 
+            (namuna9_model.Namuna9Receipt.pavti_kramank == receipt_id)
+        )
+        print(f"[DEBUG] Query after receipt_id filter: {q}")
     if not show_all:
         def _parse_dt(s: Optional[str]):
             if not s:
@@ -389,7 +423,84 @@ def list_receipts(
             if td.time().hour == 0 and td.time().minute == 0 and td.time().second == 0:
                 td_end = td + timedelta(days=1)
             q = q.filter(date_expr < td_end)
-    return q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
+    results = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
+    print(f"[DEBUG] Found {len(results)} receipts")
+    for i, rec in enumerate(results):
+        print(f"[DEBUG] Receipt {i}: id={rec.id}, pavti_kramank={rec.pavti_kramank}, property_id={rec.property_id}")
+    return results
+
+@router.post("/append-village-data")
+def append_village_data_to_namuna9(
+    namuna9_id: int,
+    village_id: int,
+    district_id: int,
+    taluka_id: int,
+    gram_panchayat_id: int,
+    db: Session = Depends(database.get_db)
+):
+    """Append all properties from a village to an existing Namuna 9 record"""
+    
+    # Validate Namuna9 record exists
+    namuna9_record = db.query(namuna9_model.Namuna9).filter(namuna9_model.Namuna9.id == namuna9_id).first()
+    if not namuna9_record:
+        raise HTTPException(status_code=404, detail="Namuna9 record not found")
+    
+    # Validate location hierarchy
+    village = db.query(namuna8_model.Village).filter(
+        namuna8_model.Village.id == village_id,
+        namuna8_model.Village.gram_panchayat_id == gram_panchayat_id
+    ).first()
+    if not village:
+        raise HTTPException(status_code=404, detail="Village not found")
+    
+    # Get all properties from the village
+    properties = db.query(namuna8_model.Property).filter(
+        namuna8_model.Property.village_id == village_id
+    ).all()
+    
+    if not properties:
+        return {"message": "No properties found in village", "added_count": 0, "skipped_count": 0}
+    
+    # Get current property IDs in Namuna9
+    current_property_ids = set(namuna9_record.property_ids or [])
+    
+    # Find properties not already in Namuna9
+    new_properties = [prop for prop in properties if prop.id not in current_property_ids]
+    
+    if not new_properties:
+        return {"message": "All properties already exist in Namuna9", "added_count": 0, "skipped_count": len(properties)}
+    
+    # Add new property IDs to Namuna9
+    updated_property_ids = list(current_property_ids) + [prop.id for prop in new_properties]
+    namuna9_record.property_ids = updated_property_ids
+    
+    # Create property data entries for new properties
+    added_count = 0
+    for prop in new_properties:
+        # Check if property data already exists
+        existing_data = db.query(namuna9_model.Namuna9PropertyData).filter(
+            namuna9_model.Namuna9PropertyData.namuna9_id == namuna9_id,
+            namuna9_model.Namuna9PropertyData.property_id == prop.id
+        ).first()
+        
+        if not existing_data:
+            # Create new property data entry
+            property_data = namuna9_model.Namuna9PropertyData(
+                namuna9_id=namuna9_id,
+                property_id=prop.id
+            )
+            db.add(property_data)
+            added_count += 1
+    
+    db.commit()
+    
+    return {
+        "message": f"Successfully appended {added_count} new properties to Namuna9",
+        "added_count": added_count,
+        "skipped_count": len(properties) - added_count,
+        "total_properties_in_village": len(properties),
+        "total_properties_in_namuna9": len(updated_property_ids)
+    }
 
 @router.get("/receipt/{receipt_id}", response_model=Namuna9ReceiptRead)
 def get_receipt(receipt_id: int, db: Session = Depends(database.get_db)):
