@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html >
+<head>
+    <meta charset="UTF-8">
+    <title>नमुना ९ क</title>
+    <style>
+        body { font-family: 'Mangal', Arial, sans-serif; margin: 0; padding: 0; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #000; padding: 2px 6px; font-size: 15px; }
+        .no-border { border: none !important; }
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        .header-table td { border: none; }
+        .sub-header { font-size: 18px; font-weight: bold; }
+        .outer-border {
+            border: 2px solid #000;
+            margin: 10mm auto;
+            width: 95%;
+            background: #fff;
+            position: relative;
+            box-sizing: border-box;
+        }
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            #toolbar {
+                display: none !important;
+            }
+            body {
+                margin: 0;
+            }
+            .outer-border {
+                page-break-after: always;
+            }
+            .outer-border:last-of-type {
+                page-break-after: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f8f8f8; border-bottom: 1px solid #ccc;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <button title="First Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏮️</button>
+            <button title="Previous Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">◀️</button>
+            <input type="text" value="1" id="pageInput" style="width: 32px; text-align: center; font-size: 14px; border: 1px solid #ccc; border-radius: 2px; margin: 0 2px;" oninput="goToPage(this.value)" />
+            <span id="pageTotal" style="font-size: 14px; color: #888;"></span>
+            <button title="Next Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">▶️</button>
+            <button title="Last Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏭️</button>
+            <button title="Zoom Out" onclick="zoomOut()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➖</button>
+            <span id="zoomPercent" style="min-width: 40px; text-align: center; font-size: 14px;">100%</span>
+            <button title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
+            <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
+        </div>
+    </div>
+    <script>
+        let zoomLevel = 1.0;
+        const minZoom = 0.5;
+        const maxZoom = 2.0;
+        const zoomStep = 0.1;
+        let currentPage = 1;
+        const recordsPerPage = 1;
+        let totalPages = 0;
+        let allRecords = [];
+
+        function updateZoom() {
+            document.querySelectorAll('.outer-border').forEach(el => el.style.zoom = zoomLevel);
+            document.getElementById('zoomPercent').innerText = Math.round(zoomLevel * 100) + '%';
+        }
+        function zoomIn() {
+            if (zoomLevel < maxZoom) {
+                zoomLevel += zoomStep;
+                updateZoom();
+            }
+        }
+        function zoomOut() {
+            if (zoomLevel > minZoom) {
+                zoomLevel -= zoomStep;
+                updateZoom();
+            }
+        }
+        function showPage(page) {
+            if (!allRecords.length) {
+                allRecords = Array.from(document.querySelectorAll('.outer-border'));
+            }
+            totalPages = Math.ceil(allRecords.length / recordsPerPage);
+
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            currentPage = page;
+
+            allRecords.forEach((el, idx) => {
+                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                el.style.display = (pageIdx === currentPage) ? '' : 'none';
+            });
+
+            document.getElementById('pageInput').value = currentPage;
+            document.getElementById('pageTotal').innerText = '/ ' + totalPages;
+        }
+
+        function goToPage(pageNumber) {
+            const page = parseInt(pageNumber, 10);
+            if (!isNaN(page)) {
+                showPage(page);
+            }
+        }
+        function nextPage() { showPage(currentPage + 1); }
+        function prevPage() { showPage(currentPage - 1); }
+        function firstPage() { showPage(1); }
+        function lastPage() { showPage(totalPages); }
+        
+        function printPage() {
+            const originalDisplay = allRecords.map(el => el.style.display);
+            allRecords.forEach(el => el.style.display = '');
+            window.print();
+            allRecords.forEach((el, idx) => el.style.display = originalDisplay[idx]);
+        }
+
+        function exitPage() {
+            window.close();
+        }
+
+        window.onload = function() {
+            showPage(1);
+            updateZoom();
+            document.querySelector('button[title="First Page"]').onclick = firstPage;
+            document.querySelector('button[title="Previous Page"]').onclick = prevPage;
+            document.querySelector('button[title="Next Page"]').onclick = nextPage;
+            document.querySelector('button[title="Last Page"]').onclick = lastPage;
+        };
+    </script>
+    {% for record in data %}
+    <div class="outer-border">
+        {% for copy in [1,2] %}
+        <table class="header-table" style="width:100%;">
+            <tr>
+                <td class="center bold" style="width: 33%;">ग्रामपंचायत : {{ record.gramPanchayat or 'ग्रामपंचायत' }}</td>
+                <td class="center bold" style="width: 34%; ">
+                    कर वसुलीची पावती<br>
+                    नमुना क्र. १०
+                </td>
+                <td class="center bold" style="width: 33%; ">
+                    पावती बुक नं : {{ record.pa_book_kramank or '' }}<br>
+                    पावती नं : {{ record.pavti_kramank or '' }}<br>
+                    सन : {{ record.yearSlap or record.yearslap or '' }}
+                </td>
+            </tr>
+        </table>
+        <table style="margin-top: 2px; width:100%;">
+            <tr>
+                <td style="border:none;">गाव : {{ record.village or 'गाव' }}</td>
+                <td style="border:none;">पावती बुक नं : {{ record.pa_book_kramank or '' }}</td>
+                <td style="border:none;">पावती नं : {{ record.pavti_kramank or '' }}</td>
+                <td style="border:none;">सन : {{ record.yearSlap or record.yearslap or '' }}</td>
+            </tr>
+            <tr>
+                <td colspan="2" class="bold" style="border:none;">
+                    श्री/सौ : {{ record.ownerName or 'मालकाचे नाव' }}
+                </td>
+                <td colspan="2" class="bold" style="border:none;">
+                    भोगवटदार : {{ record.occupantName or 'भोगवटदाराचे नाव' }}
+                </td>
+            </tr>
+            <tr>
+                <td style="border:none;">करिता घर नं : {{ record.houseNumber or record.property_id or '' }}</td>
+                <td colspan="3" style="border:none;"></td>
+            </tr>
+        </table>
+        <table style="margin-top: 2px; width:100%;">
+            <tr class="center bold">
+                <td rowspan="3">कराचे नाव</td>
+                <td colspan="4">मिळालेली वसुली</td>
+            </tr>
+            <tr class="center bold">
+                <td colspan="2">मागील (रुपये = पै.)</td>
+                <td>दंड (रुपये = पै.)</td>
+                <td>चालू (रुपये = पै.)</td>
+                <td>एकूण (रुपये = पै.)</td>
+            </tr>
+            <tr class="center bold">
+                <td>रुपये</td>
+                <td>पैसे</td>
+                <td>रुपये = पै.</td>
+                <td>रुपये = पै.</td>
+                <td>रुपये = पै.</td>
+            </tr>
+            {% set default_tax_names = ['घर कर', 'दिवा कर', 'आरोग्य कर', 'सामान्य पाणी कर', 'विशेष पाणी कर', 'सफाई कर', 'एकूण देय रक्कम', 'सवलत / सूट असल्यास (66%)', 'सूट नंतर एकूण देय रक्कम'] %}
+            {% set tax_names = tax_names if tax_names is defined else default_tax_names %}
+            {% set ns = namespace(deduction=0) %}
+
+{% for tax in tax_names %}
+<tr>
+    <td>{{ tax }}</td>
+    {% if tax == 'सवलत / सूट असल्यास (66%)' %}
+        <td class="right">0</td>
+        <td class="right"></td>
+        <td class="right"></td>
+        <td class="right"></td>
+        <td class="right"></td>
+    {% elif tax == 'एकूण देय रक्कम' %}
+        <td class="right">{{ record.total or 0 }}</td>
+        <td class="right"></td>
+        <td class="right"></td>
+        <td class="right"></td>
+        <td class="right">{{ record.total or 0 }}</td>
+    {% elif tax == 'सूट नंतर एकूण देय रक्कम' %}
+        <td class="right">{{ record.total or 0 }}</td>
+        <td class="right"></td>
+        <td class="right"></td>
+        <td class="right"></td>
+        <td class="right">{{ record.total or 0 }}</td>
+    {% else %}
+        {% if loop.index == 1 %}
+            <td class="right">{{ record.vasuliGhar or 0 }}</td>
+            <td class="right"></td>
+            <td class="right">{{ record.vasuliDand or 0 }}</td>
+            <td class="right">{{ record.vasuliChaluGhar or 0 }}</td>
+            <td class="right">{{ (record.vasuliGhar or 0) + (record.vasuliDand or 0) + (record.vasuliChaluGhar or 0) }}</td>
+        {% elif loop.index == 2 %}
+            <td class="right">{{ record.vasuliDiva or 0 }}</td>
+            <td class="right"></td>
+            <td class="right">0</td>
+            <td class="right">{{ record.vasuliChaluDiva or 0 }}</td>
+            <td class="right">{{ (record.vasuliDiva or 0) + (record.vasuliChaluDiva or 0) }}</td>
+        {% elif loop.index == 3 %}
+            <td class="right">{{ record.vasuliAarogyaKar or 0 }}</td>
+            <td class="right"></td>
+            <td class="right">0</td>
+            <td class="right">{{ record.vasuliChaluAarogyaKar or 0 }}</td>
+            <td class="right">{{ (record.vasuliAarogyaKar or 0) + (record.vasuliChaluAarogyaKar or 0) }}</td>
+        {% elif loop.index == 4 %}
+            <td class="right">{{ record.vasuliSapanikar or 0 }}</td>
+            <td class="right"></td>
+            <td class="right">0</td>
+            <td class="right">{{ record.vasuliChaluSapanikar or 0 }}</td>
+            <td class="right">{{ (record.vasuliSapanikar or 0) + (record.vasuliChaluSapanikar or 0) }}</td>
+        {% elif loop.index == 5 %}
+            <td class="right">{{ record.vasuliVpanikar or 0 }}</td>
+            <td class="right"></td>
+            <td class="right">0</td>
+            <td class="right">{{ record.vasuliChaluVpanikar or 0 }}</td>
+            <td class="right">{{ (record.vasuliVpanikar or 0) + (record.vasuliChaluVpanikar or 0) }}</td>
+        {% elif loop.index == 6 %}
+            <td class="right">{{ record.vasuliCleaningTax or 0 }}</td>
+            <td class="right"></td>
+            <td class="right">0</td>
+            <td class="right">{{ record.vasuliChaluCleaningTax or 0 }}</td>
+            <td class="right">{{ (record.vasuliCleaningTax or 0) + (record.vasuliChaluCleaningTax or 0) }}</td>
+        {% else %}
+            <td class="right">0</td>
+            <td class="right"></td>
+            <td class="right">0</td>
+            <td class="right">0</td>
+            <td class="right">0</td>
+        {% endif %}
+    {% endif %}
+</tr>
+{% endfor %}
+
+        </table>
+        <div style="font-size: 13px; margin-top: 4px;">
+            <span>दिनांक : {{ record.pavti_date or '' }}</span>
+            <span class="right">सही सरपंच / ग्रामपंचायत अधिकारी</span>
+        </div>
+        {% if copy == 1 %}
+        <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endfor %}
+</body>
+</html>

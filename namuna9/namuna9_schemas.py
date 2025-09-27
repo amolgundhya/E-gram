@@ -217,9 +217,26 @@ class Namuna9ReceiptRead(BaseModel):
     pa_book_kramank: str | None
     pavti_kramank: int
     pavti_date: Union[str, datetime, None]
+    # Stored snapshot of vasuli values for this receipt
+    vasuliGhar: float
+    vasuliChaluGhar: float
+    vasuliDiva: float
+    vasuliChaluDiva: float
+    vasuliAarogyaKar: float
+    vasuliChaluAarogyaKar: float
+    vasuliSapanikar: float
+    vasuliChaluSapanikar: float
+    vasuliVpanikar: float
+    vasuliChaluVpanikar: float
+    vasuliCleaningTax: float
+    vasuliChaluCleaningTax: float
+    vasuliDand: float
+    vasuliNoticeFee: float
+    vasuliWarrantFee: float
     total: float
     payment_mode: Optional[str] = None
     utr_tr_id: Optional[str] = None
+    createdAt: Optional[datetime] = None
     class Config:
         orm_mode = True
 
