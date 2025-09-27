@@ -126,10 +126,13 @@ def get_property_data_by_receipt(receipt_id: int, db: Session = Depends(database
 @router.post("/property-data/bulk-update")
 def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Session = Depends(database.get_db)):
     """Bulk update property data for multiple properties"""
+    print(f"Bulk update received: namuna9_id={bulk_data.namuna9_id}, property_data_count={len(bulk_data.property_data)}")
     # Check if Namuna9 record exists
     namuna9_record = db.query(namuna9_model.Namuna9).filter(namuna9_model.Namuna9.id == bulk_data.namuna9_id).first()
     if not namuna9_record:
+        print(f"Namuna9 record not found for id: {bulk_data.namuna9_id}")
         raise HTTPException(status_code=404, detail="Namuna9 record not found")
+    print(f"Found Namuna9 record: villageId={namuna9_record.villageId}, yearslap={namuna9_record.yearslap}")
     
     # Merge multiple updates per property_id to avoid duplicate inserts in one transaction
     merged_by_property: dict[int, dict] = {}
@@ -146,12 +149,14 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
     created_count = 0
 
     for property_id, updates in merged_by_property.items():
+        print(f"Processing property_id: {property_id}, updates: {updates}")
         existing = db.query(namuna9_model.Namuna9PropertyData).filter(
             namuna9_model.Namuna9PropertyData.namuna9_id == bulk_data.namuna9_id,
             namuna9_model.Namuna9PropertyData.property_id == property_id
         ).first()
 
         if existing:
+            print(f"Updating existing record for property_id: {property_id}")
             for field, value in updates.items():
                 setattr(existing, field, value)
             # Recompute ekun and total after updates
@@ -260,11 +265,24 @@ def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(data
     return {"message": "Collection applied", "data": data.id}
 
 @router.get("/receipt/next-number")
-def get_next_receipt_number(gram_panchayat_id: int, db: Session = Depends(database.get_db)):
-    last = db.query(namuna9_model.Namuna9Receipt).filter(
+def get_next_receipt_number(gram_panchayat_id: int, village_id: int = None, db: Session = Depends(database.get_db)):
+    # Get receipts for this gram panchayat
+    q = db.query(namuna9_model.Namuna9Receipt).filter(
         namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id
-    ).order_by(namuna9_model.Namuna9Receipt.pavti_kramank.desc()).first()
-    return {"nextNumber": (last.pavti_kramank + 1) if last else 1}
+    )
+    
+    # If village_id provided, filter by properties in that village
+    if village_id is not None:
+        prop_ids_subq = db.query(namuna8_model.Property.id).filter(namuna8_model.Property.village_id == village_id).subquery()
+        q = q.filter(namuna9_model.Namuna9Receipt.property_id.in_(prop_ids_subq))
+        print(f"Getting next receipt number for gram_panchayat_id={gram_panchayat_id}, village_id={village_id}")
+    else:
+        print(f"Getting next receipt number for gram_panchayat_id={gram_panchayat_id} (all villages)")
+    
+    last = q.order_by(namuna9_model.Namuna9Receipt.pavti_kramank.desc()).first()
+    next_number = (last.pavti_kramank + 1) if last else 1
+    print(f"Last receipt number: {last.pavti_kramank if last else 'None'}, Next number: {next_number}")
+    return {"nextNumber": next_number}
 
 @router.post("/receipt", response_model=Namuna9ReceiptRead)
 def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database.get_db)):
@@ -334,9 +352,9 @@ def list_receipts(
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to taluka")
-    village = db.query(location_models.Village).filter(
-        location_models.Village.id == village_id,
-        location_models.Village.gram_panchayat_id == gram_panchayat_id
+    village = db.query(namuna8_model.Village).filter(
+        namuna8_model.Village.id == village_id,
+        namuna8_model.Village.gram_panchayat_id == gram_panchayat_id
     ).first()
     if not village:
         raise HTTPException(status_code=400, detail="Village does not belong to gram panchayat")
@@ -484,7 +502,7 @@ def update_receipt(
             gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == (gram_panchayat_id or rec.gram_panchayat_id)).first()
             if not gp:
                 raise HTTPException(status_code=400, detail="Gram Panchayat not found")
-            v = db.query(location_models.Village).filter(location_models.Village.id == village_id).first()
+            v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == village_id).first()
             if not v or v.gram_panchayat_id != gp.id:
                 raise HTTPException(status_code=400, detail="Village does not belong to gram panchayat")
             if taluka_id is not None:
@@ -533,7 +551,7 @@ def delete_receipt(
             gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == (gram_panchayat_id or rec.gram_panchayat_id)).first()
             if not gp:
                 raise HTTPException(status_code=400, detail="Gram Panchayat not found")
-            v = db.query(location_models.Village).filter(location_models.Village.id == village_id).first()
+            v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == village_id).first()
             if not v or v.gram_panchayat_id != gp.id:
                 raise HTTPException(status_code=400, detail="Village does not belong to gram panchayat")
             if taluka_id is not None:

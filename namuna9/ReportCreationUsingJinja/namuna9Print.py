@@ -26,6 +26,86 @@ visheshPaniSafaiEnv = Environment(loader=FileSystemLoader(namuna9_template_vises
 
 localhost = "http://127.0.0.1:8000"
 
+
+
+
+
+@router.post('/namuna9receipt')
+async def namuna9receipt(request : Request):
+    try:
+        # Load template
+        requestData = await request.json()
+        villageId = requestData.get("villageID")
+        district_id = requestData.get("district_id")
+        taluka_id = requestData.get("taluka_id")
+        gram_panchayat_id = requestData.get("gram_panchayat_id")
+        year = requestData.get("year")
+        receipt_id = requestData.get("receipt_id")
+        template = regularEnv.get_template('namuna9receipt.html')
+
+        # Call API - use receipt-specific endpoint if receipt_id is provided
+        async with httpx.AsyncClient() as client:
+            if receipt_id:
+                # Get specific receipt data
+                response = await client.get(
+                    f'{localhost}/namuna9/receipt/{receipt_id}',
+                     params={
+                        "villageId": villageId,
+                        "yearslap": year,
+                        "district_id": district_id,
+                        "taluka_id": taluka_id,
+                        "gram_panchayat_id": gram_panchayat_id,
+                    }
+                )
+        if response.status_code != 200:
+            raise Exception(f"API error {response.status_code}: {response.text}")
+
+        data = response.json()
+
+        # Render template with raw data - let template handle formatting
+        if not isinstance(data, list):
+            data = [data]
+        
+        # For receipt-specific data, we expect a single record
+        if receipt_id and len(data) > 0:
+            record = data[0]  # Get the first (and should be only) record
+        else:
+            record = data[0] if data else {}  # Fallback to first record or empty
+        
+        context = {
+            'record': record,  # Pass single record to template
+            'data': data,      # Keep original data array for compatibility
+            'receipt_id': receipt_id,
+            'noticeFee': requestData.get('noticeFee', 'true'),
+            'warrantFee': requestData.get('warrantFee', 'true'),
+        }
+        rendered_html = template.render(**context)
+        
+        # Save output.html
+        os.makedirs(static_dir, exist_ok=True)
+        output_path = os.path.join(static_dir, 'output.html')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(rendered_html)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "Receipt output file is created",
+                "data": {}
+            }
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Error: {str(e)}",
+                "data": {}
+            }
+        )
+
 @router.post('/regular/namuna9All')
 async def prakar1(request : Request):
     try:

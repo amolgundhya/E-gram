@@ -439,7 +439,7 @@ def get_table_data(
         cleaningTax = round(prop_data.get('cleaningTax', 0) or 0, 2)
         
         # Check if we have saved data for this property
-        saved_data = saved_data_map.get(prop.anuKramank)
+        saved_data = saved_data_map.get(prop.id)
         
         # Initialize thakit values (use saved data if available, otherwise calculate)
         if saved_data:
@@ -541,7 +541,7 @@ def get_table_data(
         
         row = {
             "anukramk": idx,
-            "property_id": getattr(prop, 'anuKramank', None),
+            "property_id": prop.id,  # Use actual property ID, not anuKramank
             "malmattaKramank": prop_data.get('malmattaKramank', ''),
             "ownerNames": owner_names,
             "shaktiGhar": round(shaktiGhar, 2),
