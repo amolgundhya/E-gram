@@ -208,6 +208,9 @@ class Namuna9ReceiptCreate(BaseModel):
     vasuliNoticeFee: float = 0.0
     vasuliWarrantFee: float = 0.0
     total: float = 0.0
+    # Optional snapshot fields; backend will populate if not provided
+    owner_name: Optional[str] = None
+    malmatta_kramank: Optional[str] = None
 
 class Namuna9ReceiptRead(BaseModel):
     id: int
@@ -217,6 +220,8 @@ class Namuna9ReceiptRead(BaseModel):
     pa_book_kramank: str | None
     pavti_kramank: int
     pavti_date: Union[str, datetime, None]
+    owner_name: Optional[str] = None
+    malmatta_kramank: Optional[str] = None
     # Stored snapshot of vasuli values for this receipt
     vasuliGhar: float
     vasuliChaluGhar: float
@@ -237,14 +242,21 @@ class Namuna9ReceiptRead(BaseModel):
     payment_mode: Optional[str] = None
     utr_tr_id: Optional[str] = None
     createdAt: Optional[datetime] = None
-    class Config:
-        orm_mode = True
+    # Enriched fields
+    grampanchayat: Optional[str] = None
+    village: Optional[str] = None
+    occupant: Optional[str] = None
+    yearslap: Optional[str] = None
+    model_config = {
+        "from_attributes": True
+    }
 
 class Namuna9PropertyDataRead(Namuna9PropertyDataBase):
     id: int
     namuna9_id: int
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
 
 # Schema for bulk update of property data
 class Namuna9BulkPropertyDataUpdate(BaseModel):

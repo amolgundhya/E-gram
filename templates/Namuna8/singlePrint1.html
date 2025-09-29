@@ -24,6 +24,17 @@
             #toolbar {
                 display: none !important;
             }
+            /* Ensure no zoom/rescaling during print */
+            #mainContent { zoom: 1 !important; transform: none !important; }
+            /* Keep QR codes sharp and large enough for scanners */
+            img.qr {
+                image-rendering: pixelated;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: contain;
+            }
         }
         table th, table td {
             padding: 2px 4px !important;
@@ -133,18 +144,18 @@
                 <tr>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
 
-                        <div style=" width:140px; height: 140px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                        <div style=" width:90px; height: 90px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow:hidden;">
                             {% if QRcodeURL %}
-                                <img src="{{ QRcodeURL | default('') }}" style="width: 140px; height: 140px; image-rendering: pixelated;" />
+                                <img src="{{ QRcodeURL | default('') }}" class="qr" style="width: 90px; height: 90px; image-rendering: pixelated;" />
                             {% else %}
                                 <div></div>
                             {% endif %}
                         </td>
                         <td style="width: 50%; border-right: 1px solid #000; border-bottom: none; border-top: none; border-left: none; text-align: center; vertical-align: top;">
 
-                            <div style="border: 1px solid #000; width: 140px; height: 140px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                            <div style="border: 1px solid #000; width: 90px; height: 90px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow:hidden;">
                                 {% if photoURL %}
-                                    <img src="{{ photoURL }}" style="width:140px; height:140px; object-fit: cover;" />
+                                    <img src="{{ photoURL }}" style="width:90px; height:90px; object-fit: cover;" />
                                 {% else %}
                                     <div></div>
                                 {% endif %}
@@ -152,9 +163,9 @@
                         </td>
                     <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
 
-                        <div style="border: 1px solid #000; width: 140px; height: 140px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                        <div style="border: 1px solid #000; width: 90px; height: 90px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow:hidden;">
                             {% if bank_qr_code %}
-                                <img src="{{ bank_qr_code }}" style="width: 140px; height: 140px; object-fit: cover;" />
+                                <img src="{{ bank_qr_code }}" class="qr" style="width: 90px; height: 90px; object-fit: cover;" />
                             {% else %}
                                 <div></div>
                             {% endif %}

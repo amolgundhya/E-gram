@@ -2,7 +2,7 @@
 <html >
 <head>
     <meta charset="UTF-8">
-    <title>घोषवारा प्रकरण 1</title>
+    <title>नमुना १० वसुली हिशोब</title>
     <style>
         body { font-family: 'Mangal', Arial, sans-serif; }
         table { border-collapse: collapse; width: 100%; font-size: 13px; }
@@ -167,53 +167,62 @@
             <th >मागील सफाई कर </th>
             <th >चालू सफाई कर</th>
             <th >एकूण सफाई कर</th>
-            <th >सूट</th>
             <th >एकूण कर</th>
         </tr>
-        <tr>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
+        {% for r in rows %}
+        <tr class="record-row">
+            <td>{{ loop.index }}</td>
+            <td>{{ r.pavti_date }}</td>
+            <td>{{ r.pavti_kramank }}</td>
+            <td>{{ r.pa_book_kramank or '' }}</td>
+            <td>{{ r.owner_name or '' }}</td>
+            <td>{{ r.malmatta_kramank or '' }}</td>
+            <td>{{ r.vasuliGhar or 0 }}</td>
+            <td>{{ r.vasuliChaluGhar or 0 }}</td>
+            <td>{{ (r.vasuliGhar or 0) + (r.vasuliChaluGhar or 0) }}</td>
+            <td>{{ r.vasuliDiva or 0 }}</td>
+            <td>{{ r.vasuliChaluDiva or 0 }}</td>
+            <td>{{ (r.vasuliDiva or 0) + (r.vasuliChaluDiva or 0) }}</td>
+            <td>{{ r.vasuliAarogyaKar or 0 }}</td>
+            <td>{{ r.vasuliChaluAarogyaKar or 0 }}</td>
+            <td>{{ (r.vasuliAarogyaKar or 0) + (r.vasuliChaluAarogyaKar or 0) }}</td>
+            <td>{{ r.vasuliSapanikar or 0 }}</td>
+            <td>{{ r.vasuliChaluSapanikar or 0 }}</td>
+            <td>{{ (r.vasuliSapanikar or 0) + (r.vasuliChaluSapanikar or 0) }}</td>
+            <td>{{ r.vasuliCleaningTax or 0 }}</td>
+            <td>{{ r.vasuliChaluCleaningTax or 0 }}</td>
+            <td>{{ (r.vasuliCleaningTax or 0) + (r.vasuliChaluCleaningTax or 0) }}</td>
+            <td>{{ r.total or 0 }}</td>
         </tr>
+        {% endfor %}
         <tr>
             <td colspan="6" class="right bold">एकूण</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>   
-            <td></td>   
-            <td></td>   
-            <td></td>   
+            {% set th_g = rows|map(attribute='vasuliGhar')|sum %}
+            {% set ch_g = rows|map(attribute='vasuliChaluGhar')|sum %}
+            <td>{{ th_g }}</td>
+            <td>{{ ch_g }}</td>
+            <td>{{ th_g + ch_g }}</td>
+            {% set th_d = rows|map(attribute='vasuliDiva')|sum %}
+            {% set ch_d = rows|map(attribute='vasuliChaluDiva')|sum %}
+            <td>{{ th_d }}</td>
+            <td>{{ ch_d }}</td>
+            <td>{{ th_d + ch_d }}</td>
+            {% set th_a = rows|map(attribute='vasuliAarogyaKar')|sum %}
+            {% set ch_a = rows|map(attribute='vasuliChaluAarogyaKar')|sum %}
+            <td>{{ th_a }}</td>
+            <td>{{ ch_a }}</td>
+            <td>{{ th_a + ch_a }}</td>
+            {% set th_p = rows|map(attribute='vasuliSapanikar')|sum %}
+            {% set ch_p = rows|map(attribute='vasuliChaluSapanikar')|sum %}
+            <td>{{ th_p }}</td>
+            <td>{{ ch_p }}</td>
+            <td>{{ th_p + ch_p }}</td>
+            {% set th_c = rows|map(attribute='vasuliCleaningTax')|sum %}
+            {% set ch_c = rows|map(attribute='vasuliChaluCleaningTax')|sum %}
+            <td>{{ th_c }}</td>
+            <td>{{ ch_c }}</td>
+            <td>{{ th_c + ch_c }}</td>
+            <td>{{ rows|map(attribute='total')|sum }}</td>
         </tr>
     </table>
 </body>

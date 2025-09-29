@@ -321,10 +321,23 @@ def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database
             pavti_dt = datetime.fromisoformat(str(payload.pavti_date).replace('Z',''))
         except Exception:
             pavti_dt = None
+    # Lookup owner name and malmatta kramank from property
+    prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == payload.property_id).first()
+    owner_name = None
+    if prop:
+        # Prefer first owner name if many-to-many exists
+        try:
+            if prop.owners and len(prop.owners) > 0 and getattr(prop.owners[0], 'name', None):
+                owner_name = prop.owners[0].name
+        except Exception:
+            owner_name = None
+    
     rec = namuna9_model.Namuna9Receipt(
         namuna9_id=payload.namuna9_id,
         property_id=payload.property_id,
         gram_panchayat_id=payload.gram_panchayat_id,
+        owner_name=payload.owner_name or owner_name,
+        malmatta_kramank=payload.malmatta_kramank or (prop.malmattaKramank if prop else None),
         pa_book_kramank=payload.pa_book_kramank,
         pavti_kramank=payload.pavti_kramank,
         pavti_date=pavti_dt,
@@ -424,6 +437,20 @@ def list_receipts(
                 td_end = td + timedelta(days=1)
             q = q.filter(date_expr < td_end)
     results = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
+    # Ensure snapshot fields are filled for legacy rows
+    for rec in results:
+        if (not rec.owner_name) or (not rec.malmatta_kramank):
+            prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == rec.property_id).first()
+            if prop:
+                if not rec.malmatta_kramank:
+                    rec.malmatta_kramank = prop.malmattaKramank
+                if not rec.owner_name:
+                    try:
+                        if prop.owners and len(prop.owners) > 0 and getattr(prop.owners[0], 'name', None):
+                            rec.owner_name = prop.owners[0].name
+                    except Exception:
+                        pass
+    db.commit()
     print(f"[DEBUG] Found {len(results)} receipts")
     for i, rec in enumerate(results):
         print(f"[DEBUG] Receipt {i}: id={rec.id}, pavti_kramank={rec.pavti_kramank}, property_id={rec.property_id}")
@@ -508,7 +535,176 @@ def get_receipt(receipt_id: int, db: Session = Depends(database.get_db)):
     rec = db.query(namuna9_model.Namuna9Receipt).get(receipt_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Receipt not found")
-    return rec
+    if (not rec.owner_name) or (not rec.malmatta_kramank):
+        prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == rec.property_id).first()
+        if prop:
+            if not rec.malmatta_kramank:
+                rec.malmatta_kramank = prop.malmattaKramank
+            if not rec.owner_name:
+                try:
+                    if prop.owners and len(prop.owners) > 0 and getattr(prop.owners[0], 'name', None):
+                        rec.owner_name = prop.owners[0].name
+                except Exception:
+                    pass
+        db.commit()
+    # Enrich with grampanchayat, village and occupant
+    prop2 = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == rec.property_id).first()
+    result = Namuna9ReceiptRead.from_orm(rec)
+    # Format pavti_date as YYYY-MM-DD string
+    try:
+        if result.pavti_date:
+            # pydantic may give datetime or string; normalize to date-only string
+            from datetime import datetime
+            if isinstance(result.pavti_date, datetime):
+                result.pavti_date = result.pavti_date.strftime('%Y-%m-%d')
+            else:
+                result.pavti_date = str(result.pavti_date)[:10]
+    except Exception:
+        pass
+    if prop2:
+        # village
+        v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop2.village_id).first()
+        result.village = getattr(v, 'name', None)
+        # grampanchayat
+        if v:
+            gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == v.gram_panchayat_id).first()
+            result.grampanchayat = getattr(gp, 'name', None) if gp else None
+        else:
+            gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == prop2.gram_panchayat_id).first()
+            result.grampanchayat = getattr(gp, 'name', None) if gp else None
+        # occupant from owner occupantName if available, fallback to first owner name
+        try:
+            if prop2.owners and len(prop2.owners) > 0:
+                occ = getattr(prop2.owners[0], 'occupantName', None)
+                result.occupant = occ or getattr(prop2.owners[0], 'name', None)
+        except Exception:
+            result.occupant = None
+        # yearslap from related Namuna9 record
+        n9 = db.query(namuna9_model.Namuna9).filter(namuna9_model.Namuna9.id == rec.namuna9_id).first()
+        result.yearslap = getattr(n9, 'yearslap', None) if n9 else None
+    return result
+
+def _enrich_receipt(rec, db: Session) -> Namuna9ReceiptRead:
+    """Helper to convert ORM receipt to enriched schema object used by multiple endpoints."""
+    # Backfill snapshot if missing
+    prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == rec.property_id).first()
+    if prop:
+        if not rec.malmatta_kramank:
+            rec.malmatta_kramank = prop.malmattaKramank
+        if not rec.owner_name:
+            try:
+                if prop.owners and len(prop.owners) > 0 and getattr(prop.owners[0], 'name', None):
+                    rec.owner_name = prop.owners[0].name
+            except Exception:
+                pass
+    db.flush()
+
+    result = Namuna9ReceiptRead.from_orm(rec)
+    # Format date
+    try:
+        if result.pavti_date:
+            from datetime import datetime
+            if isinstance(result.pavti_date, datetime):
+                result.pavti_date = result.pavti_date.strftime('%Y-%m-%d')
+            else:
+                result.pavti_date = str(result.pavti_date)[:10]
+    except Exception:
+        pass
+
+    # Enrich names
+    if prop:
+        v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop.village_id).first()
+        result.village = getattr(v, 'name', None)
+        gp = None
+        if v:
+            gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == v.gram_panchayat_id).first()
+        else:
+            gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == prop.gram_panchayat_id).first()
+        result.grampanchayat = getattr(gp, 'name', None) if gp else None
+        try:
+            if prop.owners and len(prop.owners) > 0:
+                occ = getattr(prop.owners[0], 'occupantName', None)
+                result.occupant = occ or getattr(prop.owners[0], 'name', None)
+        except Exception:
+            result.occupant = None
+        n9 = db.query(namuna9_model.Namuna9).filter(namuna9_model.Namuna9.id == rec.namuna9_id).first()
+        result.yearslap = getattr(n9, 'yearslap', None) if n9 else None
+    return result
+
+@router.get("/receipts/by-date-village", response_model=list[Namuna9ReceiptRead])
+def list_receipts_by_date_village(
+    gram_panchayat_id: int,
+    village_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(database.get_db)
+):
+    """List enriched receipts for a village between dates (inclusive of from, exclusive of next day to)."""
+    # Base query: receipts for GP and properties within village
+    q = db.query(namuna9_model.Namuna9Receipt).filter(
+        namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id
+    )
+    prop_ids_subq = db.query(namuna8_model.Property.id).filter(namuna8_model.Property.village_id == village_id).subquery()
+    q = q.filter(namuna9_model.Namuna9Receipt.property_id.in_(prop_ids_subq))
+
+    # Date range
+    def _parse_dt(s: Optional[str]):
+        if not s:
+            return None
+        try:
+            return datetime.fromisoformat(s)
+        except Exception:
+            try:
+                return datetime.strptime(s, '%Y-%m-%d')
+            except Exception:
+                return None
+    fd = _parse_dt(from_date)
+    td = _parse_dt(to_date)
+    date_expr = func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt)
+    if fd:
+        q = q.filter(date_expr >= fd)
+    if td:
+        td_end = td
+        if td.time().hour == 0 and td.time().minute == 0 and td.time().second == 0:
+            td_end = td + timedelta(days=1)
+        q = q.filter(date_expr < td_end)
+
+    rows = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
+    return [_enrich_receipt(r, db) for r in rows]
+
+@router.get("/receipts/by-date-all", response_model=list[Namuna9ReceiptRead])
+def list_receipts_by_date_all(
+    gram_panchayat_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(database.get_db)
+):
+    """List enriched receipts for the entire gram panchayat between dates (all villages)."""
+    q = db.query(namuna9_model.Namuna9Receipt).filter(
+        namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id
+    )
+    def _parse_dt(s: Optional[str]):
+        if not s:
+            return None
+        try:
+            return datetime.fromisoformat(s)
+        except Exception:
+            try:
+                return datetime.strptime(s, '%Y-%m-%d')
+            except Exception:
+                return None
+    fd = _parse_dt(from_date)
+    td = _parse_dt(to_date)
+    date_expr = func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt)
+    if fd:
+        q = q.filter(date_expr >= fd)
+    if td:
+        td_end = td
+        if td.time().hour == 0 and td.time().minute == 0 and td.time().second == 0:
+            td_end = td + timedelta(days=1)
+        q = q.filter(date_expr < td_end)
+    rows = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
+    return [_enrich_receipt(r, db) for r in rows]
 
 @router.get("/receipt/by-date", response_model=list[Namuna9ReceiptRead])
 def list_receipts_by_date(

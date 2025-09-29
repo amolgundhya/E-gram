@@ -27,7 +27,88 @@ visheshPaniSafaiEnv = Environment(loader=FileSystemLoader(namuna9_template_vises
 localhost = "http://127.0.0.1:8000"
 
 
+@router.api_route('/namuna10hishob/byVillageID', methods=['POST','GET'])
+async def namuna10_hishob_by_village(request: Request):
+    try:
+        # Load template
+        requestData = await (request.json() if request.method == 'POST' else request.query_params)
+        villageId = requestData.get("villageID")
+        district_id = requestData.get("district_id")
+        taluka_id = requestData.get("taluka_id")
+        gram_panchayat_id = requestData.get("gram_panchayat_id")
+        year = requestData.get("year")
+        receipt_id = requestData.get("receipt_id")
+        template = Environment(loader=FileSystemLoader(os.path.join(base_dir, 'templates','Namuna10'))).get_template('vasuliHishob.html')
 
+        # Call API - use receipt-specific endpoint if receipt_id is provided
+        async with httpx.AsyncClient() as client:
+            # Fetch one or more receipts; if receipt_id provided use single-id endpoint, else use by-date village (expects dates in request)
+            from_date = requestData.get('from_date') or requestData.get('startDate')
+            to_date = requestData.get('to_date') or requestData.get('endDate')
+            show_all = requestData.get('showAll') in (True, 'true', 'True', '1', 1)
+            if receipt_id:
+                response = await client.get(f'{localhost}/namuna9/receipt/{receipt_id}', params={"gram_panchayat_id": gram_panchayat_id})
+            elif show_all or not villageId:
+                # All villages within GP
+                response = await client.get(
+                    f'{localhost}/namuna9/receipts/by-date-all',
+                    params={
+                        "gram_panchayat_id": gram_panchayat_id,
+                        "from_date": from_date,
+                        "to_date": to_date,
+                    }
+                )
+            else:
+                response = await client.get(
+                    f'{localhost}/namuna9/receipts/by-date-village',
+                    params={
+                        "gram_panchayat_id": gram_panchayat_id,
+                        "village_id": villageId,
+                        "from_date": from_date,
+                        "to_date": to_date,
+                    }
+                )
+        if response.status_code != 200:
+            raise Exception(f"API error {response.status_code}: {response.text}")
+
+        data = response.json()
+
+        # Normalize to list
+        records = data if isinstance(data, list) else [data]
+        # Prepare context for vasuliHishob.html
+        context = {
+            "village": requestData.get("villageName", ""),
+            "stateDate": from_date or "",
+            "endDate": to_date or "",
+            "currentDate": requestData.get("currentDate", ""),
+            "rows": records,
+        }
+        rendered_html = template.render(**context)
+        
+        # Save output.html
+        os.makedirs(static_dir, exist_ok=True)
+        output_path = os.path.join(static_dir, 'output.html')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(rendered_html)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "Receipt output file is created",
+                "data": {}
+            }
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Error: {str(e)}",
+                "data": {}
+            }
+        )
 
 
 @router.post('/namuna9receipt')
