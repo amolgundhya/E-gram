@@ -6,6 +6,7 @@ from .birthdeath_unavailability_schemas import BirthDeathUnavailabilityCertifica
 import os
 from barcode import Code39
 from barcode.writer import ImageWriter
+from location_management import models as location_models
 
 router = APIRouter(prefix="/certificates", tags=["certificates"])
 
@@ -53,14 +54,68 @@ def list_certificates(
         query = query.filter(BirthDeathUnavailabilityCertificate.taluka_id == taluka_id)
     if gram_panchayat_id:
         query = query.filter(BirthDeathUnavailabilityCertificate.gram_panchayat_id == gram_panchayat_id)
-    return query.all()
+
+    certificates = query.all()
+
+    # Build response with location names
+    result = []
+    for cert in certificates:
+        cert_data = BirthDeathUnavailabilityCertificateRead.from_orm(cert)
+
+        district_name = None
+        taluka_name = None
+        gram_panchayat_name = None
+
+        if cert.district_id:
+            district = db.query(location_models.District).filter(location_models.District.id == cert.district_id).first()
+            if district:
+                district_name = getattr(district, "name", None)
+
+        if cert.taluka_id:
+            taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == cert.taluka_id).first()
+            if taluka:
+                taluka_name = getattr(taluka, "name", None)
+
+        if cert.gram_panchayat_id:
+            gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == cert.gram_panchayat_id).first()
+            if gram_panchayat:
+                gram_panchayat_name = getattr(gram_panchayat, "name", None)
+
+        cert_data.jilha = district_name
+        cert_data.taluka = taluka_name
+        cert_data.gramPanchayat = gram_panchayat_name
+
+        result.append(cert_data)
+
+    return result
 
 @router.get("/birthdeath-unavailability/{id}", response_model=BirthDeathUnavailabilityCertificateRead)
 def get_birthdeath_unavailability_certificate(id: int, request: Request, db: Session = Depends(get_db)):
     cert = db.query(BirthDeathUnavailabilityCertificate).filter(BirthDeathUnavailabilityCertificate.id == id).first()
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found")
+    
+    # Location names
+    district_name = None
+    taluka_name = None
+    gram_panchayat_name = None
+    if cert.district_id:
+        district = db.query(location_models.District).filter(location_models.District.id == cert.district_id).first()
+        if district:
+            district_name = getattr(district, "name", None)
+    if cert.taluka_id:
+        taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == cert.taluka_id).first()
+        if taluka:
+            taluka_name = getattr(taluka, "name", None)
+    if cert.gram_panchayat_id:
+        gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == cert.gram_panchayat_id).first()
+        if gram_panchayat:
+            gram_panchayat_name = getattr(gram_panchayat, "name", None)
+
     cert_data = BirthDeathUnavailabilityCertificateRead.from_orm(cert)
+    cert_data.jilha = district_name
+    cert_data.taluka = taluka_name
+    cert_data.gramPanchayat = gram_panchayat_name
     # Add barcode_url
     cert_data.barcode_url = str(request.base_url)[:-1] + f"/certificates/birthdeath-unavailability_barcode/{cert.id}?district_id={cert.district_id}&taluka_id={cert.taluka_id}&gram_panchayat_id={cert.gram_panchayat_id}"
     return cert_data
@@ -74,7 +129,29 @@ def update_birthdeath_unavailability_certificate(id: int, data: BirthDeathUnavai
         setattr(cert, field, value)
     db.commit()
     db.refresh(cert)
-    return cert
+
+    # Populate location names in response
+    district_name = None
+    taluka_name = None
+    gram_panchayat_name = None
+    if cert.district_id:
+        district = db.query(location_models.District).filter(location_models.District.id == cert.district_id).first()
+        if district:
+            district_name = getattr(district, "name", None)
+    if cert.taluka_id:
+        taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == cert.taluka_id).first()
+        if taluka:
+            taluka_name = getattr(taluka, "name", None)
+    if cert.gram_panchayat_id:
+        gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == cert.gram_panchayat_id).first()
+        if gram_panchayat:
+            gram_panchayat_name = getattr(gram_panchayat, "name", None)
+
+    cert_data = BirthDeathUnavailabilityCertificateRead.from_orm(cert)
+    cert_data.jilha = district_name
+    cert_data.taluka = taluka_name
+    cert_data.gramPanchayat = gram_panchayat_name
+    return cert_data
 
 @router.get("/birthdeath-unavailability_barcode/{id}")
 def get_birthdeath_unavailability_barcode(

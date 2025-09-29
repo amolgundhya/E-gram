@@ -133,7 +133,40 @@ def list_resident_certificates(
         query = query.filter(ResidentCertificate.taluka_id == taluka_id)
     if gram_panchayat_id:
         query = query.filter(ResidentCertificate.gram_panchayat_id == gram_panchayat_id)
-    return query.all()
+
+    certificates = query.all()
+
+    # enrich with location names
+    result = []
+    for cert in certificates:
+        cert_data = ResidentCertificateRead.from_orm(cert)
+
+        district_name = None
+        taluka_name = None
+        gram_panchayat_name = None
+
+        if cert.district_id:
+            district = db.query(location_models.District).filter(location_models.District.id == cert.district_id).first()
+            if district:
+                district_name = getattr(district, "name", None)
+
+        if cert.taluka_id:
+            taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == cert.taluka_id).first()
+            if taluka:
+                taluka_name = getattr(taluka, "name", None)
+
+        if cert.gram_panchayat_id:
+            gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == cert.gram_panchayat_id).first()
+            if gram_panchayat:
+                gram_panchayat_name = getattr(gram_panchayat, "name", None)
+
+        cert_data.jilha = district_name
+        cert_data.taluka = taluka_name
+        cert_data.gramPanchayat = gram_panchayat_name
+
+        result.append(cert_data)
+
+    return result
 
 @router.get("/resident/{id}", response_model=ResidentCertificateRead)
 def get_resident_certificate(
@@ -182,6 +215,25 @@ def get_resident_certificate(
     if not cert:
         raise HTTPException(status_code=404, detail="Resident certificate not found")
     cert_data = ResidentCertificateRead.from_orm(cert)
+    # location names
+    district_name = None
+    taluka_name = None
+    gram_panchayat_name = None
+    if cert.district_id:
+        district = db.query(location_models.District).filter(location_models.District.id == cert.district_id).first()
+        if district:
+            district_name = getattr(district, "name", None)
+    if cert.taluka_id:
+        taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == cert.taluka_id).first()
+        if taluka:
+            taluka_name = getattr(taluka, "name", None)
+    if cert.gram_panchayat_id:
+        gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == cert.gram_panchayat_id).first()
+        if gram_panchayat:
+            gram_panchayat_name = getattr(gram_panchayat, "name", None)
+    cert_data.jilha = district_name
+    cert_data.taluka = taluka_name
+    cert_data.gramPanchayat = gram_panchayat_name
     # Add image_url and barcode_url as absolute URLs if present
     if getattr(cert, "image_url", None):
         cert_data.image_url = str(request.base_url)[:-1] + f"/certificates/resident_image/{cert.id}?district_id={cert.district_id}&taluka_id={cert.taluka_id}&gram_panchayat_id={cert.gram_panchayat_id}"
@@ -279,7 +331,28 @@ def update_resident_certificate(
         setattr(cert, "image_url", None)
     db.commit()
     db.refresh(cert)
-    return cert 
+
+    # Include location names in response
+    cert_data = ResidentCertificateRead.from_orm(cert)
+    district_name = None
+    taluka_name = None
+    gram_panchayat_name = None
+    if cert.district_id:
+        district = db.query(location_models.District).filter(location_models.District.id == cert.district_id).first()
+        if district:
+            district_name = getattr(district, "name", None)
+    if cert.taluka_id:
+        taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == cert.taluka_id).first()
+        if taluka:
+            taluka_name = getattr(taluka, "name", None)
+    if cert.gram_panchayat_id:
+        gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == cert.gram_panchayat_id).first()
+        if gram_panchayat:
+            gram_panchayat_name = getattr(gram_panchayat, "name", None)
+    cert_data.jilha = district_name
+    cert_data.taluka = taluka_name
+    cert_data.gramPanchayat = gram_panchayat_name
+    return cert_data 
 
 @router.get("/resident_image/{id}")
 def get_resident_certificate_image(
