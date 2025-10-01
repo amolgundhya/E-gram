@@ -13,6 +13,7 @@ from namuna8.namuna8_model import Namuna8SettingTax
 from sqlalchemy.exc import SQLAlchemyError
 from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate
 from pydantic import BaseModel
+from jinja2 import Environment, FileSystemLoader
 import os
 import shutil
 import time
@@ -317,18 +318,40 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 boundary_north = record_response.get('boundaryNorth') or getattr(db_property, 'northBoundary', None)
                 boundary_south = record_response.get('boundarySouth') or getattr(db_property, 'southBoundary', None)
 
+
+                def safe_name(value: str) -> str:
+                        try:
+                            import re
+                            value = value.strip()
+                            # replace spaces with underscores and remove disallowed chars
+                            value = re.sub(r"\s+", "_", value)
+                            value = re.sub(r"[^\w\-\.\u0900-\u097F]", "", value)  # allow Devanagari
+                            return value[:80] if len(value) > 80 else value
+                        except Exception:
+                            return str(value)
+
+
+                district = db.query(location_models.District).filter(location_models.District.id == db_property.district_id).first()
+                taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == db_property.taluka_id).first()
+                gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
+                village = db.query(models.Village).filter(models.Village.id == db_property.village_id).first()
+
+                district_name = safe_name(district.name if district else str(db_property.district_id))
+                taluka_name = safe_name(taluka.name if taluka else str(db_property.taluka_id))
+                gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
+
                 qr_data = {
                     # Marathi labels for QR display
                     "malKr.": getattr(db_property, 'malmattaKramank', None),
-                    "ownerName": owner_name,
+                    "मा. नाव": owner_name,
                     "mobileNumber": mobile_number,
                     "totalArea": totalArea,
                     "constructionArea": constructionArea,
                     "openArea": openArea,
-                    "totalArea": totalTax,
+                    "totalTax": totalTax,
                 }
                 if wife_name:
-                    qr_data["wifeName"] = wife_name
+                    qr_data["पत्नीचे नाव"] = wife_name
                 # Create location-based QR directory structure
                 qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id),str(db_property.anuKramank))
                 # print(f"DEBUG: Creating QR directory: {qr_dir}")
@@ -342,6 +365,90 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 db.flush()
                 logging.info("QR code generated successfully")
                 # print(f"DEBUG: QR path saved to database: {db_property.qrcode}")
+
+                ### For generating QR Template ###
+                try:
+                    #get template
+                    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+                    print("base_dir ----->"  , base_dir)
+                    template_dir = os.path.join(base_dir, 'templates')
+                    print("template_dir ----->"  , template_dir)
+                    namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
+                    print("namuna8_template_dir ----->"  , namuna8_template_dir)
+                    env = Environment(loader=FileSystemLoader(namuna8_template_dir))
+                    template = env.get_template('qrTemplate.html')
+
+                    # save location using NAMES rather than IDs
+                    def safe_name(value: str) -> str:
+                        try:
+                            import re
+                            value = value.strip()
+                            # replace spaces with underscores and remove disallowed chars
+                            value = re.sub(r"\s+", "_", value)
+                            value = re.sub(r"[^\w\-\.\u0900-\u097F]", "", value)  # allow Devanagari
+                            return value[:80] if len(value) > 80 else value
+                        except Exception:
+                            return str(value)
+
+                    district = db.query(location_models.District).filter(location_models.District.id == db_property.district_id).first()
+                    taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == db_property.taluka_id).first()
+                    gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
+                    village = db.query(models.Village).filter(models.Village.id == db_property.village_id).first()
+
+                    district_name = safe_name(district.name if district else str(db_property.district_id))
+                    taluka_name = safe_name(taluka.name if taluka else str(db_property.taluka_id))
+                    gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
+                    village_name = safe_name(village.name if village else str(db_property.village_id))
+
+                    qr_template_dir = os.path.join(
+                        "uploaded_images",
+                        "qrTemplate",
+                        district_name,
+                        taluka_name,
+                        gp_name,
+                        village_name,
+                    )
+                    os.makedirs(qr_template_dir, exist_ok=True)
+
+                    #create qr template with data
+                    report_images_dir = os.path.join(base_dir, 'ReportImages')
+                    reports_dir = os.path.join(base_dir, 'reports')
+                    rel_report_images = os.path.relpath(report_images_dir, start=qr_template_dir)
+                    rel_reports = os.path.relpath(reports_dir, start=qr_template_dir)
+                    
+                    # Convert QR code path to relative path
+                    qr_code_abs_path = os.path.abspath(db_property.qrcode)
+                    rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
+
+                    context = {
+                        # IDs
+                        "district_id": str(db_property.district_id),
+                        "taluka_id": str(db_property.taluka_id),
+                        "gram_panchayat_id": str(db_property.gram_panchayat_id),
+                        "village_id": str(db_property.village_id),
+                        # Names
+                        "district_name": district.name if district else "",
+                        "taluka_name": taluka.name if taluka else "",
+                        "gram_panchayat_name": gram_panchayat.name if gram_panchayat else "",
+                        "village_name": village.name if village else "",
+                        # Others
+                        "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
+                        "report_images": rel_report_images,
+                        "reports": rel_reports,
+                        "qrcode": rel_qrcode,
+                    }
+                    rendered_html = template.render(**context)
+                    qr_template_path = os.path.join(qr_template_dir , f'qr_template_{str(db_property.anuKramank)}.html')
+                    with open(qr_template_path , 'w' , encoding='utf-8') as f:
+                        f.write(rendered_html)
+
+
+                    print("QR Template successfully created")
+
+
+                except Exception as e:
+                    logging.error(f"Error in generating the qr template : " , e)
+        ### For generating QR Template ###
             except Exception as e:
                 logging.error(f"QR code generation failed: {e}")
                 # print(f"QR code generation failed: {e}")
@@ -778,6 +885,93 @@ def update_namuna8_entry(
         # print(f"DEBUG UPDATE: QR code generated successfully")
         db_property.qrcode = qr_path.replace(os.sep, "/")
         db.commit()
+
+        ### For generating QR Template ###
+        try:
+            #get template
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+            print("base_dir ----->"  , base_dir)
+            template_dir = os.path.join(base_dir, 'templates')
+            print("template_dir ----->"  , template_dir)
+            namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
+            print("namuna8_template_dir ----->"  , namuna8_template_dir)
+            env = Environment(loader=FileSystemLoader(namuna8_template_dir))
+            template = env.get_template('qrTemplate.html')
+
+            # save location using NAMES rather than IDs
+            def safe_name(value: str) -> str:
+                try:
+                    import re
+                    value = value.strip()
+                    # replace spaces with underscores and remove disallowed chars
+                    value = re.sub(r"\s+", "_", value)
+                    value = re.sub(r"[^\w\-\.\u0900-\u097F]", "", value)  # allow Devanagari
+                    return value[:80] if len(value) > 80 else value
+                except Exception:
+                    return str(value)
+
+            district = db.query(location_models.District).filter(location_models.District.id == db_property.district_id).first()
+            taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == db_property.taluka_id).first()
+            gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
+            village = db.query(models.Village).filter(models.Village.id == db_property.village_id).first()
+
+            district_name = safe_name(district.name if district else str(db_property.district_id))
+            taluka_name = safe_name(taluka.name if taluka else str(db_property.taluka_id))
+            gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
+            village_name = safe_name(village.name if village else str(db_property.village_id))
+
+            qr_template_dir = os.path.join(
+                "uploaded_images",
+                "qrTemplate",
+                district_name,
+                taluka_name,
+                gp_name,
+                village_name,
+            )
+            os.makedirs(qr_template_dir, exist_ok=True)
+
+            #create qr template with data
+            report_images_dir = os.path.join(base_dir, 'ReportImages')
+            reports_dir = os.path.join(base_dir, 'reports')
+            rel_report_images = os.path.relpath(report_images_dir, start=qr_template_dir)
+            rel_reports = os.path.relpath(reports_dir, start=qr_template_dir)
+
+            # Convert QR code path to relative path from the template directory
+            try:
+                qr_code_abs_path = os.path.abspath(db_property.qrcode)
+                rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
+            except Exception:
+                rel_qrcode = db_property.qrcode
+
+            context = {
+                # IDs
+                "district_id": str(db_property.district_id),
+                "taluka_id": str(db_property.taluka_id),
+                "gram_panchayat_id": str(db_property.gram_panchayat_id),
+                "village_id": str(db_property.village_id),
+                # Names
+                "district_name": district.name if district else "",
+                "taluka_name": taluka.name if taluka else "",
+                "gram_panchayat_name": gram_panchayat.name if gram_panchayat else "",
+                "village_name": village.name if village else "",
+                # Others
+                "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
+                "report_images": rel_report_images,
+                "reports": rel_reports,
+                "qrcode": rel_qrcode,
+            }
+            rendered_html = template.render(**context)
+            qr_template_path = os.path.join(qr_template_dir , f'qr_template_{str(db_property.anuKramank)}.html')
+            with open(qr_template_path , 'w' , encoding='utf-8') as f:
+                f.write(rendered_html)
+
+
+            print("QR Template successfully created")
+
+
+        except Exception as e:
+            logging.error(f"Error in generating the qr template : " , e)
+        ### For generating QR Template ###
         # print(f"DEBUG UPDATE: QR path saved to database: {db_property.qrcode}")
     except Exception as e:
         logging.error(f"QR code update failed: {e}")

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html >
 <head>
@@ -23,17 +22,6 @@
             }
             #toolbar {
                 display: none !important;
-            }
-            /* Ensure no zoom/rescaling during print */
-            #mainContent { zoom: 1 !important; transform: none !important; }
-            /* Keep QR codes sharp and large enough for scanners */
-            img.qr {
-                image-rendering: pixelated;
-                print-color-adjust: exact;
-                -webkit-print-color-adjust: exact;
-                width: 100% !important;
-                height: 100% !important;
-                object-fit: contain;
             }
         }
         table th, table td {
@@ -146,7 +134,7 @@
 
                         <div style=" width:90px; height: 90px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow:hidden;">
                             {% if QRcodeURL %}
-                                <img src="{{ QRcodeURL | default('') }}" class="qr" style="width: 90px; height: 90px; image-rendering: pixelated;" />
+                                <img src="{{ QRcodeURL | default('') }}" style="width: 90px; height: 90px;" />
                             {% else %}
                                 <div></div>
                             {% endif %}
@@ -452,4 +440,3 @@
 </table> 
 
 </div>
-
