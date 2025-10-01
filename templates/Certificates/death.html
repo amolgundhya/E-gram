@@ -113,8 +113,8 @@
   </tr>
   <tr>
     <td style="text-align:center; font-size:14px; border-bottom:1px solid #000; padding:6px;">
-      ्रमाणित करण्यात येत आहे कि खालील माहिती जन्माच्या मुल अभिलेखाच्या नोंदवहीतून घेण्यात आली आहे. जी की स्थानिक क्षेत्र -, तालुका-, जिल्हा- महाराष्ट्र राज्याच्या नोंदवहीत उल्लेख आहे.<br/>
-      <span style="font-size:12px;">This is to cetify that the following inforation has been taken from the original record of birth which is the register for (local area / local body) Panhera. of tahsil/block Motala of district  Buldhana of maharashtra sate.</span>
+      प्रमाणित करण्यात येत आहे कि खालील माहिती मृत्युच्या मुळ अभिलेखाच्या नोंदवहीतून घेण्यात आली आहे. जी की स्थानिक क्षेत्र -{{gramPanchayat}} बु, तालुका-{{taluka}}, जिल्हा-{{jilha}} महाराष्ट्र राज्याच्या नोंदवहीत उल्लेख आहे.<br/>
+      <span style="font-size:12px;">This is to cetify that the following inforation has been taken from the original record of Death which is the register for (local area / local body) Panhera. of tahsil/block Motala of district  Buldhana of maharashtra sate..</span>
     </td>
   </tr>
 </table>
@@ -134,7 +134,7 @@
     <td style="text-align:right; padding:4px;">वडिलांचे नाव : {{ father_name | default('') }}<br>Name of Father/Husband : {{ father_name | default('') }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">मयत व्यक्तीचा मृत्यू समयीचा पत्ता : {{ address_at_death | default('') }}<br>Address at time of Death : {{ address_at_death_en | default('') }}</td>
+    <td style="text-align:left; padding:4px;">मयत व्यक्तीचा मृत्यू समयीचा पत्ता : {{ address_at_death | default('') }}<br>Address of parents at time of Death : {{ address_at_death_en | default('') }}</td>
     <td style="text-align:right; padding:4px;">मयत व्यक्तीचा कायमचा पत्ता : {{ permanent_address | default('') }}<br>Permanent address of deceased : {{ permanent_address_en | default('') }}</td>
   </tr>
   <tr>
@@ -157,8 +157,6 @@
 <table style="width:100%; border:1px solid #000; border-collapse:collapse; margin-top:0; font-size:15px;">
   <tr>
     <td style="width:33%; vertical-align:top; padding:8px; border-right : 1px solid black ">
-      गाव : {{ village | default('') }}<br>
-      Village : {{ village | default('') }}<br>
       प्रपत्र दिल्याचा दिनांक : {{ date | default('') }}<br>
       Certificate Issue Date : {{ date | default('') }}
     </td>

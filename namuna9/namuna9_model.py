@@ -120,6 +120,9 @@ class Namuna9Receipt(Base):
     namuna9_id = Column(Integer, ForeignKey("namuna9.id"), nullable=False)
     property_id = Column(Integer, nullable=False)
     gram_panchayat_id = Column(Integer, nullable=True)
+    # Snapshot fields for display
+    owner_name = Column(String, nullable=True)
+    malmatta_kramank = Column(String, nullable=True)
     pa_book_kramank = Column(String, nullable=True)
     pavti_kramank = Column(Integer, nullable=False)
     pavti_date = Column(DateTime(timezone=True), server_default=func.now())

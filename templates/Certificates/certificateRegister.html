@@ -50,6 +50,7 @@
             #toolbar {
                 display: none !important;
             }
+            .record-row { display: table-row !important; }
         }
     </style>
 </head>
@@ -144,28 +145,7 @@
         function lastPage() { showPage(totalPages); }
 
         function printPage() {
-            // Show all records before printing
-            allRecords = Array.from(document.querySelectorAll('.record-row'));
-            allRecords.forEach(el => el.style.display = '');
-
-            // Update the total for all records
-            let totalPrice = 0;
-            allRecords.forEach(el => {
-                const priceEl = el.querySelector('.price');
-                if (priceEl) {
-                    totalPrice += parseFloat(priceEl.innerText) || 0;
-                }
-            });
-            const pageTotalElement = document.getElementById('page-total-price');
-            if(pageTotalElement) {
-                pageTotalElement.innerText = totalPrice.toFixed(2);
-            }
-
-            // Print, then restore the current page view
-            window.onafterprint = function() {
-                showPage(currentPage);
-                window.onafterprint = null; // Clean up
-            };
+            // Print all pages; visibility handled by @media print CSS
             window.print();
         }
 
