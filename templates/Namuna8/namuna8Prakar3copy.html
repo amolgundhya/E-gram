@@ -344,14 +344,14 @@
                             </tr>
                             <tr>
                                 <td colspan="8" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
-                                <td> {{row.totalconstructionareainmeter|default('')}} </td>
+                                <td> {{row.totalareainmeters|default('')}} </td>
                                 <td>
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                         {{row.khaliJaga[0].totalkhalijagaareainmeters|default('')}}
                                     {% endif %}
                                 </td>
                                 <td></td>
-                                <td> {{row.totalConstruction|default('')}}  </td>
+                                <td> {{row.totalconstructionareainmeter|default('')}}  </td>
                                 <td></td>
                                 <td></td>
                             </tr>

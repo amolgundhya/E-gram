@@ -119,7 +119,8 @@
                 water += parseFloat(row.dataset.waterTax) || 0; // use the correct dataset key for data-water-tax
                 cleaning += parseFloat(row.dataset.cleaningTax) || 0;
                 toilet += parseFloat(row.dataset.toiletTax) || 0;
-                total += parseFloat(row.dataset.totalTax) || 0;
+                // Totals in the table subtract vpanikar; mirror that here
+                total += (parseFloat(row.dataset.totalTax) || 0) - (parseFloat(row.dataset.vpanikar) || 0);
             });
             document.getElementById('footerSummary').innerHTML =
                 `एकूण कर : घर : ${house.toFixed(2)} &nbsp; दिवा : ${lighting.toFixed(2)} &nbsp; आरोग्य : ${health.toFixed(2)} &nbsp; पाणी : ${water.toFixed(2)} &nbsp; सफाई : ${cleaning.toFixed(2)} &nbsp; शौ. कर : ${toilet.toFixed(2)} &nbsp; एकूण : ${total.toFixed(2)}`;
@@ -264,7 +265,8 @@
                 data-water-tax="{{ row.sapanikar | default('0') }}"
                 data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
                 data-toilet-tax="{{ row.toiletTax | default('0') }}"
-                data-total-tax="{{ row.totaltax | default('0') }}">
+                data-total-tax="{{ row.totaltax | default('0') }}"
+                data-vpanikar="{{ row.vpanikar | default('0') }}">
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
                 <td style="width: 300px;">{{ row.ownerName | default('') }}</td>

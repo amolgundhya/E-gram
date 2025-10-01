@@ -257,7 +257,7 @@
                                 <td rowspan="2"> {{row.occupantName|default('')}} </td>
                                 <td rowspan="2" style="text-align: left;">
                                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
-                        {{ row.constructionType[0].type | default('') }}<br>
+                        {{ row.constructionType[0].type | default('') }}<br>    
                     {% endif %}
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].type | default('') }}<br>
@@ -343,14 +343,14 @@
                             </tr>
                             <tr>
                                 <td colspan="8" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
-                                <td> {{row.totalconstructionareainmeter|default('')}} </td>
+                                <td> {{row.totalareainmeters|default('')}} </td>
                                 <td>
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                         {{row.khaliJaga[0].totalkhalijagaareainmeters|default('')}}
                                     {% endif %}
                                 </td>
                                 <td></td>
-                                <td> {{row.totalConstruction|default('')}}  </td>
+                                <td> {{row.totalconstructionareainmeter|default('')}}  </td>
                                 <td></td>
                                 <td></td>
                             </tr>
