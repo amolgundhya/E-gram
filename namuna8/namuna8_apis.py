@@ -861,18 +861,17 @@ def update_namuna8_entry(
         boundary_south = record_response.get('boundarySouth') or getattr(db_property, 'southBoundary', None)
 
         qr_data = {
-            # Marathi labels for QR display
+                    # Marathi labels for QR display
             "malKr.": getattr(db_property, 'malmattaKramank', None),
-            "ownerName": owner_name,
+            "मा. नाव": owner_name,
             "mobileNumber": mobile_number,
             "totalArea": totalArea,
             "constructionArea": constructionArea,
             "openArea": openArea,
-            "totalArea": totalTax,
+            "totalTax": totalTax,
         }
-
         if wife_name:
-            qr_data["wifeName"] = wife_name
+            qr_data["पत्नीचे नाव"] = wife_name
         
         # Create location-based QR directory structure
         qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id), str(db_property.anuKramank))
