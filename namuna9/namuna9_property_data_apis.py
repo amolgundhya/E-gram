@@ -231,22 +231,22 @@ def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(data
         db.add(data)
         db.flush()
 
-    # Apply vasuli and reduce shakti fields (not below zero)
+    # Apply vasuli and reduce shakti fields (allow negative values)
     def apply(field_shakti: str, field_vasuli: str, amount: float):
         current_shakti = getattr(data, field_shakti) or 0.0
         current_vasuli = getattr(data, field_vasuli) or 0.0
-        take = max(min(amount, current_shakti), 0.0)
-        setattr(data, field_shakti, current_shakti - take)
-        setattr(data, field_vasuli, current_vasuli + take)
+        # Allow subtraction even if it results in negative values
+        setattr(data, field_shakti, current_shakti - amount)
+        setattr(data, field_vasuli, current_vasuli + amount)
 
     apply('shaktiGhar', 'vasuliGhar', payload.vasuliGhar)
     # Reduce chalu (current) from chaluGhar rather than shakti
     def apply_chalu(field_chalu: str, field_vasuli_chalu: str, amount: float):
         current_chalu = getattr(data, field_chalu) or 0.0
         current_vasuli_chalu = getattr(data, field_vasuli_chalu) or 0.0
-        take = max(min(amount, current_chalu), 0.0)
-        setattr(data, field_chalu, current_chalu - take)
-        setattr(data, field_vasuli_chalu, current_vasuli_chalu + take)
+        # Allow subtraction even if it results in negative values
+        setattr(data, field_chalu, current_chalu - amount)
+        setattr(data, field_vasuli_chalu, current_vasuli_chalu + amount)
 
     apply_chalu('chaluGhar', 'vasuliChaluGhar', payload.vasuliChaluGhar)
     apply('shaktiDiva', 'vasuliDiva', payload.vasuliDiva)

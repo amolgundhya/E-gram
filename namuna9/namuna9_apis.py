@@ -450,14 +450,15 @@ def get_table_data(
             shaktiVpanikar = round(saved_data.shaktiVpanikar or 0, 2)
             shaktiCleaningTax = round(saved_data.shaktiCleaningTax or 0, 2)
             dand = round(saved_data.dand or 0, 2)
-            chaluGhar = round(saved_data.chaluGhar or totalHouseTax, 2)
-            chaluDiva = round(saved_data.chaluDiva or lightingTax, 2)
-            chaluAarogyaKar = round(saved_data.chaluAarogyaKar or healthTax, 2)
-            chaluSapanikar = round(saved_data.chaluSapanikar or sapanikar, 2)
-            chaluVpanikar = round(saved_data.chaluVpanikar or vpanikar, 2)
-            chaluCleaningTax = round(saved_data.chaluCleaningTax or cleaningTax, 2)
-            warrantFee = saved_data.warrantFee or warrant_fee
-            noticeFee = saved_data.noticeFee or notice_fee
+            # Use saved values directly, even if they are 0 or negative (don't fallback to calculated taxes)
+            chaluGhar = round(saved_data.chaluGhar, 2) if saved_data.chaluGhar is not None else round(totalHouseTax, 2)
+            chaluDiva = round(saved_data.chaluDiva, 2) if saved_data.chaluDiva is not None else round(lightingTax, 2)
+            chaluAarogyaKar = round(saved_data.chaluAarogyaKar, 2) if saved_data.chaluAarogyaKar is not None else round(healthTax, 2)
+            chaluSapanikar = round(saved_data.chaluSapanikar, 2) if saved_data.chaluSapanikar is not None else round(sapanikar, 2)
+            chaluVpanikar = round(saved_data.chaluVpanikar, 2) if saved_data.chaluVpanikar is not None else round(vpanikar, 2)
+            chaluCleaningTax = round(saved_data.chaluCleaningTax, 2) if saved_data.chaluCleaningTax is not None else round(cleaningTax, 2)
+            warrantFee = saved_data.warrantFee if saved_data.warrantFee is not None else warrant_fee
+            noticeFee = saved_data.noticeFee if saved_data.noticeFee is not None else notice_fee
         else:
             shaktiGhar = 0
             shaktiDiva = 0
@@ -766,7 +767,7 @@ def get_namuna9_table_data_custom(
         total = (
             (ekunGhar or 0) + (ekunDiva or 0) + (ekunAarogyaKar or 0) +
             (ekunSapanikar or 0) + (ekunVpanikar or 0) + (ekunCleaningTax or 0) +
-            (warrantFee or 0) + (noticeFee or 0) + (dand or 0)
+            (warrantFee or 0) + (noticeFee or 0)
         )
         total = round(total, 2)
         row = {
