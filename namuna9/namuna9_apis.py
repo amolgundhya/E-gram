@@ -707,6 +707,7 @@ def get_namuna9_table_data_custom(
         # Saved data and thakit handling mapped to our response names
         saved_data = saved_data_map.get(prop.id)
         if saved_data:
+            # Always honor saved values even if 0 or negative, to mirror the table
             shaktiGhar = round(saved_data.shaktiGhar or 0, 2)
             shaktiDiva = round(saved_data.shaktiDiva or 0, 2)
             shaktiAarogyaKar = round(saved_data.shaktiAarogyaKar or 0, 2)
@@ -714,14 +715,14 @@ def get_namuna9_table_data_custom(
             shaktiVpanikar = round(saved_data.shaktiVpanikar or 0, 2)
             shaktiCleaningTax = round(saved_data.shaktiCleaningTax or 0, 2)
             dand = round(saved_data.dand or 0, 2)
-            chaluGhar = round(saved_data.chaluGhar or totalHouseTax, 2)
-            chaluDiva = round(saved_data.chaluDiva or lightingTax, 2)
-            chaluAarogyaKar = round(saved_data.chaluAarogyaKar or healthTax, 2)
-            chaluSapanikar = round(saved_data.chaluSapanikar or saWaterTax, 2)
-            chaluVpanikar = round(saved_data.chaluVpanikar or viWaterTax, 2)
-            chaluCleaningTax = round(saved_data.chaluCleaningTax or cleaningTax, 2)
-            warrantFee = saved_data.warrantFee or warrant_fee
-            noticeFee = saved_data.noticeFee or notice_fee
+            chaluGhar = round(saved_data.chaluGhar, 2) if saved_data.chaluGhar is not None else round(totalHouseTax, 2)
+            chaluDiva = round(saved_data.chaluDiva, 2) if saved_data.chaluDiva is not None else round(lightingTax, 2)
+            chaluAarogyaKar = round(saved_data.chaluAarogyaKar, 2) if saved_data.chaluAarogyaKar is not None else round(healthTax, 2)
+            chaluSapanikar = round(saved_data.chaluSapanikar, 2) if saved_data.chaluSapanikar is not None else round(saWaterTax, 2)
+            chaluVpanikar = round(saved_data.chaluVpanikar, 2) if saved_data.chaluVpanikar is not None else round(viWaterTax, 2)
+            chaluCleaningTax = round(saved_data.chaluCleaningTax, 2) if saved_data.chaluCleaningTax is not None else round(cleaningTax, 2)
+            warrantFee = saved_data.warrantFee if saved_data.warrantFee is not None else warrant_fee
+            noticeFee = saved_data.noticeFee if saved_data.noticeFee is not None else notice_fee
         else:
             shaktiGhar = 0
             shaktiDiva = 0
@@ -804,6 +805,20 @@ def get_namuna9_table_data_custom(
             "totlaToiletTax": round(toiletTax, 2),
             "totaltax": round(total, 2),
             "totaltaxwithoutnoticwarrant": round(total - (warrantFee or 0) - (noticeFee or 0), 2),
+            "totaltaxwithoutspanivpaninoticewaraant": round(
+                (ekunGhar or 0) + (ekunDiva or 0) + (ekunAarogyaKar or 0)
+                - 0  # clarity
+                + 0  # clarity
+                - 0  # clarity
+                + 0  # clarity
+                , 2
+            ) if False else round(
+                (total or 0)
+                - (ekunSapanikar or 0)
+                - (ekunVpanikar or 0)
+                - (warrantFee or 0)
+                - (noticeFee or 0)
+            , 2),
             "pavatiSRKivyaTarik": 0
         }
         rows.append(row)
@@ -946,7 +961,6 @@ def get_property_records_by_village_regular(
                 + (r.get('ekunAarogyaKar', 0) or 0)
                 + (r.get('ekunSapanikar', 0) or 0)
                 + (r.get('ekunVpanikar', 0) or 0)
-                + (r.get('ekunCleaningTax', 0) or 0)
                 + (r.get('warrantFee', 0) or 0)
                 + (r.get('noticeFee', 0) or 0)
             ),
@@ -1096,8 +1110,6 @@ def get_property_records_by_village_visheshpani(
                 + (r.get('ekunVpanikar', 0) or 0)
                 + (r.get('warrantFee', 0) or 0)
                 + (r.get('noticeFee', 0) or 0))
-                - (r.get('ekunCleaningTax', 0) or 0)
-                - (r.get('totlaToiletTax', 0) or 0)
             )
         })
 
