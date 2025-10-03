@@ -803,6 +803,7 @@ def get_namuna9_table_data_custom(
             "toiletTax": round(toiletTax, 2),
             "totlaToiletTax": round(toiletTax, 2),
             "totaltax": round(total, 2),
+            "totaltaxwithoutnoticwarrant": round(total - (warrantFee or 0) - (noticeFee or 0), 2),
             "pavatiSRKivyaTarik": 0
         }
         rows.append(row)
@@ -887,20 +888,42 @@ def get_property_records_by_village_regular(
             "total3": r.get('ekunAarogyaKar', 0),
             "total4": r.get('ekunSapanikar', 0),
             "total5": r.get('ekunCleaningTax', 0),
-            "total6": r.get('noticeFee', 0) + thakit.get('Thakit6', 0),
-            "total7": r.get('warrantFee', 0) + thakit.get('Thakit7', 0)
+            # For fees, show only the fee amount once in the last column
+            "total6": r.get('noticeFee', 0),
+            "total7": r.get('warrantFee', 0)
         }
         # Build Dand map sourced from table row (use dand in house column)
         dand_map = {f"Dand{i}": 0 for i in range(1, 8)}
         dand_map["Dand1"] = r.get('dand', 0)
 
+        # Resolve gram panchayat name and occupant name using the property record
+        gp_name = None
+        occupant_name = ""
+        try:
+            prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == r.get('property_id')).first()
+            if prop:
+                # GP name from village linkage
+                v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop.village_id).first()
+                if v:
+                    gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == v.gram_panchayat_id).first()
+                    gp_name = getattr(gp, 'name', None)
+                # Occupant name from owners via build_property_response
+                prop_data_full = build_property_response(prop, db, gram_panchayat_id)
+                owners = prop_data_full.get('owners', [])
+                if isinstance(owners, list) and len(owners) > 0:
+                    occ = owners[0].get('occupantName') or ""
+                    occupant_name = occ
+        except Exception:
+            gp_name = gp_name or None
+            occupant_name = occupant_name or ""
+
         mapped.append({
-            "gramPanchayat": "",
+            "gramPanchayat": gp_name or "",
             "yearSlap": yearslap,
             "propertyNumber": r.get('malmattaKramank', ''),
             "currentDate": datetime.now().strftime('%Y-%m-%d'),
             "ownerName": r.get('ownerNames', ''),
-            "occupantName": "",
+            "occupantName": occupant_name,
             "houseNumber": r.get('malmattaKramank', ''),
             "कराचे नाव": {
                 "घरकर": r.get('chaluGhar', 0),
@@ -916,7 +939,27 @@ def get_property_records_by_village_regular(
                 "current": current,
                 "total": total
             },
-            "totalTax": r.get('total', 0)
+            # Compute totalTax explicitly to avoid double-counting dand (already included in ekunGhar)
+            "totalTax": (
+                (r.get('ekunGhar', 0) or 0)
+                + (r.get('ekunDiva', 0) or 0)
+                + (r.get('ekunAarogyaKar', 0) or 0)
+                + (r.get('ekunSapanikar', 0) or 0)
+                + (r.get('ekunVpanikar', 0) or 0)
+                + (r.get('ekunCleaningTax', 0) or 0)
+                + (r.get('warrantFee', 0) or 0)
+                + (r.get('noticeFee', 0) or 0)
+            ),
+            "totalTaxwithoutvipanitoilet": (
+                (r.get('ekunGhar', 0) or 0)
+                + (r.get('ekunDiva', 0) or 0)
+                + (r.get('ekunAarogyaKar', 0) or 0)
+                + (r.get('ekunSapanikar', 0) or 0)
+                + (r.get('ekunCleaningTax', 0) or 0)
+                + (r.get('warrantFee', 0) or 0)
+                + (r.get('noticeFee', 0) or 0)
+                - (r.get('totlaToiletTax', 0) or 0)
+            )
         })
     return mapped
 
