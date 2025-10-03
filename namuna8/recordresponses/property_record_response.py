@@ -405,9 +405,16 @@ def get_property_records_by_village(
         khali_jaga_types = [c for c in prop.constructions if c.construction_type.name.strip() == "खाली जागा"]
         khaliJaga = []
         if getattr(prop, 'vacantLandType', None) not in [None, '', 'null']:
-            total_area = round(prop.totalAreaSqFt or 0, 2)
-            used_area = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions), 2)
-            khali_area = round(max(total_area - used_area, 0), 2)
+            # Compute khali area in both sqm and sqft based on stored unit
+            unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
+            if unit == 'sqm':
+                total_area_m = round(prop.totalArea or 0, 2)
+                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions), 2)
+            else:
+                total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
+                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions) * 0.092903, 2)
+            khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
+            khali_area = round(khali_area_m / 0.092903, 2)
             # Find the bandhmastache_dar for vacantLandType construction type
             khali_jaga_rate = 0
             vacant_construction_type = None
@@ -465,7 +472,7 @@ def get_property_records_by_village(
                 
                 khaliJaga = [{
                     "constructiontype": "खाली जागा",
-                "length": round(khali_area, 2),
+                    "length": round(khali_area, 2),
                     "width": 1,
                     "year": datetime.now().year,
                     "rate": khali_jaga_rate,
@@ -534,7 +541,16 @@ def get_property_records_by_village(
             elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
                 return getattr(water_slab_settings, 'generalWaterAbove700', 0)
             return 0
-        total_area = prop.totalAreaSqFt or 0
+        # Normalize total area based on property unit
+        unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
+        if unit == 'sqm':
+            total_area_m = round(prop.totalArea or 0, 2)
+            total_area_sqft = round((prop.totalArea or 0) / 0.092903, 2)
+        else:
+            total_area_sqft = round(prop.totalAreaSqFt or 0, 2)
+            total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
+        # Use sqft for slabbed area taxes (301-700 etc. are in sqft)
+        total_area = total_area_sqft
         # Calculate totalHouseTax as the sum of all houseTax in constructions (excluding 'खाली जागा')
         total_house_tax = sum([
             c.houseTax or 0
@@ -546,8 +562,13 @@ def get_property_records_by_village(
         total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
         if khaliJaga:
                  total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
-        total_construction_area_foot = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
-        total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
+        # Construction area totals aligned with unit handling
+        if unit == 'sqm':
+            total_construction_area_meter = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
+            total_construction_area_foot = round(total_construction_area_meter / 0.092903, 2)
+        else:
+            total_construction_area_foot = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
+            total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
         year_from = datetime.now().year
         year_to = year_from + 3
         response = {
@@ -564,8 +585,8 @@ def get_property_records_by_village(
             "yearTo": str(year_to) + "-" + str(year_to + 1),
             "photoURL": None,
             "QRcodeURL": None,
-            "total_arearinfoot": prop.totalAreaSqFt,
-            "totalareainmeters": round((prop.totalAreaSqFt or 0) * 0.092903, 2),
+            "total_arearinfoot": total_area_sqft,
+            "totalareainmeters": total_area_m,
             "occupantName": owner.occupantName if owner else None,
             "aadharNumber": owner.aadhaarNumber if owner else None,
             "ownerName": owner.name if owner else None,
@@ -576,7 +597,7 @@ def get_property_records_by_village(
             "areaWest": prop.westLength,
             "areaNorth": prop.northLength,
             "areaSouth": prop.southLength,
-            "totalArea": prop.totalAreaSqFt,
+            "totalArea": total_area_sqft,
             "boundaryEast": prop.eastBoundary,
             "boundaryWest": prop.westBoundary,
             "boundaryNorth": prop.northBoundary,
@@ -593,7 +614,7 @@ def get_property_records_by_village(
             "house": prop.roofType,
             "totalCapitalValue": int(total_capital_value),
             "totalHouseTax": int(total_house_tax),
-            "totalconstructionareainfoot": int(total_construction_area_foot),
+            "totalconstructionareainfoot": total_construction_area_foot,
             "totalconstructionareainmeter": total_construction_area_meter,
             "housingUnit": prop.areaUnit,
             "lightingTax": get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0,
@@ -825,7 +846,16 @@ def get_property_records_by_gram_panchayat(
                     return getattr(water_slab_settings, 'generalWaterAbove700', 0)
                 return 0
 
-            total_area = prop.totalAreaSqFt or 0
+            # Normalize total area based on property unit (align with village endpoint)
+            unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
+            if unit == 'sqm':
+                total_area_m = round(prop.totalArea or 0, 2)
+                total_area_sqft = round((prop.totalArea or 0) / 0.092903, 2)
+            else:
+                total_area_sqft = round(prop.totalAreaSqFt or 0, 2)
+                total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
+            # Use sqft for slabbed area taxes (301-700 etc. are in sqft)
+            total_area = total_area_sqft
             total_house_tax = sum([
                 c.houseTax or 0
                 for c in prop.constructions
@@ -835,8 +865,13 @@ def get_property_records_by_gram_panchayat(
             total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
             if khaliJaga:
                  total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
-            total_construction_area_foot = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
-            total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
+            # Construction area totals aligned with unit handling
+            if unit == 'sqm':
+                total_construction_area_meter = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
+                total_construction_area_foot = round(total_construction_area_meter / 0.092903, 2)
+            else:
+                total_construction_area_foot = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
+                total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
             year_from = datetime.now().year
             year_to = year_from + 3
             todays_date = date.today().strftime("%d-%m-%Y")
@@ -856,8 +891,8 @@ def get_property_records_by_gram_panchayat(
                 "photoURL": None,
                 "bank_qr_code": None,
                 "QRcodeURL": None,
-                "total_arearinfoot": prop.totalAreaSqFt,
-                "totalareainmeters": round((prop.totalAreaSqFt or 0) * 0.092903, 2),
+                "total_arearinfoot": total_area_sqft,
+                "totalareainmeters": total_area_m,
                 "occupantName": owner.occupantName if owner else None,
                 "aadharNumber": owner.aadhaarNumber if owner else None,
                 "ownerName": owner.name if owner else None,
@@ -869,7 +904,7 @@ def get_property_records_by_gram_panchayat(
                 "areaWest": prop.westLength,
                 "areaNorth": prop.northLength,
                 "areaSouth": prop.southLength,
-                "totalArea": prop.totalAreaSqFt,
+                "totalArea": total_area_sqft,
                 "boundaryEast": prop.eastBoundary,
                 "boundaryWest": prop.westBoundary,
                 "boundaryNorth": prop.northBoundary,
@@ -886,7 +921,7 @@ def get_property_records_by_gram_panchayat(
                 "house": prop.roofType,
                 "totalCapitalValue": int(total_capital_value),
                 "totalHouseTax": int(total_house_tax),
-                "totalconstructionareainfoot": int(total_construction_area_foot),
+                "totalconstructionareainfoot": total_construction_area_foot,
                 "totalconstructionareainmeter": total_construction_area_meter,
                 "housingUnit": prop.areaUnit,
                 "lightingTax": get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0,

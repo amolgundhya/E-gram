@@ -63,7 +63,7 @@ def init_construction_types():
     defaults = [
         {
             "id": 1,
-            "name": "आर सी सी इमारत",
+            "name": "आरसीसी पद्धतीची इमारत",
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
@@ -75,7 +75,7 @@ def init_construction_types():
         },
         {
             "id": 2,
-            "name": "दगड विट सिमेंटची इमारत",
+            "name": "दगड विटांची व चुना किंवा सिमेंट वापरून उभारलेली इमारत",
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
@@ -87,7 +87,7 @@ def init_construction_types():
         },
         {
             "id": 3,
-            "name": "दगड मातीची इमारत",
+            "name": "दगड किंवा विटा वापरलेली मातीची इमारत",
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
@@ -99,7 +99,7 @@ def init_construction_types():
         },
         {
             "id": 4,
-            "name": "झोपडी मातीचे इमारत",
+            "name": "झोपडी किंवा मातीची इमारत",
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,

@@ -184,7 +184,7 @@
         <!-- Page Header - Repeats on every page -->
         <thead class="page-header">
             <tr>
-                <td colspan="21" style="border:none; padding:0;">
+                <td colspan="22" style="border:none; padding:0;">
                     {% if tip %}
                     <p style="margin-bottom: 2px;">
                         (टीप: सदरचा उत्तारा हा मालकी हक्काचा नसून कर आकारणी साठी आहे. सदरच्या उताऱ्यावरून खरेदी विक्रीचा व्यवहार झाल्यास  त्यास ग्रामपंचायत जबाबदार राहणार नाही. शासन परिपत्रक क्र.पं.रा.स.2016 पं.क्र.17 पं.रा-4 तारीख 18 जुलै 2016.) <br>
@@ -274,7 +274,7 @@
                 data-water-tax="{{ ( (row.sapanikar|default(0)|float) + (row.vpanikar|default(0)|float) ) if (row.sapanikar is defined or row.vpanikar is defined) else (row.waterTax|default(0)) }}"
                 data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
                 data-toilet-tax="{{ row.toiletTax | default('0') }}"
-                data-total-tax="{{ row.totaltax | default('0') }}">
+                data-total-tax="{{(row.totaltax|default(0)|float -  (row.cleaningTax|default(0)|float)) }}">
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
                 <td style="width: 300px;">{{ row.ownerName | default('') }}</td>
@@ -430,7 +430,7 @@
                 <td>{{ row.sapanikar | default('') }}</td>
                 <td>{{ row.vpanikar | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
-                <td>{{ row.totaltax | default('') }}</td>
+                <td>{{ (row.totaltax|default(0)|float -  (row.cleaningTax|default(0)|float)) }}</td>
                 <td>{{row.remarks|default('')}}</td>
             </tr>
             <tr class="record-row">

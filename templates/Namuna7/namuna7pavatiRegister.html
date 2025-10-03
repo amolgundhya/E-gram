@@ -154,6 +154,7 @@
             <th >रक्कम देण्याचे कारण </th>
             <th >प्राप्त रक्कम</th>
         </tr>
+        {% set ns = namespace(total=0) %}
         {% for row in data %}
         <tr class="record-row">
             <td>{{ row.srNo }}</td>
@@ -164,10 +165,11 @@
             <td>{{ row.reason }}</td>
             <td>{{ row.receivedMoney }}</td>
         </tr>
+        {% set ns.total = ns.total + (row.receivedMoney | float) %}
         {% endfor %}
         <tr>
             <td colspan="6" class="right bold">एकूण</td>
-            <td></td>
+            <td>{{ ns.total }}</td>
         </tr>
     </table>
 </body>
