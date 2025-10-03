@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html >
+<head>
+    <meta charset="UTF-8">
+    <title>नमुना ९ क</title>
+    <style>
+        body { font-family: 'Mangal', Arial, sans-serif; margin: 0; padding: 0; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #000; padding: 2px 6px; font-size: 15px; }
+        .no-border { border: none !important; }
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        .header-table td { border: none; }
+        .sub-header { font-size: 18px; font-weight: bold; }
+        .outer-border {
+            border: 2px solid #000;
+            margin: 10mm auto;
+            width: 95%;
+            background: #fff;
+            position: relative;
+            box-sizing: border-box;
+        }
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            #toolbar {
+                display: none !important;
+            }
+            body {
+                margin: 0;
+            }
+            .outer-border {
+                page-break-after: always;
+            }
+            .outer-border:last-of-type {
+                page-break-after: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toolbar" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f8f8f8; border-bottom: 1px solid #ccc;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <button title="First Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏮️</button>
+            <button title="Previous Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">◀️</button>
+            <input type="text" value="1" id="pageInput" style="width: 32px; text-align: center; font-size: 14px; border: 1px solid #ccc; border-radius: 2px; margin: 0 2px;" oninput="goToPage(this.value)" />
+            <span id="pageTotal" style="font-size: 14px; color: #888;"></span>
+            <button title="Next Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">▶️</button>
+            <button title="Last Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏭️</button>
+            <button title="Zoom Out" onclick="zoomOut()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➖</button>
+            <span id="zoomPercent" style="min-width: 40px; text-align: center; font-size: 14px;">100%</span>
+            <button title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
+            <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
+        </div>
+    </div>
+    <script>
+        let zoomLevel = 1.0;
+        const minZoom = 0.5;
+        const maxZoom = 2.0;
+        const zoomStep = 0.1;
+        let currentPage = 1;
+        const recordsPerPage = 1;
+        let totalPages = 0;
+        let allRecords = [];
+
+        function updateZoom() {
+            document.querySelectorAll('.outer-border').forEach(el => el.style.zoom = zoomLevel);
+            document.getElementById('zoomPercent').innerText = Math.round(zoomLevel * 100) + '%';
+        }
+        function zoomIn() {
+            if (zoomLevel < maxZoom) {
+                zoomLevel += zoomStep;
+                updateZoom();
+            }
+        }
+        function zoomOut() {
+            if (zoomLevel > minZoom) {
+                zoomLevel -= zoomStep;
+                updateZoom();
+            }
+        }
+        function showPage(page) {
+            if (!allRecords.length) {
+                allRecords = Array.from(document.querySelectorAll('.outer-border'));
+            }
+            totalPages = Math.ceil(allRecords.length / recordsPerPage);
+
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            currentPage = page;
+
+            allRecords.forEach((el, idx) => {
+                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                el.style.display = (pageIdx === currentPage) ? '' : 'none';
+            });
+
+            document.getElementById('pageInput').value = currentPage;
+            document.getElementById('pageTotal').innerText = '/ ' + totalPages;
+        }
+
+        function goToPage(pageNumber) {
+            const page = parseInt(pageNumber, 10);
+            if (!isNaN(page)) {
+                showPage(page);
+            }
+        }
+        function nextPage() { showPage(currentPage + 1); }
+        function prevPage() { showPage(currentPage - 1); }
+        function firstPage() { showPage(1); }
+        function lastPage() { showPage(totalPages); }
+        
+        function printPage() {
+            const originalDisplay = allRecords.map(el => el.style.display);
+            allRecords.forEach(el => el.style.display = '');
+            window.print();
+            allRecords.forEach((el, idx) => el.style.display = originalDisplay[idx]);
+        }
+
+        function exitPage() {
+            window.close();
+        }
+
+        window.onload = function() {
+            showPage(1);
+            updateZoom();
+            document.querySelector('button[title="First Page"]').onclick = firstPage;
+            document.querySelector('button[title="Previous Page"]').onclick = prevPage;
+            document.querySelector('button[title="Next Page"]').onclick = nextPage;
+            document.querySelector('button[title="Last Page"]').onclick = lastPage;
+        };
+    </script>
+    {% for record in data %}
+    <div class="outer-border">
+        {% for copy in [1,2] %}
+        <table class="header-table" style="width:100%;">
+            <tr>
+                <td class="center bold" style="width: 33%;">ग्रामपंचायत<br>{{ record.gramPanchayat or '' }}</td>
+                <td class="center bold" style="width: 34%; ">
+                    नमुना ९ क<br>
+                    नियम ३२ (१) पहा<br>
+                    करांची मागणी पावती<br>
+                    <span style="font-size: 15px;">साल : {{ record.yearSlap or '' }}</span>
+                </td>
+                <td class="center bold" style="width: 33%; ">
+                    मागणीची पावती क्र : {{ record.propertyNumber or '' }}<br>
+                    दिनांक : {{ record.currentDate or '' }}
+                </td>
+            </tr>
+        </table>
+        <table style="margin-top: 2px; width:100%;">
+            <tr>
+                <td colspan="2" class="bold" style="border:none;">
+                    श्री {{ record.ownerName or '' }}<span> भोगवटदार : {{ record.occupantName or '' }}</span>
+                </td>
+                
+            </tr>
+            <tr>
+                <td style="border:none;">घर क्रमांक : {{ record.houseNumber or '' }}</td>
+                <td style="border:none;">यांजकडून पुढील रक्कम वसुलीयोग्य आहे</td>
+            </tr>
+        </table>
+        <table style="margin-top: 2px; width:100%;">
+            <tr class="center bold">
+                <td rowspan="3">कराचे नाव</td>
+                <td colspan="4">वसूल पात्र रकमा</td>
+            </tr>
+            <tr class="center bold">
+                <td colspan='2'>थकबाकी (रुपये = पै.) </td>
+                <td>चालू (रुपये = पै.)</td>
+                <td>एकूण (रुपये = पै.)</td>
+            </tr>
+            <tr class="center bold">
+                <td>मागील </td>
+                <td>दंड </td>
+                <td></td>
+                <td></td>
+            </tr>
+            {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %}
+            {% set tax_names = tax_names if tax_names is defined else default_tax_names %}
+            {% set ns = namespace(deduction=0) %}
+
+{% for tax in tax_names %}
+<tr>
+    <td>{{ tax }}</td>
+    <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
+    <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
+
+    {% set current_value = record.recoverableAmounts.current['current' ~ loop.index] or 0 %}
+    {% set total_value = record.recoverableAmounts.total['total' ~ loop.index] or 0 %}
+
+    <td class="right">{{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value }}</td>
+    <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
+
+    {# Accumulate deduction amount if condition matched #}
+    {% if (tax == 'नोटीस फी' and noticeFee == 'false') %}
+        {% set ns.deduction = ns.deduction + total_value %}
+    {% elif (tax == 'वारंट फी' and warrantFee == 'false') %}
+        {% set ns.deduction = ns.deduction + total_value %}
+    {% endif %}
+</tr>
+{% endfor %}
+
+<tr class="bold">
+    <td>दिनांक : {{ record.currentDate or '' }}</td>
+    <td class="right" colspan="4">
+        एकूण : {{ (record.totalTaxwithoutsafaitoilet or 0) }}
+    </td>
+</tr>
+        </table>
+        <div style="font-size: 13px; margin-top: 4px;">
+            हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या आता करावा. अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये आपल्यावर मागणी बजावाण्यात येईल
+        </div>
+        <div style="margin-top: 10px; font-size: 13px;">
+            <span class="right">ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी</span>
+        </div>
+        {% if copy == 1 %}
+        <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endfor %}
+</body>
+</html>
