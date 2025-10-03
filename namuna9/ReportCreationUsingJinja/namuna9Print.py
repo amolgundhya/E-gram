@@ -2039,7 +2039,7 @@ async def prakar1(request : Request):
         taluka_id = requestData.get("taluka_id")
         gram_panchayat_id = requestData.get("gram_panchayat_id")
         year = requestData.get("year")
-        template = regularEnv.get_template('namuna9k.html')
+        template = visheshPaniEnv.get_template('namuna9kVisheshPani.html')
 
         # Call API
         async with httpx.AsyncClient() as client:

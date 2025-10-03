@@ -869,7 +869,7 @@ def get_property_records_by_village_regular(
         thakit["Thakit2"] = r.get('shaktiDiva', 0)
         thakit["Thakit3"] = r.get('shaktiAarogyaKar', 0)
         thakit["Thakit4"] = r.get('shaktiSapanikar', 0)
-        thakit["Thakit5"] = r.get('shaktiCleaningTax', 0)
+        thakit["Thakit5"] = r.get('shaktiVpanikar', 0)
         thakit["Thakit6"] = r.get('noticeFee', 0)
         thakit["Thakit7"] = r.get('warrantFee', 0)
 
@@ -878,7 +878,7 @@ def get_property_records_by_village_regular(
             "current2": r.get('chaluDiva', 0),
             "current3": r.get('chaluAarogyaKar', 0),
             "current4": r.get('chaluSapanikar', 0),
-            "current5": r.get('chaluCleaningTax', 0),
+            "current5": r.get('chaluVpanikar', 0),
             "current6": r.get('noticeFee', 0),
             "current7": r.get('warrantFee', 0)
         }
@@ -887,7 +887,7 @@ def get_property_records_by_village_regular(
             "total2": r.get('ekunDiva', 0),
             "total3": r.get('ekunAarogyaKar', 0),
             "total4": r.get('ekunSapanikar', 0),
-            "total5": r.get('ekunCleaningTax', 0),
+            "total5": r.get('ekunVpanikar', 0),
             # For fees, show only the fee amount once in the last column
             "total6": r.get('noticeFee', 0),
             "total7": r.get('warrantFee', 0)
@@ -976,103 +976,129 @@ def get_property_records_by_village_visheshpani(
     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
     if not district:
         raise HTTPException(status_code=404, detail="District not found")
-    
     taluka = db.query(location_models.Taluka).filter(
         location_models.Taluka.id == taluka_id,
         location_models.Taluka.district_id == district_id
     ).first()
     if not taluka:
         raise HTTPException(status_code=400, detail="Taluka does not belong to the specified district")
-    
     gram_panchayat = db.query(location_models.GramPanchayat).filter(
         location_models.GramPanchayat.id == gram_panchayat_id,
         location_models.GramPanchayat.taluka_id == taluka_id
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
+
+    # Source data exactly like the regular API
+    table_rows = get_table_data(
+        villageId=int(villageId),
+        yearslap=yearslap,
+        district_id=district_id,
+        taluka_id=taluka_id,
+        gram_panchayat_id=gram_panchayat_id,
+        applyWarrantFee=False,
+        applyNoticeFee=False,
+        applyPenalty=False,
+        db=db
+    )
+
+    mapped = []
     from datetime import datetime
-    rec = db.query(namuna9_model.Namuna9).filter(
-        namuna9_model.Namuna9.villageId == villageId,
-        namuna9_model.Namuna9.yearslap == yearslap
-    ).first()
-    if not rec:
-        return []
-    property_ids = getattr(rec, 'property_ids', None)
-    if not isinstance(property_ids, list) or len(property_ids) == 0:
-        return []
-    # Fetch Namuna9Settings for notice and warrant fee
-    settings = db.query(Namuna9Settings).filter(
-        Namuna9Settings.district_id == district_id,
-        Namuna9Settings.taluka_id == taluka_id,
-        Namuna9Settings.gram_panchayat_id == gram_panchayat_id
-    ).first()
-    notice_fee = settings.notice_fee if settings and settings.notice_fee is not None else 0
-    warrant_fee = settings.warrant_fee if settings and settings.warrant_fee is not None else 0
-    properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.anuKramank.in_([int(i) for i in property_ids])).all()
-    rows = []
-    for prop in properties:
-        prop_data = build_property_response(prop, db, gram_panchayat_id)
-        owner_names = ', '.join([o.get('name', '') for o in prop_data.get('owners', [])])
-        occupant_names = ', '.join([o.get('occupantName', '') for o in prop_data.get('owners', []) if o.get('occupantName', '')])
-        house_number = prop_data.get('malmattaKramank', '')
-        # Taxes
-        house_tax = sum([(c.get('houseTax', 0) if isinstance(c, dict) else getattr(c, 'houseTax', 0) or 0) for c in getattr(prop, 'constructions', [])])
-        lighting_tax = prop_data.get('divaKar', 0) or 0
-        health_tax = prop_data.get('aarogyaKar', 0) or prop_data.get('healthTax', 0) or 0
-        sapanikar = prop_data.get('sapanikar', 0) or 0
-        vpanikar = prop_data.get('vpanikar', 0) or 0
-        # Arrears as Thakit and Dand
+    for r in table_rows:
+        # Build arrears/current/total same as regular
         thakit = {f"Thakit{i}": 0 for i in range(1, 8)}
-        dand = {f"Dand{i}": 0 for i in range(1, 8)}
-        arrears = {
-            "Thakit": thakit,
-            "Dand": dand
-        }
-        # Current and Total as numbered keys (order: house, lighting, health, sapanikar, vpanikar, notice, warrant)
+        thakit["Thakit1"] = r.get('shaktiGhar', 0)
+        thakit["Thakit2"] = r.get('shaktiDiva', 0)
+        thakit["Thakit3"] = r.get('shaktiAarogyaKar', 0)
+        thakit["Thakit4"] = r.get('shaktiSapanikar', 0)
+        thakit["Thakit5"] = r.get('shaktiVpanikar', 0)
+        thakit["Thakit6"] = r.get('noticeFee', 0)
+        thakit["Thakit7"] = r.get('warrantFee', 0)
+
         current = {
-            "current1": house_tax,
-            "current2": lighting_tax,
-            "current3": health_tax,
-            "current4": sapanikar,
-            "current5": vpanikar,
-            "current6": notice_fee,
-            "current7": warrant_fee
+            "current1": r.get('chaluGhar', 0),
+            "current2": r.get('chaluDiva', 0),
+            "current3": r.get('chaluAarogyaKar', 0),
+            "current4": r.get('chaluSapanikar', 0),
+            "current5": r.get('chaluVpanikar', 0),
+            "current6": r.get('noticeFee', 0),
+            "current7": r.get('warrantFee', 0)
         }
         total = {
-            "total1": house_tax,
-            "total2": lighting_tax,
-            "total3": health_tax,
-            "total4": sapanikar,
-            "total5": vpanikar,
-            "total6": notice_fee,
-            "total7": warrant_fee
+            "total1": r.get('ekunGhar', 0),
+            "total2": r.get('ekunDiva', 0),
+            "total3": r.get('ekunAarogyaKar', 0),
+            "total4": r.get('ekunSapanikar', 0),
+            "total5": r.get('ekunVpanikar', 0),
+            "total6": r.get('noticeFee', 0),
+            "total7": r.get('warrantFee', 0)
         }
-        total_tax = sum([
-            house_tax, lighting_tax, health_tax, sapanikar, vpanikar, notice_fee, warrant_fee
-        ])
-        row = {
-            "gramPanchayat": prop_data.get('gramPanchayat', ''),
+
+        # Resolve gram panchayat and occupant like regular
+        gp_name = None
+        occupant_name = ""
+        try:
+            prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == r.get('property_id')).first()
+            if prop:
+                v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop.village_id).first()
+                if v:
+                    gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == v.gram_panchayat_id).first()
+                    gp_name = getattr(gp, 'name', None)
+                prop_data_full = build_property_response(prop, db, gram_panchayat_id)
+                owners = prop_data_full.get('owners', [])
+                if isinstance(owners, list) and len(owners) > 0:
+                    occupant_name = owners[0].get('occupantName') or ""
+        except Exception:
+            pass
+
+        mapped.append({
+            "gramPanchayat": gp_name or "",
             "yearSlap": yearslap,
-            "propertyNumber": prop_data.get('malmattaKramank', ''),
+            "propertyNumber": r.get('malmattaKramank', ''),
             "currentDate": datetime.now().strftime('%Y-%m-%d'),
-            "ownerName": owner_names,
-            "occupantName": occupant_names,
-            "houseNumber": house_number,
-            "कराचे नाव": {
-                "घरकर": house_tax,
-                "दिवाबत्ती कर": lighting_tax,
-                "आरोग्य कर": health_tax,
-                "सा.पाणीकर": sapanikar,
-                "वि.पाणीकर": vpanikar,
-                "नोटीस फी": notice_fee,
-                "वारंट फी": warrant_fee
-            },
+            "ownerName": r.get('ownerNames', ''),
+            "occupantName": occupant_name,
+            "houseNumber": r.get('malmattaKramank', ''),
             "recoverableAmounts": {
-                "arrears": arrears,
+                "arrears": {"Thakit": thakit, "Dand": {"Dand1": r.get('dand', 0), "Dand2": 0, "Dand3": 0, "Dand4": 0, "Dand5": 0, "Dand6": 0, "Dand7": 0}},
                 "current": current,
                 "total": total
             },
-            "totalTax": total_tax
-        }
-        rows.append(row)
-    return rows 
+            # Compute total tax in line with regular API
+            "totalTax": (
+                (r.get('ekunGhar', 0) or 0)
+                + (r.get('ekunDiva', 0) or 0)
+                + (r.get('ekunAarogyaKar', 0) or 0)
+                + (r.get('ekunSapanikar', 0) or 0)
+                + (r.get('ekunVpanikar', 0) or 0)
+                + (r.get('ekunCleaningTax', 0) or 0)
+                + (r.get('warrantFee', 0) or 0)
+                + (r.get('noticeFee', 0) or 0)
+            ),
+            # Also expose without vi pani and toilet to match downstream templates
+            "totalTaxwithoutvipanitoilet": (
+                ((r.get('ekunGhar', 0) or 0)
+                + (r.get('ekunDiva', 0) or 0)
+                + (r.get('ekunAarogyaKar', 0) or 0)
+                + (r.get('ekunSapanikar', 0) or 0)
+                + (r.get('ekunCleaningTax', 0) or 0)
+                + (r.get('warrantFee', 0) or 0)
+                + (r.get('noticeFee', 0) or 0))
+                - (r.get('ekunVpanikar', 0) or 0)
+                - (r.get('totlaToiletTax', 0) or 0)
+            )
+            ,
+            "totalTaxwithoutsafaitoilet": (
+                ((r.get('ekunGhar', 0) or 0)
+                + (r.get('ekunDiva', 0) or 0)
+                + (r.get('ekunAarogyaKar', 0) or 0)
+                + (r.get('ekunSapanikar', 0) or 0)
+                + (r.get('ekunVpanikar', 0) or 0)
+                + (r.get('warrantFee', 0) or 0)
+                + (r.get('noticeFee', 0) or 0))
+                - (r.get('ekunCleaningTax', 0) or 0)
+                - (r.get('totlaToiletTax', 0) or 0)
+            )
+        })
+
+    return mapped
