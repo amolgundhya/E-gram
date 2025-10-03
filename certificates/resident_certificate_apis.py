@@ -18,6 +18,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/resident", response_model=ResidentCertificateRead, status_code=status.HTTP_201_CREATED)
 def create_resident_certificate(
+    id: str = Form(None),
     dispatch_no: str = Form(...),
     date: str = Form(...),
     village: str = Form(...),
@@ -41,7 +42,9 @@ def create_resident_certificate(
     
     # Create a temp cert to get the id after commit
     date_obj = datetime.strptime(date, "%Y-%m-%d").date()
+    cert_id = int(id) if id and id.strip() else None
     cert = ResidentCertificate(
+        id=cert_id,
         dispatch_no=dispatch_no,
         date=date_obj,
         village=village,
