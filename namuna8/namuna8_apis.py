@@ -464,6 +464,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                         "taluka_name": taluka.name if taluka else "",
                         "gram_panchayat_name": gram_panchayat.name if gram_panchayat else "",
                         "village_name": village.name if village else "",
+                        "owner_name": owner_name,
                         # Others
                         "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
                         "report_images": rel_report_images,
@@ -1017,6 +1018,7 @@ def update_namuna8_entry(
                 "taluka_name": taluka.name if taluka else "",
                 "gram_panchayat_name": gram_panchayat.name if gram_panchayat else "",
                 "village_name": village.name if village else "",
+                "owner_name": owner_name,
                 # Others
                 "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
                 "report_images": rel_report_images,
