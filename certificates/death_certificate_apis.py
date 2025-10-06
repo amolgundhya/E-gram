@@ -14,7 +14,11 @@ router = APIRouter(prefix="/certificates", tags=["certificates"])
 
 @router.post("/death", response_model=DeathCertificateRead, status_code=status.HTTP_201_CREATED)
 def create_death_certificate(data: DeathCertificateCreate, db: Session = Depends(get_db)):
+    existing = db.query(DeathCertificate).filter_by(id=data.id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="ID already exists.")
     cert = DeathCertificate(**data.dict())
+    print("id: ",cert.id)
     db.add(cert)
     db.commit()
     db.refresh(cert)

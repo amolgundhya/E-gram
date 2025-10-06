@@ -3,6 +3,7 @@ from typing import Annotated, Optional
 from datetime import date
 
 class ToiletCertificateBase(BaseModel):
+    id: Optional[int] = None
     registration_date: date
     village: str
     village_en: str
@@ -24,7 +25,7 @@ class ToiletCertificateCreate(ToiletCertificateBase):
     pass
 
 class ToiletCertificateRead(ToiletCertificateBase):
-    id: int
+   
     barcode: Optional[str] = None
     barcode_url: Optional[str] = None
     gramPanchayat: Optional[str] = None

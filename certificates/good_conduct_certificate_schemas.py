@@ -3,6 +3,7 @@ from datetime import date
 from typing import Optional
 
 class GoodConductCertificateBase(BaseModel):
+    id: Optional[int] = None
     registration_date: date
     village: str
     village_en: str
@@ -24,7 +25,6 @@ class GoodConductCertificateCreate(GoodConductCertificateBase):
     pass
 
 class GoodConductCertificateRead(GoodConductCertificateBase):
-    id: int
     image_url: Optional[str] = None
     barcode: Optional[str] = None
     gramPanchayat: Optional[str] = None
