@@ -382,11 +382,11 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     qr_data_template = {
                         # Marathi labels for QR display
                         "ग्रा. पं.": gp_name,
-                        "ता. नाव": taluka_name,
-                        "जि. नाव": district_name,
+                        "ता.": taluka_name,
+                        "जि.": district_name,
                         "फेर आकारणी वर्ष": fer_akarnani_year,
                         "मा क्र": getattr(db_property, 'malmattaKramank', None),
-                        "मालमत्ता धारकाचे नाव": owner_name,
+                        "मा. धा. नाव": owner_name,
                         "पू.": boundary_east,
                         "प.": boundary_west,
                         "उ.": boundary_north,
@@ -957,11 +957,11 @@ def update_namuna8_entry(
             qr_data_template = {
                 # Marathi labels for QR display
                 "ग्रा. पं.": gp_name,
-                "ता. नाव": taluka_name,
-                "जि. नाव": district_name,
+                "ता.": taluka_name,
+                "जि.": district_name,
                 "फेर आकारणी वर्ष": fer_akarnani_year,
                 "मा क्र": getattr(db_property, 'malmattaKramank', None),
-                "मालमत्ता धारकाचे नाव": owner_name,
+                "मा. धा. नाव": owner_name,
                 "पू.": boundary_east,
                 "प.": boundary_west,
                 "उ.": boundary_north,
