@@ -400,8 +400,8 @@
                         {% for tax in tax_names %}
                         <tr>
                             <td>{{ tax }}</td>
-                            <td class="right">{{ (0) if (tax == 'נोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
-                            <td class="right">{{ (0) if (tax == 'נोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
 
                             {% set current_value = data[i+1].recoverableAmounts.current['current' ~ loop.index] or 0 %}
                             {% set total_value = data[i+1].recoverableAmounts.total['total' ~ loop.index] or 0 %}
