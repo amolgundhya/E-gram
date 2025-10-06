@@ -302,6 +302,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 totalArea = round(record_response.get('totalArea', 0) or 0, 2)
                 owner_name = owners[0].name if owners else None
                 wife_name = owners[0].wifeName if owners and getattr(owners[0], "wifeName", None) else None
+                occupant_name = owners[0].occupantName if owners and getattr(owners[0], "occupantName", None) else record_response.get('occupantName')
                 mobile_number = owners[0].mobileNumber if owners and getattr(owners[0], "mobileNumber", None) else record_response.get('mobileNumber')
                 # Construction area (exclude 'खाली जागा')
                 constructionArea = sum(
@@ -384,9 +385,9 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                         "ग्रा. पं.": gp_name,
                         "ता.": taluka_name,
                         "जि.": district_name,
-                        "फेर आकारणी वर्ष": fer_akarnani_year,
                         "मा क्र": getattr(db_property, 'malmattaKramank', None),
                         "मा. धा. नाव": owner_name,
+                        "भो. नाव": occupant_name,
                         "पू.": boundary_east,
                         "प.": boundary_west,
                         "उ.": boundary_north,
@@ -885,6 +886,7 @@ def update_namuna8_entry(
         openArea = round(totalArea - constructionArea, 2)
         owner_name = record_response.get('ownerName', 0)
         wife_name = record_response.get('ownerWifeName', 0)
+        occupant_name = record_response.get('occupantName', 0)
         totalArea = round(record_response.get('totalArea', 0) or 0, 2)
         mobile_number = record_response.get('mobileNumber')
 
@@ -959,9 +961,9 @@ def update_namuna8_entry(
                 "ग्रा. पं.": gp_name,
                 "ता.": taluka_name,
                 "जि.": district_name,
-                "फेर आकारणी वर्ष": fer_akarnani_year,
                 "मा क्र": getattr(db_property, 'malmattaKramank', None),
                 "मा. धा. नाव": owner_name,
+                "भो. नाव": occupant_name,
                 "पू.": boundary_east,
                 "प.": boundary_west,
                 "उ.": boundary_north,
