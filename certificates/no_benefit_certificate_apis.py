@@ -586,8 +586,14 @@ def get_no_benefit_certificate_image(
     
     # Find the image file in the directory
     if os.path.exists(image_path) and os.path.isdir(image_path):
-        for file in os.listdir(image_path):
-            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
-                return FileResponse(os.path.join(image_path, file), media_type="image/png")
+        image_files = [
+            os.path.join(image_path, file)
+            for file in os.listdir(image_path)
+            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))
+        ]
+        if image_files:
+            # Serve the latest image file by modification time
+            latest_file = max(image_files, key=os.path.getmtime)
+            return FileResponse(latest_file, media_type="image/png")
     
-    raise HTTPException(status_code=404, detail="Image file not found") 
+    raise HTTPException(status_code=404, detail="Image file not found")
