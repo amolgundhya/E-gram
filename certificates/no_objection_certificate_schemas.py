@@ -3,6 +3,7 @@ from datetime import date
 from typing import Optional
 
 class NoObjectionCertificateBase(BaseModel):
+    id: Optional[int] = None
     registration_date: date
     village: str
     village_en: str
@@ -28,7 +29,7 @@ class NoObjectionCertificateCreate(NoObjectionCertificateBase):
     pass
 
 class NoObjectionCertificateRead(NoObjectionCertificateBase):
-    id: int
+    
     image_url: Optional[str] = None
     barcode: Optional[str] = None
     barcode_url: Optional[str] = None

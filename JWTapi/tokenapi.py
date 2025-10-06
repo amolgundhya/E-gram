@@ -182,9 +182,6 @@ def check_license_hosted(license : license , db : Session=Depends(database.get_d
                         headers=headers,
                         timeout=5,
                     )
-                    print('license_key --->'  , license_key)
-                    print('header --->' , headers)
-                    print('response ---> ' , response)
                     if response.status_code == 200:
                         encrypted_key = bcrypt.hashpw(license_key.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                         try:

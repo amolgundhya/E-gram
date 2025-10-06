@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date
 
 class BirthDeathUnavailabilityCertificateBase(BaseModel):
+    id: Optional[int] = None
     register_date: Optional[date]
     village: Optional[str]
     village_en: Optional[str]
@@ -23,7 +24,6 @@ class BirthDeathUnavailabilityCertificateCreate(BirthDeathUnavailabilityCertific
     pass
 
 class BirthDeathUnavailabilityCertificateRead(BirthDeathUnavailabilityCertificateBase):
-    id: int
     barcode: str | None = None
     barcode_url: str | None = None
     gramPanchayat: str | None = None
