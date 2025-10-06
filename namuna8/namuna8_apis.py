@@ -368,6 +368,39 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
 
                 ### For generating QR Template ###
                 try:
+                    ###Creating new QRcode for template
+                    # Ensure area values are strictly in square feet for the QR template
+                    area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
+                    total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
+                    construction_area_sqft = round((constructionArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+                    open_area_sqft = round((openArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
+                    year_from = datetime.now().year
+                    year_to = year_from + 3
+                    # Display like 2025-26 (two-digit end year)
+                    fer_akarnani_year = f"{str(year_from)}-{str(year_to)}"
+
+                    qr_data_template = {
+                        # Marathi labels for QR display
+                        "ग्रा. पं.": gp_name,
+                        "ता. नाव": taluka_name,
+                        "जि. नाव": district_name,
+                        "फेर आकारणी वर्ष": fer_akarnani_year,
+                        "मा क्र": getattr(db_property, 'malmattaKramank', None),
+                        "मालमत्ता धारकाचे नाव": owner_name,
+                        "पू.": boundary_east,
+                        "प.": boundary_west,
+                        "उ.": boundary_north,
+                        "द.": boundary_south,
+                        "मो नं": mobile_number,
+                        "एकूण क्षेत्रफळ चौ. फू": total_area_sqft,
+                        "एकूण बांधकाम चौ. फू": construction_area_sqft,
+                        "एकूण खा .जागा चौ.फू": open_area_sqft,
+                        "एकूण कर": totalTax,
+                    }
+                    if wife_name:
+                        qr_data_template["पत्नीचे नाव"] = wife_name
+                    qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
+                    QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
                     #get template
                     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
                     print("base_dir ----->"  , base_dir)
@@ -416,8 +449,8 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     rel_report_images = os.path.relpath(report_images_dir, start=qr_template_dir)
                     rel_reports = os.path.relpath(reports_dir, start=qr_template_dir)
                     
-                    # Convert QR code path to relative path
-                    qr_code_abs_path = os.path.abspath(db_property.qrcode)
+                    # Convert NEW template QR code path to relative path (use qrcode_template.png)
+                    qr_code_abs_path = os.path.abspath(qr_path_template)
                     rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
 
                     context = {
@@ -884,20 +917,21 @@ def update_namuna8_entry(
         # print(f"DEBUG UPDATE: QR code generated successfully")
         db_property.qrcode = qr_path.replace(os.sep, "/")
         db.commit()
-
+        
         ### For generating QR Template ###
         try:
-            #get template
-            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-            print("base_dir ----->"  , base_dir)
-            template_dir = os.path.join(base_dir, 'templates')
-            print("template_dir ----->"  , template_dir)
-            namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
-            print("namuna8_template_dir ----->"  , namuna8_template_dir)
-            env = Environment(loader=FileSystemLoader(namuna8_template_dir))
-            template = env.get_template('qrTemplate.html')
+            ###Creating new QRcode for template
+            # Ensure area values are strictly in square feet for the QR template
+            area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
+            total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
+            construction_area_sqft = round((constructionArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+            open_area_sqft = round((openArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
+            year_from = datetime.now().year
+            year_to = year_from + 3
+            # Display like 2025-26 (two-digit end year)
+            fer_akarnani_year = f"{str(year_from)}-{str(year_to)}"
 
-            # save location using NAMES rather than IDs
+            # Resolve location names early (used below in qr_data_template)
             def safe_name(value: str) -> str:
                 try:
                     import re
@@ -919,6 +953,39 @@ def update_namuna8_entry(
             gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
             village_name = safe_name(village.name if village else str(db_property.village_id))
 
+            qr_data_template = {
+                # Marathi labels for QR display
+                "ग्रा. पं.": gp_name,
+                "ता. नाव": taluka_name,
+                "जि. नाव": district_name,
+                "फेर आकारणी वर्ष": fer_akarnani_year,
+                "मा क्र": getattr(db_property, 'malmattaKramank', None),
+                "मालमत्ता धारकाचे नाव": owner_name,
+                "पू.": boundary_east,
+                "प.": boundary_west,
+                "उ.": boundary_north,
+                "द.": boundary_south,
+                "मो नं": mobile_number,
+                "एकूण क्षेत्रफळ चौ. फू": total_area_sqft,
+                "एकूण बांधकाम चौ. फू": construction_area_sqft,
+                "एकूण खा .जागा चौ.फू": open_area_sqft,
+                "एकूण कर": totalTax,
+            }
+            if wife_name:
+                qr_data_template["पत्नीचे नाव"] = wife_name
+            qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
+            QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
+            #get template
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+            print("base_dir ----->"  , base_dir)
+            template_dir = os.path.join(base_dir, 'templates')
+            print("template_dir ----->"  , template_dir)
+            namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
+            print("namuna8_template_dir ----->"  , namuna8_template_dir)
+            env = Environment(loader=FileSystemLoader(namuna8_template_dir))
+            template = env.get_template('qrTemplate.html')
+
+            # names already computed above
             qr_template_dir = os.path.join(
                 "uploaded_images",
                 "qrTemplate",
@@ -934,13 +1001,10 @@ def update_namuna8_entry(
             reports_dir = os.path.join(base_dir, 'reports')
             rel_report_images = os.path.relpath(report_images_dir, start=qr_template_dir)
             rel_reports = os.path.relpath(reports_dir, start=qr_template_dir)
-
-            # Convert QR code path to relative path from the template directory
-            try:
-                qr_code_abs_path = os.path.abspath(db_property.qrcode)
-                rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
-            except Exception:
-                rel_qrcode = db_property.qrcode
+            
+            # Convert NEW template QR code path to relative path (use qrcode_template.png)
+            qr_code_abs_path = os.path.abspath(qr_path_template)
+            rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
 
             context = {
                 # IDs
@@ -966,10 +1030,8 @@ def update_namuna8_entry(
 
 
             print("QR Template successfully created")
-
-
         except Exception as e:
-            logging.error(f"Error in generating the qr template : " , e)
+            logging.error("Error in generating the qr template : %s", e)
         ### For generating QR Template ###
         # print(f"DEBUG UPDATE: QR path saved to database: {db_property.qrcode}")
     except Exception as e:
