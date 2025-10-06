@@ -340,7 +340,8 @@ def sync_all_tables(db : Session=Depends(database.get_db)):
             'resident_certificates', 'family_certificates', 'toilet_certificates', 'no_objection_certificates',
             'no_benefit_certificates', 'life_certificates', 'good_conduct_certificates', 'niradhar_certificates',
             'unemployment_certificates', 'receipt_certificates', 'owners', 'properties', 'property_owner_association',
-            'constructions', 'property_documents', 'property_transfer_logs', 'namuna7', 'outward_entries'
+            'constructions', 'property_documents', 'property_transfer_logs', 'namuna7', 'outward_entries',
+            'namuna9_property_association', 'namuna9_property_data', 'namuna9_receipts'
         ])
 
         for table_name in ordered_tables:
@@ -497,6 +498,8 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
             "namuna9_settings",
             "namuna9",
             "namuna9_property_association",
+            "namuna9_property_data",
+            "namuna9_receipts",
             "namuna7",
             "no_arrears_certificates",
             "birth_certificates",
@@ -539,6 +542,8 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
             "namuna9_settings",
             "namuna9",
             "namuna9_property_association",
+            "namuna9_property_data",
+            "namuna9_receipts",
             "namuna7",
             "no_arrears_certificates",
             "birth_certificates",

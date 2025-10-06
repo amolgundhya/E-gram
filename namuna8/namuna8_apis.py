@@ -392,10 +392,10 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                         "उ.": boundary_north,
                         "द.": boundary_south,
                         "मो नं": mobile_number,
-                        "एकूण क्षेत्रफळ चौ. फू": total_area_sqft,
-                        "एकूण बांधकाम चौ. फू": construction_area_sqft,
-                        "एकूण खा .जागा चौ.फू": open_area_sqft,
-                        "एकूण कर": totalTax,
+                        "ए क्षे. चौ. फू": total_area_sqft,
+                        "ए बां. चौ. फू": construction_area_sqft,
+                        "ए खा .जागा चौ.फू": open_area_sqft,
+                        "ए कर": totalTax,
                     }
                     if wife_name:
                         qr_data_template["पत्नीचे नाव"] = wife_name
@@ -967,10 +967,10 @@ def update_namuna8_entry(
                 "उ.": boundary_north,
                 "द.": boundary_south,
                 "मो नं": mobile_number,
-                "एकूण क्षेत्रफळ चौ. फू": total_area_sqft,
-                "एकूण बांधकाम चौ. फू": construction_area_sqft,
-                "एकूण खा .जागा चौ.फू": open_area_sqft,
-                "एकूण कर": totalTax,
+                "ए क्षे. चौ. फू": total_area_sqft,
+                "ए बां. चौ. फू": construction_area_sqft,
+                "ए खा .जागा चौ.फू": open_area_sqft,
+                "ए कर": totalTax,
             }
             if wife_name:
                 qr_data_template["पत्नीचे नाव"] = wife_name
