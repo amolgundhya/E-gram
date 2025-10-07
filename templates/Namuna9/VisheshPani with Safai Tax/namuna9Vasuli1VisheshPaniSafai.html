@@ -269,7 +269,7 @@
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitCleaningTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='cleaningTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalCleaningTax') }}{% endif %}</td>
-            <td>{% if removePurnaYekun != 'true' %}{{ data | sum(attribute='totaltaxwithoutnoticwarrant') }}{% endif %}</td>
+            <td>{% if removePurnaYekun != 'true' %}{{( data | sum(attribute='totaltaxwithoutnoticwarrant')) | round(2) }}{% endif %}</td>
         </tr>
     </table>
 </body>
