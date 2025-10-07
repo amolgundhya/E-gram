@@ -150,7 +150,7 @@
 
                         <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             {% if row.QRcodeURL %}
-                                <img src={{row.QRcodeURL | default('')}}  style="width: 78px; height: 78px; object-fit: cover;" />
+                                <img src={{row.QRcodeURL | default('')}}  style="width: 78px; height: 78px; object-fit: contain;" />
                             {% else %}
                                 <div></div>
                             {% endif %}
@@ -159,7 +159,7 @@
 
                             <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                                 {% if row.photoURL %}
-                                    <img src="{{ row.photoURL }}" style="width:78px; height:78px; object-fit: cover;" />
+                                    <img src="{{ row.photoURL }}" style="width:78px; height:78px; object-fit: contain;" />
                                 {% else %}
                                     <div></div>
                                 {% endif %}
@@ -169,7 +169,7 @@
 
                         <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             {% if row.bank_qr_code %}
-                                <img src="{{ row.bank_qr_code }}" style="width: 78px; height: 78px; object-fit: cover;" />
+                                <img src="{{ row.bank_qr_code }}" style="width: 78px; height: 78px; object-fit: contain;" />
                             {% else %}
                                 <div></div>
                             {% endif %}
