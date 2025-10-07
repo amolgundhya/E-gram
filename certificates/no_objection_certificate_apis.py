@@ -18,6 +18,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/no-objection", response_model=NoObjectionCertificateRead, status_code=status.HTTP_201_CREATED)
 def create_no_objection_certificate(
+    id: str = Form(None),
     registration_date: str = Form(...),
     village: str = Form(...),
     village_en: str = Form(...),
@@ -40,13 +41,14 @@ def create_no_objection_certificate(
     district_id_int = int(district_id) if district_id and district_id.strip() else None
     taluka_id_int = int(taluka_id) if taluka_id and taluka_id.strip() else None
     gram_panchayat_id_int = int(gram_panchayat_id) if gram_panchayat_id and gram_panchayat_id.strip() else None
-    
+    cert_id = int(id) if id and id.strip() else None
     if image:
         # Always replace spaces with underscores in filename
         safe_filename = image.filename.replace(' ', '_')
         # Create cert with location IDs
         reg_date_obj = datetime.strptime(registration_date, "%Y-%m-%d").date()
         cert = NoObjectionCertificate(
+            id=cert_id,
             registration_date=reg_date_obj,
             village=village,
             village_en=village_en,
@@ -81,6 +83,7 @@ def create_no_objection_certificate(
     else:
         reg_date_obj = datetime.strptime(registration_date, "%Y-%m-%d").date()
         cert = NoObjectionCertificate(
+            id=cert_id,
             registration_date=reg_date_obj,
             village=village,
             village_en=village_en,

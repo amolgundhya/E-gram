@@ -231,24 +231,14 @@
                         {% for tax in tax_names %}
                         <tr>
                             <td>{{ tax }}</td>
-                            <td class="right">{{ data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 }}</td>
-                            <td class="right">{{ data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
 
                             {% set current_value = data[i].recoverableAmounts.current['current' ~ loop.index] or 0 %}
                             {% set total_value = data[i].recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
-                            <td class="right">
-                                {{
-                                    0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-                                    else  current_value
-                                }}
-                            </td>
-                            <td class="right">
-                                {{
-                                    0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-                                    else total_value
-                                }}
-                            </td>
+                            <td class="right">{{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value }}</td>
+                            <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
 
                             {% if (tax == 'नोटीस फी' and noticeFee == 'false') %}
                             {% set ns.deduction = ns.deduction + total_value %}
@@ -261,7 +251,7 @@
                             <td>दिनांक : {{ data[i].currentDate or '' }}</td>
                             <td class="right" colspan="4">एकूण : 
                                 {{ 
-                                    (data[i].totalTax or 0) - ns.deduction
+                                    (data[i].totalTaxwithoutvipanitoilet or 0) 
                                  }} 
                                 </td>
                         </tr>
@@ -324,24 +314,14 @@
                         {% for tax in tax_names %}
                         <tr>
                             <td>{{ tax }}</td>
-                            <td class="right">{{ data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 }}</td>
-                            <td class="right">{{ data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
 
                             {% set current_value = data[i].recoverableAmounts.current['current' ~ loop.index] or 0 %}
                             {% set total_value = data[i].recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
-                            <td class="right">
-                                {{
-                                    0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-                                    else  current_value
-                                }}
-                            </td>
-                            <td class="right">
-                                {{
-                                    0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-                                    else total_value
-                                }}
-                            </td>
+                            <td class="right">{{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value }}</td>
+                            <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
 
                             {% if (tax == 'नोटीस फी' and noticeFee == 'false') %}
                             {% set ns.deduction = ns.deduction + total_value %}
@@ -354,7 +334,7 @@
                             <td>दिनांक : {{ data[i].currentDate or '' }}</td>
                             <td class="right" colspan="4">एकूण : 
                                 {{ 
-                                    (data[i].totalTax or 0) - ns.deduction
+                                    (data[i].totalTaxwithoutvipanitoilet or 0)
                                  }} 
                                 </td>
                         </tr>
@@ -418,24 +398,14 @@
                         {% for tax in tax_names %}
                         <tr>
                             <td>{{ tax }}</td>
-                            <td class="right">{{ data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 }}</td>
-                            <td class="right">{{ data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
 
                             {% set current_value = data[i+1].recoverableAmounts.current['current' ~ loop.index] or 0 %}
                             {% set total_value = data[i+1].recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
-                            <td class="right">
-                                {{
-                                    0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-                                    else  current_value
-                                }}
-                            </td>
-                            <td class="right">
-                                {{
-                                    0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-                                    else total_value
-                                }}
-                            </td>
+                            <td class="right">{{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value }}</td>
+                            <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
 
                             {% if (tax == 'नोटीस फी' and noticeFee == 'false') %}
                             {% set ns.deduction = ns.deduction + total_value %}
@@ -448,7 +418,7 @@
                             <td>दिनांक : {{ data[i+1].currentDate or '' }}</td>
                             <td class="right" colspan="4">एकूण : 
                                 {{ 
-                                    (data[i+1].totalTax or 0) - ns.deduction
+                                    (data[i+1].totalTaxwithoutvipanitoilet or 0)
                                  }} 
                                 </td>
                         </tr>
@@ -513,24 +483,14 @@
                         {% for tax in tax_names %}
                         <tr>
                             <td>{{ tax }}</td>
-                            <td class="right">{{ data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 }}</td>
-                            <td class="right">{{ data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
+                            <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
 
                             {% set current_value = data[i+1].recoverableAmounts.current['current' ~ loop.index] or 0 %}
                             {% set total_value = data[i+1].recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
-                            <td class="right">
-                                {{
-                                    0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-                                    else  current_value
-                                }}
-                            </td>
-                            <td class="right">
-                                {{
-                                    0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-                                    else total_value
-                                }}
-                            </td>
+                            <td class="right">{{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value }}</td>
+                            <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
 
                             {% if (tax == 'नोटीस फी' and noticeFee == 'false') %}
                             {% set ns.deduction = ns.deduction + total_value %}
@@ -543,7 +503,7 @@
                             <td>दिनांक : {{ data[i+1].currentDate or '' }}</td>
                             <td class="right" colspan="4">एकूण : 
                                 {{ 
-                                    (data[i+1].totalTax or 0) - ns.deduction
+                                    (data[i+1].totalTaxwithoutvipanitoilet or 0)
                                  }} 
                                 </td>
                         </tr>

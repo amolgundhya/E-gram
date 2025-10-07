@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date
 
 class UnemploymentCertificateBase(BaseModel):
+    id: Optional[int] = None
     registration_date: date
     village: Optional[str] = None
     village_en: Optional[str] = None
@@ -18,7 +19,7 @@ class UnemploymentCertificateCreate(UnemploymentCertificateBase):
     pass
 
 class UnemploymentCertificateRead(UnemploymentCertificateBase):
-    id: int
+   
     image: Optional[str] = None
     image_url: Optional[str] = None
     barcode: Optional[str] = None

@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date
 
 class ReceiptCertificateBase(BaseModel):
+    id: Optional[int] = None
     receipt_date: date
     receipt_id: str
     village: Optional[str] = None
@@ -21,7 +22,7 @@ class ReceiptCertificateCreate(ReceiptCertificateBase):
     pass
 
 class ReceiptCertificateRead(ReceiptCertificateBase):
-    id: int
+    
     barcode: Optional[str] = None
     barcode_url: Optional[str] = None
     gramPanchayat: Optional[str] = None

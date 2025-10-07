@@ -3,6 +3,7 @@ from datetime import date
 from typing import Optional
 
 class NoBenefitCertificateBase(BaseModel):
+    id: Optional[int] = None
     registration_date: date
     village: str
     village_en: str
@@ -25,7 +26,7 @@ class NoBenefitCertificateCreate(NoBenefitCertificateBase):
     pass
 
 class NoBenefitCertificateRead(NoBenefitCertificateBase):
-    id: int
+    
     image_url: Optional[str] = None
     barcode: Optional[str] = None
     barcode_url: Optional[str] = None

@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date
 
 class WidowCertificateBase(BaseModel):
+    id: Optional[int] = None
     registration_date: date
     village: Optional[str] = None
     village_en: Optional[str] = None
@@ -20,7 +21,7 @@ class WidowCertificateCreate(WidowCertificateBase):
     pass
 
 class WidowCertificateRead(WidowCertificateBase):
-    id: int
+    
     barcode: Optional[str] = None
     barcode_url: Optional[str] = None
     gramPanchayat: Optional[str] = None

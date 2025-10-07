@@ -429,7 +429,7 @@
                 data-lighting-tax="{{ row.lightingTax | default('0') }}"
                 data-health-tax="{{ row.healthTax | default('0') }}"
                 data-water-tax="{{ (row.sapanikar if row.sapanikar is defined else row.waterTax) | default('0') }}"
-                data-total-tax="{{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }}"
+                data-total-tax="{{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float) - (row.cleaningTax|default(0)|float) - (row.toiletTax|default(0)|float)) }}"
                 style="margin-bottom: 16px">
                 <table
                   style="
@@ -487,6 +487,9 @@
                       {% if row.constructionType is defined and row.constructionType|length > 1 %}
                           {{ row.constructionType[1].capitalValue | default('') }}<br>
                       {% endif %}
+                      {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                          {{ row.constructionType[2].capitalValue | default('') }}<br>
+                      {% endif %}
                       {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                           {{ row.khaliJaga[0].capitalValue | default('') }}
                       {% endif %}
@@ -500,6 +503,9 @@
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].depreciation_rate | default('') }}<br>
                     {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].depreciation_rate | default('') }}<br>
+                    {% endif %}
                     0
                 </td>
                 <td>
@@ -508,6 +514,9 @@
                   {% endif %}
                   {% if row.constructionType is defined and row.constructionType|length > 1 %}
                       {{ row.constructionType[1].houseTax | default('') }}<br>
+                  {% endif %}
+                  {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                      {{ row.constructionType[2].houseTax | default('') }}<br>
                   {% endif %}
                   {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                       {{ row.khaliJaga[0].houseTax | default('') }}
@@ -518,7 +527,7 @@
                     <td>{{ row.lightingTax | default('') }}</td>
                     <td>{{ row.healthTax | default('') }}</td>
                     <td>{{ (row.sapanikar if row.sapanikar is defined else row.waterTax) | default('') }}</td>
-                    <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }} </td>
+                    <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float) - (row.cleaningTax|default(0)|float) - (row.toiletTax|default(0)|float))}} </td>
                     <td></td>
                     <td></td>
                     <td></td>

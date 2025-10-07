@@ -13,6 +13,7 @@ from namuna8.namuna8_model import Namuna8SettingTax
 from sqlalchemy.exc import SQLAlchemyError
 from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate
 from pydantic import BaseModel
+from jinja2 import Environment, FileSystemLoader
 import os
 import shutil
 import time
@@ -126,20 +127,25 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                    
                 # capital_value = 0
                 AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
-                #for capital_value calculation
-                AreaInMeter = construction_data.length * construction_data.width * 0.092903
+                # for capital_value calculation: respect frontend area unit
+                unit = getattr(property_data, 'areaUnit', 'sqft')
+                if unit == 'sqm':
+                    AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0)
+                else:
+                    AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092903
                 ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
                 depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
                 # Before using usageBasedBuildingWeightageFactor, build the mapping
                 weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
                 usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
                 if formula1:
-                    capital_value = (( (construction_data.length * construction_data.width) * AnnualLandValueRate ) + ( (construction_data.length * construction_data.width) * ConstructionRateAsPerConstruction * depreciationRate/100)) * usageBasedBuildingWeightageFactor
+                    # capital_value = (( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * AnnualLandValueRate ) + ( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
+                    capital_value = (( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                     # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
                     capital_value = round(capital_value, 2)
                     # print("capital_value_from_formula1" , capital_value)
                 else:
-                    capital_value = (construction_data.length * construction_data.width) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
+                    capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
                     capital_value = round(capital_value, 2)
                     # print("capital_value_from_formula2" , capital_value)
                     
@@ -207,8 +213,17 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 remaining_area = total_area - used_area
               
             property_dict = property_data.dict(exclude={"owners", "constructions"})
+            # Normalize totalAreaSqFt based on areaUnit to avoid double-conversion later
             if "totalArea" in property_dict and property_dict["totalArea"] is not None:
-                property_dict["totalAreaSqFt"] = property_dict["totalArea"]
+                try:
+                    area_val = float(property_dict["totalArea"]) or 0.0
+                except (TypeError, ValueError):
+                    area_val = 0.0
+                area_unit = property_dict.get("areaUnit", "sqft") or "sqft"
+                if area_unit == "sqm":
+                    property_dict["totalAreaSqFt"] = round(area_val * 10.7639, 2)
+                else:
+                    property_dict["totalAreaSqFt"] = round(area_val, 2)
             
             # Handle vacantLandType field - convert empty string to None
             if "vacantLandType" in property_dict and property_dict["vacantLandType"] == "":
@@ -239,20 +254,28 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 db.add(db_property)
             except Exception as e:
                 raise e
-            # Ensure totalAreaSqFt is set on the db_property object before saving
+            # Ensure totalAreaSqFt is set on the db_property object before saving (rounded to 2 decimals)
             if not db_property.totalAreaSqFt or db_property.totalAreaSqFt == 0:
                 east = db_property.eastLength or 0
                 west = db_property.westLength or 0
                 north = db_property.northLength or 0
                 south = db_property.southLength or 0
+                area_unit = getattr(property_data, 'areaUnit', 'sqft') or 'sqft'
                 if east == 0 and west == 0 and north == 0 and south == 0:
-            # All lengths empty, use totalArea from payload
-                     
-                     db_property.totalAreaSqFt = property_data.totalArea
+                    # All lengths empty, use totalArea from payload with unit awareness
+                    base_area = float(property_data.totalArea or 0)
+                    if area_unit == 'sqm':
+                        db_property.totalAreaSqFt = round(base_area * 10.7639, 2)
+                    else:
+                        db_property.totalAreaSqFt = round(base_area, 2)
                 else:
                     avg_length = (east + west) / 2
                     avg_width = (north + south) / 2
-                    db_property.totalAreaSqFt = avg_length * avg_width if avg_length and avg_width else 0
+                    computed_area = (avg_length * avg_width) if (avg_length and avg_width) else 0
+                    if area_unit == 'sqm':
+                        db_property.totalAreaSqFt = round(computed_area * 10.7639, 2)
+                    else:
+                        db_property.totalAreaSqFt = round(computed_area, 2)
             # Only set boolean fields and toilet (not calculated tax fields)
             db_property.divaArogyaKar = bool(property_data.divaArogyaKar)
             db_property.safaiKar = bool(property_data.safaiKar)
@@ -276,27 +299,60 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 totalTax = record_response.get('totaltax', 0)
                 srNo = response.get('anuKramank') or response.get('srNo') or ''
                 # totalArea = avg_length * avg_width if avg_length and avg_width else 0
-                totalArea = record_response.get('totalArea',0)
+                totalArea = round(record_response.get('totalArea', 0) or 0, 2)
                 owner_name = owners[0].name if owners else None
                 wife_name = owners[0].wifeName if owners and getattr(owners[0], "wifeName", None) else None
+                occupant_name = owners[0].occupantName if owners and getattr(owners[0], "occupantName", None) else record_response.get('occupantName')
+                mobile_number = owners[0].mobileNumber if owners and getattr(owners[0], "mobileNumber", None) else record_response.get('mobileNumber')
                 # Construction area (exclude 'खाली जागा')
                 constructionArea = sum(
                     (c['length'] or 0) * (c['width'] or 0)
                     for c in response.get('constructions', [])
                     if not (c.get('constructionType', '').strip().startswith('खाली जागा'))
                 )
+                constructionArea = round(constructionArea, 2)
                 # Open area: totalArea - constructionArea
-                openArea = totalArea - constructionArea
+                openArea = round(totalArea - constructionArea, 2)
+                # Boundaries (prefer record response, fallback to property)
+                boundary_east = record_response.get('boundaryEast') or getattr(db_property, 'eastBoundary', None)
+                boundary_west = record_response.get('boundaryWest') or getattr(db_property, 'westBoundary', None)
+                boundary_north = record_response.get('boundaryNorth') or getattr(db_property, 'northBoundary', None)
+                boundary_south = record_response.get('boundarySouth') or getattr(db_property, 'southBoundary', None)
+
+
+                def safe_name(value: str) -> str:
+                        try:
+                            import re
+                            value = value.strip()
+                            # replace spaces with underscores and remove disallowed chars
+                            value = re.sub(r"\s+", "_", value)
+                            value = re.sub(r"[^\w\-\.\u0900-\u097F]", "", value)  # allow Devanagari
+                            return value[:80] if len(value) > 80 else value
+                        except Exception:
+                            return str(value)
+
+
+                district = db.query(location_models.District).filter(location_models.District.id == db_property.district_id).first()
+                taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == db_property.taluka_id).first()
+                gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
+                village = db.query(models.Village).filter(models.Village.id == db_property.village_id).first()
+
+                district_name = safe_name(district.name if district else str(db_property.district_id))
+                taluka_name = safe_name(taluka.name if taluka else str(db_property.taluka_id))
+                gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
+
                 qr_data = {
-                    "srNo": srNo,
-                    "ownername": owner_name,
+                    # Marathi labels for QR display
+                    "malKr.": getattr(db_property, 'malmattaKramank', None),
+                    "मा. नाव": owner_name,
+                    "mobileNumber": mobile_number,
                     "totalArea": totalArea,
                     "constructionArea": constructionArea,
                     "openArea": openArea,
                     "totalTax": totalTax,
                 }
                 if wife_name:
-                    qr_data["wifename"] = wife_name
+                    qr_data["पत्नीचे नाव"] = wife_name
                 # Create location-based QR directory structure
                 qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id),str(db_property.anuKramank))
                 # print(f"DEBUG: Creating QR directory: {qr_dir}")
@@ -310,6 +366,124 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 db.flush()
                 logging.info("QR code generated successfully")
                 # print(f"DEBUG: QR path saved to database: {db_property.qrcode}")
+
+                ### For generating QR Template ###
+                try:
+                    ###Creating new QRcode for template
+                    # Ensure area values are strictly in square feet for the QR template
+                    area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
+                    total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
+                    construction_area_sqft = round((constructionArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+                    open_area_sqft = round((openArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
+                    year_from = datetime.now().year
+                    year_to = year_from + 3
+                    # Display like 2025-26 (two-digit end year)
+                    fer_akarnani_year = f"{str(year_from)}-{str(year_to)}"
+
+                    qr_data_template = {
+                        # Marathi labels for QR display
+                        "ग्रा. पं.": gp_name,
+                        "ता.": taluka_name,
+                        "जि.": district_name,
+                        "मा क्र": getattr(db_property, 'malmattaKramank', None),
+                        "मा. धा. नाव": owner_name,
+                        "भो. नाव": occupant_name,
+                        "पू.": boundary_east,
+                        "प.": boundary_west,
+                        "उ.": boundary_north,
+                        "द.": boundary_south,
+                        "मो नं": mobile_number,
+                        "ए क्षे. चौ. फू": total_area_sqft,
+                        "ए बां. चौ. फू": construction_area_sqft,
+                        "ए खा .जागा चौ.फू": open_area_sqft,
+                        "ए कर": totalTax,
+                    }
+                    if wife_name:
+                        qr_data_template["पत्नीचे नाव"] = wife_name
+                    qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
+                    QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
+                    #get template
+                    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+                    print("base_dir ----->"  , base_dir)
+                    template_dir = os.path.join(base_dir, 'templates')
+                    print("template_dir ----->"  , template_dir)
+                    namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
+                    print("namuna8_template_dir ----->"  , namuna8_template_dir)
+                    env = Environment(loader=FileSystemLoader(namuna8_template_dir))
+                    template = env.get_template('qrTemplate.html')
+
+                    # save location using NAMES rather than IDs
+                    def safe_name(value: str) -> str:
+                        try:
+                            import re
+                            value = value.strip()
+                            # replace spaces with underscores and remove disallowed chars
+                            value = re.sub(r"\s+", "_", value)
+                            value = re.sub(r"[^\w\-\.\u0900-\u097F]", "", value)  # allow Devanagari
+                            return value[:80] if len(value) > 80 else value
+                        except Exception:
+                            return str(value)
+
+                    district = db.query(location_models.District).filter(location_models.District.id == db_property.district_id).first()
+                    taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == db_property.taluka_id).first()
+                    gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
+                    village = db.query(models.Village).filter(models.Village.id == db_property.village_id).first()
+
+                    district_name = safe_name(district.name if district else str(db_property.district_id))
+                    taluka_name = safe_name(taluka.name if taluka else str(db_property.taluka_id))
+                    gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
+                    village_name = safe_name(village.name if village else str(db_property.village_id))
+
+                    qr_template_dir = os.path.join(
+                        "uploaded_images",
+                        "qrTemplate",
+                        district_name,
+                        taluka_name,
+                        gp_name,
+                        village_name,
+                    )
+                    os.makedirs(qr_template_dir, exist_ok=True)
+
+                    #create qr template with data
+                    report_images_dir = os.path.join(base_dir, 'ReportImages')
+                    reports_dir = os.path.join(base_dir, 'reports')
+                    rel_report_images = os.path.relpath(report_images_dir, start=qr_template_dir)
+                    rel_reports = os.path.relpath(reports_dir, start=qr_template_dir)
+                    
+                    # Convert NEW template QR code path to relative path (use qrcode_template.png)
+                    qr_code_abs_path = os.path.abspath(qr_path_template)
+                    rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
+
+                    context = {
+                        # IDs
+                        "district_id": str(db_property.district_id),
+                        "taluka_id": str(db_property.taluka_id),
+                        "gram_panchayat_id": str(db_property.gram_panchayat_id),
+                        "village_id": str(db_property.village_id),
+                        # Names
+                        "district_name": district.name if district else "",
+                        "taluka_name": taluka.name if taluka else "",
+                        "gram_panchayat_name": gram_panchayat.name if gram_panchayat else "",
+                        "village_name": village.name if village else "",
+                        "owner_name": owner_name,
+                        # Others
+                        "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
+                        "report_images": rel_report_images,
+                        "reports": rel_reports,
+                        "qrcode": rel_qrcode,
+                    }
+                    rendered_html = template.render(**context)
+                    qr_template_path = os.path.join(qr_template_dir , f'qr_template_{str(db_property.anuKramank)}.html')
+                    with open(qr_template_path , 'w' , encoding='utf-8') as f:
+                        f.write(rendered_html)
+
+
+                    print("QR Template successfully created")
+
+
+                except Exception as e:
+                    logging.error(f"Error in generating the qr template : " , e)
+        ### For generating QR Template ###
             except Exception as e:
                 logging.error(f"QR code generation failed: {e}")
                 # print(f"QR code generation failed: {e}")
@@ -416,10 +590,18 @@ def update_namuna8_entry(
     gram_panchayat_id: int = Query(..., description="Gram Panchayat ID"),
     db: Session = Depends(database.get_db)
 ):
-    # Map totalArea to totalAreaSqFt if provided
+    # Map totalArea to totalAreaSqFt based on areaUnit if provided
     property_update_data = property_data.dict(exclude={'owners', 'constructions'})
     if "totalArea" in property_update_data and property_update_data["totalArea"] is not None:
-        property_update_data["totalAreaSqFt"] = property_update_data["totalArea"]
+        try:
+            area_val = float(property_update_data["totalArea"]) or 0.0
+        except (TypeError, ValueError):
+            area_val = 0.0
+        area_unit = property_update_data.get("areaUnit", "sqft") or "sqft"
+        if area_unit == "sqm":
+            property_update_data["totalAreaSqFt"] = round(area_val * 10.7639, 2)
+        else:
+            property_update_data["totalAreaSqFt"] = round(area_val, 2)
     # Validate location hierarchy
     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
     if not district:
@@ -460,23 +642,32 @@ def update_namuna8_entry(
     for key, value in property_update_data.items():
         setattr(db_property, key, value)
     db_property.updated_at = datetime.now()
-    # After setting all fields, always recalculate totalAreaSqFt from lengths
+    # After setting all fields, recalculate totalAreaSqFt from lengths with unit awareness (rounded to 2 decimals)
     try:
         east = float(db_property.eastLength) if db_property.eastLength is not None else 0
         west = float(db_property.westLength) if db_property.westLength is not None else 0
         north = float(db_property.northLength) if db_property.northLength is not None else 0
         south = float(db_property.southLength) if db_property.southLength is not None else 0
 
+        area_unit = getattr(property_data, 'areaUnit', getattr(db_property, 'areaUnit', 'sqft')) or 'sqft'
         if east == 0 and west == 0 and north == 0 and south == 0:
             # Fallback to totalArea when no side lengths are available
-            db_property.totalAreaSqFt = db_property.totalArea if db_property.totalArea else 0
+            base_area = float(db_property.totalArea or 0)
+            if area_unit == 'sqm':
+                db_property.totalAreaSqFt = round(base_area * 10.7639, 2)
+            else:
+                db_property.totalAreaSqFt = round(base_area, 2)
         else:
             avg_length = (east + west) / 2 if (east or west) else 0
             avg_width = (north + south) / 2 if (north or south) else 0
-            db_property.totalAreaSqFt = avg_length * avg_width if avg_length and avg_width else 0
+            computed_area = (avg_length * avg_width) if (avg_length and avg_width) else 0
+            if area_unit == 'sqm':
+                db_property.totalAreaSqFt = round(computed_area * 10.7639, 2)
+            else:
+                db_property.totalAreaSqFt = round(computed_area, 2)
 
     except Exception:
-        db_property.totalAreaSqFt = db_property.totalArea if db_property.totalArea else 0
+        db_property.totalAreaSqFt = round(db_property.totalArea or 0, 2)
 
 
     if property_data.owners:
@@ -553,20 +744,24 @@ def update_namuna8_entry(
                 
             # capital_value = 0
             AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
-            #for capital_value calculation
-            AreaInMeter = construction_data.length * construction_data.width * 0.092903
+            # for capital_value calculation: respect frontend area unit
+            unit = getattr(property_data, 'areaUnit', 'sqft')
+            if unit == 'sqm':
+                AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0)
+            else:
+                AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092903
             ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
             depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
             # Before using usageBasedBuildingWeightageFactor, build the mapping
             weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
             usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
             if formula1:
-                capital_value = (( (construction_data.length * construction_data.width) * AnnualLandValueRate ) + ( (construction_data.length * construction_data.width) * ConstructionRateAsPerConstruction * depreciationRate/100)) * usageBasedBuildingWeightageFactor
+                capital_value =(( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                 # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
                 capital_value = round(capital_value, 2)
                 # print("capital_value_from_formula1" , capital_value)
             else:
-                capital_value = (construction_data.length * construction_data.width) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
+                capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
                 capital_value = round(capital_value, 2)
                     
             house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value  ,2)
@@ -675,27 +870,44 @@ def update_namuna8_entry(
         south = db_property.southLength or 0
         avg_length = (east + west) / 2 if (east or west) else 0
         avg_width = (north + south) / 2 if (north or south) else 0
-        totalArea = avg_length * avg_width if avg_length and avg_width else 0
+        area_unit = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
+        totalArea_calc = avg_length * avg_width if avg_length and avg_width else 0
+        # totalArea in response should follow record_response's convention; we use record_response below
+        if area_unit == 'sqm':
+            totalArea = round(totalArea_calc, 2)
+        else:
+            totalArea = round(totalArea_calc, 2)
         constructionArea = sum(
             (c['length'] or 0) * (c['width'] or 0)
             for c in response.get('constructions', [])
             if not (c.get('constructionType', '').strip().startswith('खाली जागा'))
         )
-        openArea = totalArea - constructionArea
+        constructionArea = round(constructionArea, 2)
+        openArea = round(totalArea - constructionArea, 2)
         owner_name = record_response.get('ownerName', 0)
         wife_name = record_response.get('ownerWifeName', 0)
-        totalArea = record_response.get('totalArea',0)
+        occupant_name = record_response.get('occupantName', 0)
+        totalArea = round(record_response.get('totalArea', 0) or 0, 2)
+        mobile_number = record_response.get('mobileNumber')
+
+        # Boundaries (prefer record response, fallback to property)
+        boundary_east = record_response.get('boundaryEast') or getattr(db_property, 'eastBoundary', None)
+        boundary_west = record_response.get('boundaryWest') or getattr(db_property, 'westBoundary', None)
+        boundary_north = record_response.get('boundaryNorth') or getattr(db_property, 'northBoundary', None)
+        boundary_south = record_response.get('boundarySouth') or getattr(db_property, 'southBoundary', None)
+
         qr_data = {
-            "srNo": srNo,
-            "ownername": owner_name,
+                    # Marathi labels for QR display
+            "malKr.": getattr(db_property, 'malmattaKramank', None),
+            "मा. नाव": owner_name,
+            "mobileNumber": mobile_number,
             "totalArea": totalArea,
             "constructionArea": constructionArea,
             "openArea": openArea,
             "totalTax": totalTax,
         }
-        
         if wife_name:
-            qr_data["wifename"] = wife_name
+            qr_data["पत्नीचे नाव"] = wife_name
         
         # Create location-based QR directory structure
         qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id), str(db_property.anuKramank))
@@ -708,6 +920,123 @@ def update_namuna8_entry(
         # print(f"DEBUG UPDATE: QR code generated successfully")
         db_property.qrcode = qr_path.replace(os.sep, "/")
         db.commit()
+        
+        ### For generating QR Template ###
+        try:
+            ###Creating new QRcode for template
+            # Ensure area values are strictly in square feet for the QR template
+            area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
+            total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
+            construction_area_sqft = round((constructionArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+            open_area_sqft = round((openArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
+            year_from = datetime.now().year
+            year_to = year_from + 3
+            # Display like 2025-26 (two-digit end year)
+            fer_akarnani_year = f"{str(year_from)}-{str(year_to)}"
+
+            # Resolve location names early (used below in qr_data_template)
+            def safe_name(value: str) -> str:
+                try:
+                    import re
+                    value = value.strip()
+                    # replace spaces with underscores and remove disallowed chars
+                    value = re.sub(r"\s+", "_", value)
+                    value = re.sub(r"[^\w\-\.\u0900-\u097F]", "", value)  # allow Devanagari
+                    return value[:80] if len(value) > 80 else value
+                except Exception:
+                    return str(value)
+
+            district = db.query(location_models.District).filter(location_models.District.id == db_property.district_id).first()
+            taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == db_property.taluka_id).first()
+            gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
+            village = db.query(models.Village).filter(models.Village.id == db_property.village_id).first()
+
+            district_name = safe_name(district.name if district else str(db_property.district_id))
+            taluka_name = safe_name(taluka.name if taluka else str(db_property.taluka_id))
+            gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
+            village_name = safe_name(village.name if village else str(db_property.village_id))
+
+            qr_data_template = {
+                # Marathi labels for QR display
+                "ग्रा. पं.": gp_name,
+                "ता.": taluka_name,
+                "जि.": district_name,
+                "मा क्र": getattr(db_property, 'malmattaKramank', None),
+                "मा. धा. नाव": owner_name,
+                "भो. नाव": occupant_name,
+                "पू.": boundary_east,
+                "प.": boundary_west,
+                "उ.": boundary_north,
+                "द.": boundary_south,
+                "मो नं": mobile_number,
+                "ए क्षे. चौ. फू": total_area_sqft,
+                "ए बां. चौ. फू": construction_area_sqft,
+                "ए खा .जागा चौ.फू": open_area_sqft,
+                "ए कर": totalTax,
+            }
+            if wife_name:
+                qr_data_template["पत्नीचे नाव"] = wife_name
+            qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
+            QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
+            #get template
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+            print("base_dir ----->"  , base_dir)
+            template_dir = os.path.join(base_dir, 'templates')
+            print("template_dir ----->"  , template_dir)
+            namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
+            print("namuna8_template_dir ----->"  , namuna8_template_dir)
+            env = Environment(loader=FileSystemLoader(namuna8_template_dir))
+            template = env.get_template('qrTemplate.html')
+
+            # names already computed above
+            qr_template_dir = os.path.join(
+                "uploaded_images",
+                "qrTemplate",
+                district_name,
+                taluka_name,
+                gp_name,
+                village_name,
+            )
+            os.makedirs(qr_template_dir, exist_ok=True)
+
+            #create qr template with data
+            report_images_dir = os.path.join(base_dir, 'ReportImages')
+            reports_dir = os.path.join(base_dir, 'reports')
+            rel_report_images = os.path.relpath(report_images_dir, start=qr_template_dir)
+            rel_reports = os.path.relpath(reports_dir, start=qr_template_dir)
+            
+            # Convert NEW template QR code path to relative path (use qrcode_template.png)
+            qr_code_abs_path = os.path.abspath(qr_path_template)
+            rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
+
+            context = {
+                # IDs
+                "district_id": str(db_property.district_id),
+                "taluka_id": str(db_property.taluka_id),
+                "gram_panchayat_id": str(db_property.gram_panchayat_id),
+                "village_id": str(db_property.village_id),
+                # Names
+                "district_name": district.name if district else "",
+                "taluka_name": taluka.name if taluka else "",
+                "gram_panchayat_name": gram_panchayat.name if gram_panchayat else "",
+                "village_name": village.name if village else "",
+                "owner_name": owner_name,
+                # Others
+                "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
+                "report_images": rel_report_images,
+                "reports": rel_reports,
+                "qrcode": rel_qrcode,
+            }
+            rendered_html = template.render(**context)
+            qr_template_path = os.path.join(qr_template_dir , f'qr_template_{str(db_property.anuKramank)}.html')
+            with open(qr_template_path , 'w' , encoding='utf-8') as f:
+                f.write(rendered_html)
+
+
+            print("QR Template successfully created")
+        except Exception as e:
+            logging.error("Error in generating the qr template : %s", e)
+        ### For generating QR Template ###
         # print(f"DEBUG UPDATE: QR path saved to database: {db_property.qrcode}")
     except Exception as e:
         logging.error(f"QR code update failed: {e}")
@@ -763,8 +1092,8 @@ def get_bulk_edit_property_list(
             return 0
         if not water_settings or not water_slab_settings:
             return 0
-        # Accept both spellings for 'सामान्य पाणिकर' and 'सामान्य पाणीकर'
-        if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
+        # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
+        if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
             return getattr(water_settings, 'generalWater', 0)
         elif facility == 'घरगुती नळ':
             return getattr(water_settings, 'houseTax', 0)
@@ -1117,8 +1446,8 @@ def build_property_response(db_property, db, gram_panchayat_id: int):
             return 0
         if not water_settings or not water_slab_settings:
             return 0
-        # Accept both spellings for 'सामान्य पाणिकर' and 'सामान्य पाणीकर'
-        if facility in ['सामान्य पाणिकर', 'सामान्य पाणीकर']:
+        # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
+        if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
             return getattr(water_settings, 'generalWater', 0)
         elif facility == 'घरगुती नळ':
             return getattr(water_settings, 'houseTax', 0)
@@ -1137,16 +1466,17 @@ def build_property_response(db_property, db, gram_panchayat_id: int):
     divaArogyaKar = bool(getattr(db_property, 'divaArogyaKar', False))
     safaiKar = bool(getattr(db_property, 'safaiKar', False))
     shauchalayKar = bool(getattr(db_property, 'shauchalayKar', False))
+    karLaguNahi = bool(getattr(db_property, 'karLaguNahi', False))
     property_dict = {
         **{k: getattr(db_property, k) for k in schemas.PropertyBase.__fields__.keys()},
         "owners": owners,
         "constructions": constructions,
-        "divaKar": get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0,
-        "aarogyaKar": get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0,
-        "cleaningTax": get_tax_by_area(total_area, 'cleaning') if safaiKar else 0,
-        "toiletTax": get_tax_by_area(total_area, 'bathroom') if shauchalayKar else 0.0,
-        "sapanikar": get_water_facility_price(getattr(db_property, 'waterFacility1', None)),
-        "vpanikar": get_water_facility_price(getattr(db_property, 'waterFacility2', None)),
+        "divaKar": 0 if karLaguNahi else (get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0),
+        "aarogyaKar": 0 if karLaguNahi else (get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0),
+        "cleaningTax": 0 if karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if safaiKar else 0),
+        "toiletTax": 0.0 if karLaguNahi else (get_tax_by_area(total_area, 'bathroom') if shauchalayKar else 0.0),
+        "sapanikar": 0 if karLaguNahi else get_water_facility_price(getattr(db_property, 'waterFacility1', None)),
+        "vpanikar": 0 if karLaguNahi else get_water_facility_price(getattr(db_property, 'waterFacility2', None)),
     }
     return property_dict
 

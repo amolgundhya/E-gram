@@ -818,19 +818,29 @@ async def prakar1(request : Request):
 
         data = response.json()
 
-        # Render template
-        if not isinstance(data, list):
-            data = [data]
+        # Adapt to new /certificates/all response shape
+        records = []
+        jilha = ''
+        taluka = ''
+        gramPanchayat = ''
+        if isinstance(data, dict):
+            records = data.get('records', []) or []
+            jilha = data.get('jilha') or ''
+            taluka = data.get('taluka') or ''
+            gramPanchayat = data.get('gramPanchayat') or ''
+        else:
+            # Backwards compatibility if API returns a list
+            records = data if isinstance(data, list) else []
         
         # Get current date
         from datetime import datetime
         currentDate = datetime.now().strftime("%Y-%m-%d")
 
         context = {
-            "data": data,
-            "gramPanchayat": '',  # Replace with actual data
-            "taluka": '',  # Replace with actual data
-            "jilha": '',  # Replace with actual data
+            "data": records,
+            "gramPanchayat": gramPanchayat,
+            "taluka": taluka,
+            "jilha": jilha,
             "startDate": fromDate,
             "toDate": toDate,
             "currentDate": currentDate

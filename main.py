@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Import routers
 from namuna8 import namuna8_apis
 from namuna9 import namuna9_apis
+from namuna9 import namuna9_property_data_apis
 from certificates import birth_certificate_apis, death_certificate_apis, birthdeath_unavailability_apis, resident_certificate_apis, family_certificate_apis, toilet_certificate_apis, no_objection_certificate_apis, no_benefit_certificate_apis, life_certificate_apis, good_conduct_certificate_apis, niradhar_certificate_apis, no_arrears_certificate_apis, unemployment_certificate_apis, receipt_certificate_apis, marriage_certificate_apis, widow_certificate_apis, allcertificates
 from location_management import apis as location_apis
 from namuna8.recordresponses import property_record_response
@@ -19,6 +20,7 @@ from namuna8 import ferfar_apis
 
 # Import database components and models
 from database import engine, Base
+from sqlalchemy import text
 from namuna8 import namuna8_model
 from namuna9 import namuna9_model
 from JWTapi import tokenModel
@@ -61,7 +63,7 @@ def init_construction_types():
     defaults = [
         {
             "id": 1,
-            "name": "आर सी सी इमारत",
+            "name": "आरसीसी पद्धतीची इमारत",
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
@@ -73,7 +75,7 @@ def init_construction_types():
         },
         {
             "id": 2,
-            "name": "दगड विट सिमेंटची इमारत",
+            "name": "दगड विटांची व चुना किंवा सिमेंट वापरून उभारलेली इमारत",
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
@@ -85,7 +87,7 @@ def init_construction_types():
         },
         {
             "id": 3,
-            "name": "दगड मातीची इमारत",
+            "name": "दगड किंवा विटा वापरलेली मातीची इमारत",
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
@@ -97,7 +99,7 @@ def init_construction_types():
         },
         {
             "id": 4,
-            "name": "झोपडी मातीचे इमारत",
+            "name": "झोपडी किंवा मातीची इमारत",
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
@@ -141,6 +143,76 @@ def init_construction_types():
 
 # Call initializer after tables are created
 init_construction_types()
+
+# Ensure new columns exist for namuna9_property_data (SQLite simple migration)
+def ensure_namuna9_property_data_columns():
+    try:
+        with engine.begin() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(namuna9_property_data)").fetchall()
+            existing = {c[1] for c in cols}
+            to_add = [
+                ("vasuliGhar", "REAL"),
+                ("vasuliChaluGhar", "REAL"),
+                ("vasuliDiva", "REAL"),
+                ("vasuliChaluDiva", "REAL"),
+                ("vasuliAarogyaKar", "REAL"),
+                ("vasuliChaluAarogyaKar", "REAL"),
+                ("vasuliSapanikar", "REAL"),
+                ("vasuliChaluSapanikar", "REAL"),
+                ("vasuliVpanikar", "REAL"),
+                ("vasuliChaluVpanikar", "REAL"),
+                ("vasuliCleaningTax", "REAL"),
+                ("vasuliChaluCleaningTax", "REAL"),
+                ("vasuliDand", "REAL"),
+                ("vasuliNoticeFee", "REAL"),
+                ("vasuliWarrantFee", "REAL"),
+            ]
+            for col, coltype in to_add:
+                if col not in existing:
+                    conn.exec_driver_sql(f'ALTER TABLE namuna9_property_data ADD COLUMN "{col}" {coltype} DEFAULT 0')
+    except Exception as e:
+        print("[Migration] Could not ensure namuna9_property_data columns:", e)
+
+ensure_namuna9_property_data_columns()
+
+# Ensure receipts table exists and has all expected columns (SQLite simple migration)
+try:
+    from namuna9.namuna9_model import Namuna9Receipt
+    Namuna9Receipt.__table__.create(bind=engine, checkfirst=True)
+
+    # Add missing columns if the table was created in an older version
+    with engine.begin() as conn:
+        cols = conn.exec_driver_sql("PRAGMA table_info(namuna9_receipts)").fetchall()
+        existing = {c[1] for c in cols}
+        to_add = [
+            ("gram_panchayat_id", "INTEGER"),
+            ("pa_book_kramank", "TEXT"),
+            ("pavti_kramank", "INTEGER"),
+            ("pavti_date", "DATETIME"),
+            ("payment_mode", "TEXT"),
+            ("utr_tr_id", "TEXT"),
+            ("vasuliGhar", "REAL"),
+            ("vasuliChaluGhar", "REAL"),
+            ("vasuliDiva", "REAL"),
+            ("vasuliChaluDiva", "REAL"),
+            ("vasuliAarogyaKar", "REAL"),
+            ("vasuliChaluAarogyaKar", "REAL"),
+            ("vasuliSapanikar", "REAL"),
+            ("vasuliChaluSapanikar", "REAL"),
+            ("vasuliVpanikar", "REAL"),
+            ("vasuliChaluVpanikar", "REAL"),
+            ("vasuliCleaningTax", "REAL"),
+            ("vasuliChaluCleaningTax", "REAL"),
+            ("vasuliDand", "REAL"),
+            ("vasuliNoticeFee", "REAL"),
+            ("vasuliWarrantFee", "REAL"),
+            ("total", "REAL"),
+        ]
+        for col, coltype in to_add:
+            if col not in existing:
+                conn.exec_driver_sql(f'ALTER TABLE namuna9_receipts ADD COLUMN "{col}" {coltype}')
+except Exception as e:
+    print("[Migration] Could not ensure namuna9_receipts:", e)
 app = FastAPI()
 
 # Remove or comment out the old static mount
@@ -159,6 +231,7 @@ app.add_middleware(
 # Include routers
 app.include_router(namuna8_apis.router)
 app.include_router(namuna9_apis.router)
+app.include_router(namuna9_property_data_apis.router)
 app.include_router(birth_certificate_apis.router)
 app.include_router(death_certificate_apis.router)
 app.include_router(marriage_certificate_apis.router)

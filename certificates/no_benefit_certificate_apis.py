@@ -18,6 +18,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/no-benefit", response_model=NoBenefitCertificateRead, status_code=status.HTTP_201_CREATED)
 def create_no_benefit_certificate(
+    id: str = Form(None),
     registration_date: str = Form(...),
     village: str = Form(...),
     village_en: str = Form(...),
@@ -44,9 +45,10 @@ def create_no_benefit_certificate(
     taluka_id_int = int(taluka_id) if taluka_id and taluka_id.strip() else None
     gram_panchayat_id_int = int(gram_panchayat_id) if gram_panchayat_id and gram_panchayat_id.strip() else None
     
-   
+    cert_id = int(id) if id and id.strip() else None
     
     cert = NoBenefitCertificate(
+        id=cert_id,
         registration_date=reg_date_obj,
         village=village,
         village_en=village_en,
@@ -585,8 +587,14 @@ def get_no_benefit_certificate_image(
     
     # Find the image file in the directory
     if os.path.exists(image_path) and os.path.isdir(image_path):
-        for file in os.listdir(image_path):
-            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
-                return FileResponse(os.path.join(image_path, file), media_type="image/png")
+        image_files = [
+            os.path.join(image_path, file)
+            for file in os.listdir(image_path)
+            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))
+        ]
+        if image_files:
+            # Serve the latest image file by modification time
+            latest_file = max(image_files, key=os.path.getmtime)
+            return FileResponse(latest_file, media_type="image/png")
     
-    raise HTTPException(status_code=404, detail="Image file not found") 
+    raise HTTPException(status_code=404, detail="Image file not found")

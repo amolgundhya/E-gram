@@ -204,10 +204,10 @@
                     {% set row = data[idx] %}
                     <div class="record-table-wrapper"
                         data-house-tax="{{ row.totalHouseTax | default('0') }}"
-                        data-lighting-tax="{{ row.totalLightingTax | default('0') }}"
-                        data-health-tax="{{ row.totalHealthTax | default('0') }}"
+                        data-lighting-tax="{{ (row.totalLightingTax if row.totalLightingTax is defined else row.lightingTax) | default('0') }}"
+                        data-health-tax="{{ (row.totalHealthTax if row.totalHealthTax is defined else row.healthTax) | default('0') }}"
                         data-water-tax="{{ (row.sapanikar if row.sapanikar is defined else row.totalWaterTax) | default('0') }}"
-                        data-total-tax="{{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }}"
+                        data-total-tax="{{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float) - (row.cleaningTax|default(0)|float) - (row.toiletTax|default(0)|float)) }}"
                     style="margin-bottom: 18px;">
                         <!-- Only the tables for each record repeat -->
                         <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; margin-top: 0; font-size: 14px;">
@@ -256,7 +256,18 @@
                                 </td>
                                 <td rowspan="2"> {{row.occupantName|default('')}} </td>
                                 <td rowspan="2" style="text-align: left;">
-                                    {{row.propertyDescription|default('')}}
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ row.constructionType[0].type | default('') }}<br>    
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                        {{ row.constructionType[1].type | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].type | default('') }}<br>
+                    {% endif %}
+                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                        {{ row.khaliJaga[0].constructiontype | default('') }}
+                    {% endif %}
                                 </td>
                                 <td rowspan="2">
                                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
@@ -265,6 +276,10 @@
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{ row.constructionType[1].year|default('') }}
                                     {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{ row.constructionType[2].year|default('') }}
+                                    {% endif %}
+                                    
                                 </td>
                                 <td rowspan="2">{{ row.areaEast|default('') }} x {{row.areaNorth|default('')}}</td>
                                 <td rowspan="2">
@@ -282,6 +297,9 @@
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{row.constructionType[1].rate|default('')}}-{{row.constructionType[1].length|default('')}} x {{row.constructionType[1].width|default('')}}
                                     {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{row.constructionType[2].rate|default('')}}-{{row.constructionType[2].length|default('')}} x {{row.constructionType[2].width|default('')}}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
@@ -289,6 +307,9 @@
                                     {% endif %}
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{row.constructionType[1].depreciation_rate|default('')}}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{row.constructionType[2].depreciation_rate|default('')}}<br>
                                     {% endif %}
                                     0
                                 </td>
@@ -298,6 +319,9 @@
                                     {% endif %}
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{ row.constructionType[1].usageBasedBuildingWeightageFactor|default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{ row.constructionType[2].usageBasedBuildingWeightageFactor|default('') }}<br>
                                     {% endif %}
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                         {{row.khaliJaga[0].usageBasedBuildingWeightageFactor|default('') }}
@@ -319,14 +343,14 @@
                             </tr>
                             <tr>
                                 <td colspan="8" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
-                                <td> {{row.totalconstructionareainmeter|default('')}} </td>
+                                <td> {{row.totalareainmeters|default('')}} </td>
                                 <td>
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                         {{row.khaliJaga[0].totalkhalijagaareainmeters|default('')}}
                                     {% endif %}
                                 </td>
                                 <td></td>
-                                <td> {{row.totalConstruction|default('')}}  </td>
+                                <td> {{row.totalconstructionareainmeter|default('')}}  </td>
                                 <td></td>
                                 <td></td>
                             </tr>
@@ -374,6 +398,9 @@
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{row.constructionType[1].capitalValue|default('')}}<br>
                                     {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{row.constructionType[2].capitalValue|default('')}}<br>
+                                    {% endif %}
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                         {{ row.khaliJaga[0].capitalValue|default('') }}
                                     {% endif %}
@@ -385,6 +412,9 @@
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                         {{ row.constructionType[1].taxRates|default('')}}<br>
                                     {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{ row.constructionType[2].taxRates|default('')}}<br>
+                                    {% endif %}
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                         {{ row.khaliJaga[0].taxRates|default('') }}
                                     {% endif %}
@@ -394,7 +424,10 @@
                                         {{ row.constructionType[0].houseTax|default('') }}<br>
                                     {% endif %}
                                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
-                                        {{ row.constructionType[0].houseTax|default('')}}<br>
+                                        {{ row.constructionType[1].houseTax|default('')}}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{ row.constructionType[2].houseTax|default('')}}<br>
                                     {% endif %}
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                         {{row.khaliJaga[0].houseTax|default('')}}
@@ -403,7 +436,7 @@
                                 <td>{{ row.lightingTax|default('') }}</td>
                                 <td>{{ row.healthTax|default('') }}</td>
                                 <td> {{ (row.sapanikar if row.sapanikar is defined else row.totalWaterTax) | default('') }} </td>
-                                <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }} </td>
+                                <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float) - (row.cleaningTax|default(0)|float) - (row.toiletTax|default(0)|float)) }} </td>
                                 <td></td>
                                 <td></td>
                                 <td></td>
@@ -418,7 +451,7 @@
                                 <td> {{row.totalLightingTax|default('')}} </td>
                                 <td> {{row.totalHealthTax|default('')}} </td>
                                 <td>  </td>
-                                <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float)) }} </td>
+                                <td> {{ (row.totaltax|default(0)|float - (row.vpanikar|default(0)|float) - (row.cleaningTax|default(0)|float) - (row.toiletTax|default(0)|float)) }} </td>
                                 <td></td>
                                 <td></td>
                                 <td></td>

@@ -100,11 +100,6 @@
         <img src="{{ barcode_url }}" alt="Barcode" style="height:40px;" />
       {% endif %}
     </td>
-    <td style="text-align:right; width:50%; padding:4px;">
-      {% if barcode_url %}
-        <img src="{{ image_url }}" alt="image" style="height:40px;" />
-      {% endif %}
-    </td>
   </tr>
 </table>
 
@@ -121,11 +116,11 @@
     <td style="text-align:left; padding:4px;">{{ applicant_name | default('') }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">Tis issuing the certificate to</td>
+    <td style="text-align:left; padding:4px;">is issuing the certificate to</td>
     <td style="text-align:left; padding:4px;">{{ applicant_name_en | default('') }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">हे राहणार </td>
+    <td style="text-align:left; padding:4px;">हे राहणार  </td>
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">Residence at
@@ -147,12 +142,6 @@
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">certificate is issued on request of the applicant</td>
-  </tr>
-  <tr>
-    <td style="text-align:left; padding:4px;">आधार क्रमांक : {{ adhar_no | default('') }}</td>
-  </tr>
-  <tr>
-    <td style="text-align:left; padding:4px;">Aadhaar Number : {{ adhar_no_en | default('') }}</td>
   </tr>
 </table>
 

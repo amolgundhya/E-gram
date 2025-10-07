@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date
 
 class ResidentCertificateBase(BaseModel):
+    id: Optional[int] = None
     dispatch_no: Optional[str]
     date: Optional[date]
     village: Optional[str]
@@ -21,7 +22,7 @@ class ResidentCertificateCreate(ResidentCertificateBase):
     pass
 
 class ResidentCertificateRead(ResidentCertificateBase):
-    id: int
+    
     image_url: Optional[str] = None
     barcode_url: Optional[str] = None
     gramPanchayat: Optional[str] = None

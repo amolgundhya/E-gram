@@ -14,6 +14,7 @@ router = APIRouter(prefix="/certificates", tags=["certificates"])
 
 @router.post("/toilet", response_model=ToiletCertificateRead, status_code=status.HTTP_201_CREATED)
 def create_toilet_certificate(
+    id: str = Form(None),
     registration_date: str = Form(...),
     village: str = Form(None),
     village_en: str = Form(None),
@@ -33,8 +34,9 @@ def create_toilet_certificate(
     district_id_int = int(district_id) if district_id and district_id.strip() else None
     taluka_id_int = int(taluka_id) if taluka_id and taluka_id.strip() else None
     gram_panchayat_id_int = int(gram_panchayat_id) if gram_panchayat_id and gram_panchayat_id.strip() else None
-    
+    cert_id = int(id) if id and id.strip() else None
     cert = ToiletCertificate(
+        id=cert_id,
         registration_date=reg_date_obj,
         village=village,
         village_en=village_en,

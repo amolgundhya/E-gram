@@ -17,10 +17,11 @@ from certificates.marriage_certificate_model import MarriageCertificate
 from certificates.no_arrears_certificate_model import NoArrearsCertificate
 from certificates.widow_certificate_model import WidowCertificate
 from certificates.unemployment_certificate_model import UnemploymentCertificate
+from location_management import models as location_models
 
 router = APIRouter(prefix="/certificates", tags=["certificates"])
 
-@router.get("/all", response_model=list)
+@router.get("/all", response_model=dict)
 def get_all_certificates(
     from_date: str = Query(...),
     to_date: str = Query(...),
@@ -30,16 +31,66 @@ def get_all_certificates(
     from_dt = datetime.strptime(from_date, "%Y-%m-%d").date()
     to_dt = datetime.strptime(to_date, "%Y-%m-%d").date()
     result = []
+    # Track common location IDs across all records
+    district_ids = set()
+    taluka_ids = set()
+    gp_ids = set()
+    # Simple caches to avoid repeated DB hits
+    district_cache: dict[int, str | None] = {}
+    taluka_cache: dict[int, str | None] = {}
+    gp_cache: dict[int, str | None] = {}
+
+    def get_district_name(district_id):
+        if not district_id:
+            return None
+        if district_id in district_cache:
+            return district_cache[district_id]
+        district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
+        name = getattr(district, "name", None) if district else None
+        district_cache[district_id] = name
+        return name
+
+    def get_taluka_name(taluka_id):
+        if not taluka_id:
+            return None
+        if taluka_id in taluka_cache:
+            return taluka_cache[taluka_id]
+        taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == taluka_id).first()
+        name = getattr(taluka, "name", None) if taluka else None
+        taluka_cache[taluka_id] = name
+        return name
+
+    def get_gp_name(gp_id):
+        if not gp_id:
+            return None
+        if gp_id in gp_cache:
+            return gp_cache[gp_id]
+        gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == gp_id).first()
+        name = getattr(gp, "name", None) if gp else None
+        gp_cache[gp_id] = name
+        return name
+
     # Helper: add certs to result
     def add_certs(query, cert_type, name_field, date_field, id_field, village_field):
         for cert in query:
+            # Track IDs for top-level fields
+            did = getattr(cert, "district_id", None)
+            tid = getattr(cert, "taluka_id", None)
+            gid = getattr(cert, "gram_panchayat_id", None)
+            if did is not None:
+                district_ids.add(did)
+            if tid is not None:
+                taluka_ids.add(tid)
+            if gid is not None:
+                gp_ids.add(gid)
+            # Append record without repeating location names
             result.append({
                 "type": cert_type,
                 "name": getattr(cert, name_field, ""),
                 "village": getattr(cert, village_field, ""),
                 "registered_date": getattr(cert, date_field, None),
                 "certificate_id": getattr(cert, id_field, None),
-                "price": 20
+                "price": 20,
             })
     # Query each table (except receipt certificates)
     # BirthCertificate: child_name
@@ -119,4 +170,15 @@ def get_all_certificates(
     )
     # Sort by registered_date
     result.sort(key=lambda x: (x["registered_date"] or datetime.min))
-    return result 
+
+    # Compute top-level location names (only if consistent across records)
+    jilha = get_district_name(next(iter(district_ids))) if len(district_ids) == 1 else None
+    taluka = get_taluka_name(next(iter(taluka_ids))) if len(taluka_ids) == 1 else None
+    gram_panchayat = get_gp_name(next(iter(gp_ids))) if len(gp_ids) == 1 else None
+
+    return {
+        "jilha": jilha,
+        "taluka": taluka,
+        "gramPanchayat": gram_panchayat,
+        "records": result,
+    }

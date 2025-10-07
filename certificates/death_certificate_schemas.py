@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date
 
 class DeathCertificateBase(BaseModel):
+    id: Optional[int] = None
     date: Optional[date]
     register_date: Optional[date]
     village: Optional[str]
@@ -32,7 +33,6 @@ class DeathCertificateCreate(DeathCertificateBase):
     pass
 
 class DeathCertificateRead(DeathCertificateBase):
-    id: int
     qrcode: Optional[str] = None
     barcode: Optional[str] = None
     barcode_url: Optional[str] = None

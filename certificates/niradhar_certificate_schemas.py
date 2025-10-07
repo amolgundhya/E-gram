@@ -3,6 +3,7 @@ from datetime import date
 from typing import Optional
 
 class NiradharCertificateBase(BaseModel):
+    id: Optional[int] = None
     registration_date: date
     village: str
     village_en: str
@@ -24,7 +25,7 @@ class NiradharCertificateCreate(NiradharCertificateBase):
     pass
 
 class NiradharCertificateRead(NiradharCertificateBase):
-    id: int
+
     barcode: Optional[str] = None
     barcode_url: Optional[str] = None
     gramPanchayat: Optional[str] = None

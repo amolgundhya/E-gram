@@ -188,24 +188,14 @@
 {% for tax in tax_names %}
 <tr>
     <td>{{ tax }}</td>
-    <td class="right">{{ record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 }}</td>
-    <td class="right">{{ record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 }}</td>
+    <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
+    <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
 
     {% set current_value = record.recoverableAmounts.current['current' ~ loop.index] or 0 %}
     {% set total_value = record.recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
-    <td class="right">
-        {{
-            0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-            else current_value
-        }}
-    </td>
-    <td class="right">
-        {{
-            0 if (tax == 'नोटीस फी' and noticeFee == 'false') or (tax == 'वारंट फी' and warrantFee == 'false')
-            else total_value
-        }}
-    </td>
+    <td class="right">{{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value }}</td>
+    <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
 
     {# Accumulate deduction amount if condition matched #}
     {% if (tax == 'नोटीस फी' and noticeFee == 'false') %}
@@ -221,13 +211,13 @@
     <td class="right" colspan="4">
         एकूण :
         {{
-            (record.totalTax or 0) - ns.deduction
+            (record.totalTaxwithoutvipanitoilet or 0)
         }}
     </td>
 </tr>
         </table>
         <div style="font-size: 13px; margin-top: 4px;">
-            वरील रक्कम मुंबई ग्रामपंचायत अधिनियम १९५८ चे कलम १२९ अन्वये येणे झालेली आहे. सन 2024-2025 बद्दल वर दर्शविलेली रक्कम तुमचे कडून येणे झालेली आहे. आणि जर सदरहू रक्कम नोटीस बजावण्याच्या तारखेपासून ३० दिवसांचे आंत नोटीस फी सहित ग्रामपंचायत कार्यालयात भरणा न केल्यास किवा योग्य ते वाजवी कारण पंचायतीस न दर्शविल्यास खर्चासहित वसुलीबाबत जंगम मालमत्ता जप्त करण्याचे वारंट काढण्यात येईल.
+            वरील रक्कम मुंबई ग्रामपंचायत अधिनियम १९५८ चे कलम १२९ अन्वये येणे झालेली आहे. सन 2024-2025 बद्दल वर दर्शविलेली रक्कम तुमचे कडून येणे झालेली आहे. आणि जर सदरहू रक्कम नोटीस बजावण्याच्या तारखेपासून ३० दिवसांचे आंत नोटीस फी सहित सरपंचात भरणा न केल्यास किवा योग्य ते वाजवी कारण पंचायतीस न दर्शविल्यास खर्चासहित वसुलीबाबत जंगम मालमत्ता जप्त करण्याचे वारंट काढण्यात येईल.
         </div>
         <div style="margin-top: 10px; font-size: 13px;">
             <span class="right">ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी</span>

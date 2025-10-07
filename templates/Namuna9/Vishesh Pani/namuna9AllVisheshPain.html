@@ -203,7 +203,7 @@
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitViWaterTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.viWaterTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalViWaterTax}}{% endif %}</td>
-                <td>{% if removePurnaYekun != 'true' %}{{row.totaltax}}{% endif %}</td>
+                <td>{% if removePurnaYekun != 'true' %}{{(row.totaltaxwithoutnoticwarrant -(row.totlaToiletTax|default(0)) - (row.totalCleaningTax|default(0)))}}{% endif %}</td>
                 <td>{{pavatiSRKivyaTarik}}</td>
             </tr>
             {% endfor  %}
@@ -237,7 +237,14 @@
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitViWaterTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='viWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalViWaterTax') }}{% endif %}</td>
-            <td>{% if removePurnaYekun != 'true' %}{{ data | sum(attribute='totaltax') }}{% endif %}</td>
+            <td>
+                {% if removePurnaYekun != 'true' %}
+                    {% set _tot = data | sum(attribute='totaltaxwithoutnoticwarrant') %}
+                    {% set _toilet = data | sum(attribute='totlaToiletTax') %}
+                    {% set _clean = data | sum(attribute='totalCleaningTax') %}
+                    {{ (_tot - (_toilet or 0) - (_clean or 0)) }}
+                {% endif %}
+            </td>
         </tr>
     </table>
 </body>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>QR Sticker</title>
+  <style>
+    :root {
+      --sticker-width: 195mm;  /* adjust for paper size */
+      --sticker-height: 120mm;
+      --pad: 6mm;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Mangal', Arial, sans-serif;
+      background: #f4f4f4;
+    }
+    .sticker {
+      width: var(--sticker-width);
+      min-height: var(--sticker-height);
+      height: auto;
+      background: #fff;
+      margin: 10mm auto;
+      border: 2px solid #000;
+      position: relative;
+      display: grid;
+      grid-template-columns: 24mm 1fr 20mm; /* left icons, center, right rail */
+      grid-template-rows: 1fr;              /* single band */
+      gap: 0;
+      overflow: hidden;
+    }
+    /* Side rails with vertical text */
+    .rail-left, .rail-right {
+      grid-row: 1;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 2mm 0;
+    }
+    .rail-left { background: var(--brand-blue); grid-column: 1; }
+    .rail-right { background: var(--brand-red); grid-column: 3; }
+    .rail-left > span, .rail-right > span { transform: rotate(180deg); font-size: 13pt; }
+
+    /* Left column (top/bottom bins) */
+    .left-col { grid-column: 1; grid-row: 1; display: grid; grid-template-rows: 1fr 1fr; }
+    .bin-wrap { display: grid; place-items: center; padding: 3mm 2mm; }
+    .bin { width: 85%; height: auto; max-height: 34mm; object-fit: contain; }
+
+
+    .center { grid-column: 2; grid-row: 1; display: grid; grid-template-rows: auto 1fr auto; }
+    .logo-top { display: grid; place-items: center; padding-top: 2mm; }
+    .swachh { height: 14mm; width: auto; object-fit: contain; }
+    .center-qr { display: grid; place-items: center; padding: 0 var(--pad); }
+    .qr-wrap {
+      width: calc(var(--sticker-width) - 2*var(--pad) - 44mm);
+      height: calc(var(--sticker-width) - 2*var(--pad) - 44mm);
+      max-width: 86mm; max-height: 86mm; /* hard guard */
+      display: grid; place-items: center; background: #fff;
+    }
+    .qr {
+      width: 100%; height: 100%; object-fit: contain;
+      image-rendering: pixelated; print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+
+    .seal-wrap { display: grid; place-items: center; }
+    .seal { width: 18mm; height: 18mm; object-fit: contain; }
+
+    /* Fine label chip (left bottom) */
+    .fine {
+      position: absolute; left: 0; bottom: 18mm; writing-mode: vertical-rl; text-orientation: mixed;
+      transform: rotate(180deg);
+      background: #fff; color: var(--brand-red); border: 2px solid var(--brand-red);
+      font-weight: 800; padding: 3mm 1mm; font-size: 12pt; letter-spacing: .5px;
+    }
+
+    /* Ensure background colors print */
+    .print-bg {
+      -webkit-print-color-adjust: exact !important;
+      color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Bottom row layout and wrapping middle label */
+    .row-bottom {
+      margin-left: -30px;
+      margin-right: -30px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+      font-weight: 900;
+      font-size: 30px;
+      color: red;
+    }
+
+    .row-bottom > * { max-width: 100%; }
+
+    .mid-label {
+      flex: 1 1 0;
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+      text-align: center;
+      font-weight: 900;
+      font-size: 30px;
+      color: red;
+    }
+
+    .top-label {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      font-weight: 900;
+      font-size: 30px;
+      color: red;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+    }
+
+    @media print {
+      @page { size: A5 portrait; margin: 0; }
+      body { background: #fff; }
+      .sticker { margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sticker">
+      <div class="rail-left">
+        <img style="margin-left: 160px; width: 150px; height: 150px; object-fit: contain;" class="bin" src="{{ report_images }}/swatch bharat_client.jpeg" alt="Swachh Bharat" />
+      <img style="width: 170px; height: 240px;margin-left: 160px;"  src="{{ report_images }}/green dustin_client.jpeg" alt="Green Bin" />
+    </div>
+    <div class="rail-right">
+        <div >
+            <img style="margin-right: 140px; width: 100px; height: 100px; object-fit: contain;" class="bin" src="{{ report_images }}/betibachaobetipadhia1.png" alt="Beti Bachao Beti Padhia" />
+          <img style="width: 180px; height: 240px;margin-right: 140px;"  src="{{ report_images }}/blue dustin_client.jpeg" alt="Blue Bin" />
+        </div>  
+    </div>
+
+    <!-- Center QR -->
+    <div class="center">
+      <div class="top-label">ग्रा.पं. {{gram_panchayat_name}}, ता. {{taluka_name}}, जि. {{district_name}}</div>
+      <div class="center-qr">
+        <div class="qr-wrap">
+            <img class="qr" src="{{ qrcode }}" alt="QR" />
+        </div>
+      </div>
+      <div class="row-bottom">
+        <div class="print-bg" style=" border-radius: 10px;background-color: green;width:145px;;height: 55px;font-weight: 900; font-size: 30px; color: white; display: inline-block;">ओला कचरा</div>
+        <div class="mid-label">{{owner_name}} <br> मालमत्ता क्र. {{malmatta_kramank}}</br> </div>
+        <div class="print-bg" style=" border-radius: 10px;background-color: darkblue;width:140px;;height: 55px;font-weight: 900; font-size: 30px; color: white; display: inline-block;">सुखा कचरा</div>
+      </div>
+    
+      
+    </div>
+
+    <!-- Fine label -->
+    <div class="fine"></div>
+  </div>
+</body>
+</html>
+

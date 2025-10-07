@@ -119,7 +119,7 @@
                 water += parseFloat(row.dataset.waterTax) || 0;
                 cleaning += parseFloat(row.dataset.cleaningTax) || 0;
                 toilet += parseFloat(row.dataset.toiletTax) || 0;
-                total += parseFloat(row.dataset.totalTax) || 0;
+                total += (parseFloat(row.dataset.totalTax) || 0) - (parseFloat(row.dataset.vpanikar) || 0);
             });
             document.getElementById('footerSummary').innerHTML =
                 `एकूण कर : घर : ${house.toFixed(2)} &nbsp; दिवा : ${lighting.toFixed(2)} &nbsp; आरोग्य : ${health.toFixed(2)} &nbsp; पाणी : ${water.toFixed(2)} &nbsp; सफाई : ${cleaning.toFixed(2)} &nbsp; शौ. कर : ${toilet.toFixed(2)} &nbsp; एकूण : ${total.toFixed(2)}`;
@@ -262,10 +262,11 @@
                 data-house-tax="{{ row.totalHouseTax | default('0') }}"
                 data-lighting-tax="{{ row.lightingTax | default('0') }}"
                 data-health-tax="{{ row.healthTax | default('0') }}"
-                data-water-tax="{{ row.waterTax | default('0') }}"
+                data-water-tax="{{ row.sapanikar | default('0') }}"
                 data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
                 data-toilet-tax="{{ row.toiletTax | default('0') }}"
-                data-total-tax="{{ row.totaltax | default('0') }}">
+                data-total-tax="{{ row.totaltax | default('0') }}"
+                data-vpanikar="{{ row.vpanikar | default('0') }}">
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
                 <td style="width: 300px;">{{ row.ownerName | default('') }}</td>
@@ -276,6 +277,9 @@
                     {% endif %}
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].type | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].type | default('') }}<br>
                     {% endif %}
                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                         {{ row.khaliJaga[0].constructiontype | default('') }}
@@ -291,6 +295,10 @@
                                 {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                     {{ row.constructionType[1].year | default('') }}
                                 {% endif %}
+                                {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                    {{ row.constructionType[2].year | default('') }}
+                                {% endif %}
+                                
                             </td>
                             <td>
                                 {{ row.areaEast | default('') }} x {{ row.areaNorth | default('') }}
@@ -307,6 +315,9 @@
                                 {% endif %}
                                 {% if row.constructionType is defined and row.constructionType|length > 1 %}
                                     {{ row.constructionType[1].rate | default('') }}-{{ row.constructionType[1].length | default('') }} x {{ row.constructionType[1].width | default('') }}
+                                {% endif %}
+                                {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                    {{ row.constructionType[2].rate | default('') }}-{{ row.constructionType[2].length | default('') }} x {{ row.constructionType[2].width | default('') }}
                                 {% endif %}
                             </td>
                         </tr>
@@ -345,6 +356,9 @@
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].depreciation_rate | default('') }}<br>
                     {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].depreciation_rate | default('') }}<br>
+                    {% endif %}
                     0
                 </td>
                 <td>
@@ -353,6 +367,9 @@
                     {% endif %}
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].usageBasedBuildingWeightageFactor | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].usageBasedBuildingWeightageFactor | default('') }}<br>
                     {% endif %}
                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                         {{ row.khaliJaga[0].usageBasedBuildingWeightageFactor | default('') }}
@@ -364,6 +381,9 @@
                     {% endif %}
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].capitalValue | default('') }}<br>
+                    {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].capitalValue | default('') }}<br>
                     {% endif %}
                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                         {{ row.khaliJaga[0].capitalValue | default('') }}
@@ -378,6 +398,9 @@
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].taxRates | default('') }}<br>
                     {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].taxRates | default('') }}<br>
+                    {% endif %}
                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                         {{ row.khaliJaga[0].taxRates | default('') }}
                     {% endif %}
@@ -389,6 +412,9 @@
                     {% if row.constructionType is defined and row.constructionType|length > 1 %}
                         {{ row.constructionType[1].houseTax | default('') }}<br>
                     {% endif %}
+                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                        {{ row.constructionType[2].houseTax | default('') }}<br>
+                    {% endif %}
                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                         {{ row.khaliJaga[0].houseTax | default('') }}
                     {% endif %}
@@ -397,7 +423,7 @@
                 </td>
                 <td>{{ row.lightingTax | default('') }}</td>
                 <td>{{ row.healthTax | default('') }}</td>
-                <td>{{ row.waterTax | default('') }}</td>
+                <td>{{ row.sapanikar | default('') }}</td>
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>

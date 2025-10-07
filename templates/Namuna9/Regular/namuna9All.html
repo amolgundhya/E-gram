@@ -92,7 +92,7 @@
                 dhakitHealthTax: 0, healthTax: 0, totalHealthTax: 0,
                 dhakitSaWaterTax: 0, saWaterTax: 0, totalSaWaterTax: 0,
                 dhakitCleaningTax: 0, cleaningTax: 0, totalCleaningTax: 0,
-                totaltax: 0
+                totaltaxwithoutnoticwarrant: 0
             };
             visibleRows.forEach(row => {
                 sum.dhakitHouseTax += parseFloat(row.getAttribute('data-dhakit-house-tax')) || 0;
@@ -111,7 +111,7 @@
                 sum.dhakitCleaningTax += parseFloat(row.getAttribute('data-dhakit-cleaning-tax')) || 0;
                 sum.cleaningTax += parseFloat(row.getAttribute('data-cleaning-tax')) || 0;
                 sum.totalCleaningTax += parseFloat(row.getAttribute('data-total-cleaning-tax')) || 0;
-                sum.totaltax += parseFloat(row.getAttribute('data-totaltax')) || 0;
+                sum.totaltaxwithoutnoticwarrant += parseFloat(row.getAttribute('data-totaltaxwithoutnoticwarrant')) || 0;
             });
             // Update the footer cells
             document.getElementById('sum-dhakit-house-tax').innerText = sum.dhakitHouseTax.toFixed(2);
@@ -130,7 +130,7 @@
             document.getElementById('sum-dhakit-cleaning-tax').innerText = sum.dhakitCleaningTax.toFixed(2);
             document.getElementById('sum-cleaning-tax').innerText = sum.cleaningTax.toFixed(2);
             document.getElementById('sum-total-cleaning-tax').innerText = sum.totalCleaningTax.toFixed(2);
-            document.getElementById('sum-totaltax').innerText = sum.totaltax.toFixed(2);
+            document.getElementById('sum-totaltaxwithoutnoticwarrant').innerText = sum.totaltaxwithoutnoticwarrant.toFixed(2);
         }
         function showPage(page) {
             const records = Array.from(document.querySelectorAll('.record-row'));
@@ -249,7 +249,7 @@
                 data-dhakit-cleaning-tax="{{row.dhakitCleaningTax|default('0')}}"
                 data-cleaning-tax="{{row.cleaningTax|default('0')}}"
                 data-total-cleaning-tax="{{row.totalCleaningTax|default('0')}}"
-                data-totaltax="{{ (row.totaltax|default('0')) - (row.totalViWaterTax|default('0')) }}"
+                data-totaltaxwithoutnoticwarrant="{{ ((row.totaltaxwithoutnoticwarrant|default('0')) - (row.totalViWaterTax|default('0'))) -(row.totlaToiletTax|default('0'))}}"
             >
                 <td>{{ row.srNo }}</td>
                 <td>{{ row.propertyNumber }}</td>
@@ -270,7 +270,7 @@
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitCleaningTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.cleaningTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalCleaningTax}}{% endif %}</td>
-                <td>{% if removePurnaYekun != 'true' %}{{ (row.totaltax) - (row.totalViWaterTax|default(0)) }}{% endif %}</td>
+                <td>{% if removePurnaYekun != 'true' %}{{ (row.totaltaxwithoutnoticwarrant|default(0)) - (row.totalViWaterTax|default(0)) - (row.totlaToiletTax|default(0)) }}{% endif %}</td>
                 <td>{{pavatiSRKivyaTarik}}</td>
             </tr>
             {% endfor  %}
@@ -305,7 +305,7 @@
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitCleaningTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='cleaningTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalCleaningTax') }}{% endif %}</td>
-            <td>{% if removePurnaYekun != 'true' %}{{ (data | map(attribute='totaltax') | sum) - (data | map(attribute='totalViWaterTax') | sum) }}{% endif %}</td>
+            <td>{% if removePurnaYekun != 'true' %}{{ (data | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (data | map(attribute='totalViWaterTax') | sum) - (data | map(attribute='totlaToiletTax') | sum) }}{% endif %}</td>
         </tr>
     </table>
 </body>
