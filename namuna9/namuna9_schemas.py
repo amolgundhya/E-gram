@@ -187,9 +187,9 @@ class Namuna9ReceiptCreate(BaseModel):
     namuna9_id: int
     property_id: int
     gram_panchayat_id: int
-    pa_book_kramank: str | None = None
+    pa_book_kramank: Optional[str] = None
     pavti_kramank: int
-    pavti_date: str | None = None
+    pavti_date: Optional[str] = None
     payment_mode: Optional[str] = None
     utr_tr_id: Optional[str] = None
     vasuliGhar: float = 0.0
@@ -216,8 +216,8 @@ class Namuna9ReceiptRead(BaseModel):
     id: int
     namuna9_id: int
     property_id: int
-    gram_panchayat_id: int | None
-    pa_book_kramank: str | None
+    gram_panchayat_id: Optional[int] = None
+    pa_book_kramank: Optional[str] = None
     pavti_kramank: int
     pavti_date: Union[str, datetime, None]
     owner_name: Optional[str] = None

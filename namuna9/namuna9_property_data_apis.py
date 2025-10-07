@@ -365,7 +365,7 @@ def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database
     db.refresh(rec)
     return rec
 
-@router.get("/receipt/list", response_model=list[Namuna9ReceiptRead])
+@router.get("/receipt/list", response_model=List[Namuna9ReceiptRead])
 def list_receipts(
     district_id: int,
     taluka_id: int,
@@ -631,7 +631,7 @@ def _enrich_receipt(rec, db: Session) -> Namuna9ReceiptRead:
         result.yearslap = getattr(n9, 'yearslap', None) if n9 else None
     return result
 
-@router.get("/receipts/by-date-village", response_model=list[Namuna9ReceiptRead])
+@router.get("/receipts/by-date-village", response_model=List[Namuna9ReceiptRead])
 def list_receipts_by_date_village(
     gram_panchayat_id: int,
     village_id: int,
@@ -672,7 +672,7 @@ def list_receipts_by_date_village(
     rows = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
     return [_enrich_receipt(r, db) for r in rows]
 
-@router.get("/receipts/by-date-all", response_model=list[Namuna9ReceiptRead])
+@router.get("/receipts/by-date-all", response_model=List[Namuna9ReceiptRead])
 def list_receipts_by_date_all(
     gram_panchayat_id: int,
     from_date: Optional[str] = None,
@@ -706,7 +706,7 @@ def list_receipts_by_date_all(
     rows = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
     return [_enrich_receipt(r, db) for r in rows]
 
-@router.get("/receipt/by-date", response_model=list[Namuna9ReceiptRead])
+@router.get("/receipt/by-date", response_model=List[Namuna9ReceiptRead])
 def list_receipts_by_date(
     id: int,
     scope: str = "gram_panchayat", # one of: gram_panchayat | property | namuna9
@@ -787,10 +787,10 @@ def list_receipts_by_date(
 def update_receipt(
     receipt_id: int,
     payload: Namuna9ReceiptCreate,
-    district_id: int | None = None,
-    taluka_id: int | None = None,
-    village_id: int | None = None,
-    gram_panchayat_id: int | None = None,
+    district_id: Optional[int] = None,
+    taluka_id: Optional[int] = None,
+    village_id: Optional[int] = None,
+    gram_panchayat_id: Optional[int] = None,
     db: Session = Depends(database.get_db)
 ):
     rec = db.query(namuna9_model.Namuna9Receipt).get(receipt_id)
@@ -838,10 +838,10 @@ def update_receipt(
 @router.delete("/receipt/{receipt_id}")
 def delete_receipt(
     receipt_id: int,
-    district_id: int | None = None,
-    taluka_id: int | None = None,
-    village_id: int | None = None,
-    gram_panchayat_id: int | None = None,
+    district_id: Optional[int] = None,
+    taluka_id: Optional[int] = None,
+    village_id: Optional[int] = None,
+    gram_panchayat_id: Optional[int] = None,
     db: Session = Depends(database.get_db)
 ):
     rec = db.query(namuna9_model.Namuna9Receipt).get(receipt_id)

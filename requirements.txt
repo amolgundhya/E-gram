@@ -1,5 +1,26 @@
+#For 3.8.10
+
+# fastapi==0.95.2
+# uvicorn==0.22.0
+# sqlalchemy==2.0.30
+# pydantic==1.10.13
+# python-barcode==0.15.1
+# pillow==9.5.0
+# qrcode==7.4.2
+# python-multipart==0.0.9
+# Jinja2==3.1.4
+# requests==2.31.0
+# httpx==0.24.1
+# python-jose==3.3.0
+# python-dotenv==1.0.1
+# cryptography==41.0.7
+# bcrypt==4.0.1
+
+
+#For 3.7.9
+
 fastapi==0.95.2
-uvicorn==0.22.0
+uvicorn==0.21.1
 sqlalchemy==2.0.30
 pydantic==1.10.13
 python-barcode==0.15.1
@@ -11,5 +32,5 @@ requests==2.31.0
 httpx==0.24.1
 python-jose==3.3.0
 python-dotenv==1.0.1
-cryptography==41.0.7
+cryptography==40.0.2
 bcrypt==4.0.1
