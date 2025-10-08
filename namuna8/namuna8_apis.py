@@ -100,7 +100,9 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     status_code=400,
                     detail="मालमत्ता क्रमांक रिक्त असू शकत नाही / Malmatta Kramank should not be null or empty"
                 )
-            if db.query(models.Property).filter(models.Property.malmattaKramank == property_data.malmattaKramank).first():
+            if db.query(models.Property).filter(
+                models.Property.village_id == property_data.village_id,
+                models.Property.malmattaKramank == property_data.malmattaKramank).first():
                 raise HTTPException(
                     status_code=400,
                     detail="मालमत्ता क्रमांक आधीच या आयडीसह अस्तित्वात आहे / Malmatta Kramank already exists with this ID"
@@ -1115,6 +1117,7 @@ def get_bulk_edit_property_list(
         divaArogyaKar = bool(getattr(p, 'divaArogyaKar', False))
         result.append(schemas.BulkEditPropertyRow(
             serial_no=idx,
+            id = p.id ,
             malmattaKramank=p.malmattaKramank,
             ownerName=owner_name,
             occupant="स्वतः",  # Always 'self' for now
@@ -1140,7 +1143,7 @@ def bulk_update_properties(update: schemas.BulkEditUpdateRequest, db: Session = 
     ]
     updated_count = 0
     for prop_id in update.property_ids:
-        prop = db.query(models.Property).filter(models.Property.malmattaKramank == prop_id).first()
+        prop = db.query(models.Property).filter(models.Property.id == prop_id).first()
         if not prop:
             continue
         # Only update fields that are not None

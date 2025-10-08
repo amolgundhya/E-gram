@@ -53,7 +53,7 @@ class Property(Base):
     taluka_id: Mapped[int] = mapped_column(ForeignKey("talukas.id", ondelete="CASCADE"), nullable=True)
     gram_panchayat_id: Mapped[int] = mapped_column(ForeignKey("gram_panchayats.id", ondelete="CASCADE"), nullable=True)
     village = relationship("Village", back_populates="properties")
-    malmattaKramank: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    malmattaKramank: Mapped[str] = mapped_column(String, index=True, nullable=False)
     streetName: Mapped[str] = mapped_column(nullable=True)
     citySurveyOrGatNumber: Mapped[str] = mapped_column(nullable=True)
     length: Mapped[float] = mapped_column(nullable=True)

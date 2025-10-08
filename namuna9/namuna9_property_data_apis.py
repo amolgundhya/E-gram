@@ -501,30 +501,19 @@ def append_village_data_to_namuna9(
     updated_property_ids = list(current_property_ids) + [prop.id for prop in new_properties]
     namuna9_record.property_ids = updated_property_ids
     
-    # Create property data entries for new properties
-    added_count = 0
-    for prop in new_properties:
-        # Check if property data already exists
-        existing_data = db.query(namuna9_model.Namuna9PropertyData).filter(
-            namuna9_model.Namuna9PropertyData.namuna9_id == namuna9_id,
-            namuna9_model.Namuna9PropertyData.property_id == prop.id
-        ).first()
-        
-        if not existing_data:
-            # Create new property data entry
-            property_data = namuna9_model.Namuna9PropertyData(
-                namuna9_id=namuna9_id,
-                property_id=prop.id
-            )
-            db.add(property_data)
-            added_count += 1
-    
+    # NOTE: Do NOT create blank Namuna9PropertyData rows here.
+    # Blank rows with 0/None values cause the table-data API to trust saved zeros
+    # and skip calculated taxes, which results in empty calculations in the UI.
+    # Instead, let table-data compute taxes on the fly until user edits/saves,
+    # at which point rows will be created/updated via bulk-update APIs.
     db.commit()
     
+    added_count = len(new_properties)
+    skipped_count = len(properties) - added_count
     return {
-        "message": f"Successfully appended {added_count} new properties to Namuna9",
+        "message": "Successfully appended properties to Namuna9",
         "added_count": added_count,
-        "skipped_count": len(properties) - added_count,
+        "skipped_count": skipped_count,
         "total_properties_in_village": len(properties),
         "total_properties_in_namuna9": len(updated_property_ids)
     }

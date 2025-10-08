@@ -214,7 +214,7 @@
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitViWaterTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.viWaterTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalViWaterTax}}{% endif %}</td>
-                <td>{% if removePurnaYekun != 'true' %}{{(row.totaltaxwithoutnoticwarrant) - (row.totlaToiletTax|default(0)) - (row.totalCleaningTax|default(0))}}{% endif %}</td>
+                <td>{% if removePurnaYekun != 'true' %}{{ ((row.totaltaxwithoutnoticwarrant) - (row.totlaToiletTax|default(0)) - (row.totalCleaningTax|default(0))) | round(2) }}{% endif %}</td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -241,23 +241,23 @@
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitHouseTax') }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dandHouseTax') }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='houseTax') }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalHouseTax') }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitLightingTax') }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='lightingTax') }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalLightingTax') }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitHealthTax') }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='healthTax') }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalHealthTax') }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitSaWaterTax') }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='saWaterTax') }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalSaWaterTax') }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitCleaningTax') }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='cleaningTax') }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalCleaningTax') }}{% endif %}</td>
-            <td>{% if removePurnaYekun != 'true' %}{{( data | sum(attribute='totaltaxwithoutnoticwarrant') - (data | sum(attribute='totlaToiletTax')) - (data | sum(attribute='totalCleaningTax'))) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dandHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='houseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='lightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='healthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitSaWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='saWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalSaWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitCleaningTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='cleaningTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalCleaningTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removePurnaYekun != 'true' %}{{ ((data | sum(attribute='totaltaxwithoutnoticwarrant')) - (data | sum(attribute='totlaToiletTax')) - (data | sum(attribute='totalCleaningTax'))) | round(2) }}{% endif %}</td>
         </tr>
     </table>
 </body>
