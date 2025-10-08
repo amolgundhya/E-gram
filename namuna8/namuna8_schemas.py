@@ -140,6 +140,7 @@ class PropertyList(BaseModel):
 
 class BulkEditPropertyRow(BaseModel):
     serial_no: int
+    id:int
     malmattaKramank: str
     ownerName: str
     occupant: str  # always 'स्वतः' for now
