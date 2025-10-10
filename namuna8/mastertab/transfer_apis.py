@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, Integer, String, DateTime, Text
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 from namuna8 import namuna8_model as models, namuna8_schemas as schemas
 from database import get_db, Base
@@ -34,9 +34,9 @@ class TransferOwner(BaseModel):
 
 class PropertyTransferCreate(BaseModel):
     property_id: int
-    date: datetime
+    date: date
     entry_no: str
-    transaction_date: Optional[datetime] = None  # Make optional
+    transaction_date: Optional[date] = None  # Make optional
     new_owners: List[TransferOwner]
     doc_note: Optional[str] = None
     register_note: Optional[str] = None
@@ -47,9 +47,9 @@ class PropertyTransferCreate(BaseModel):
 class PropertyTransferLog(BaseModel):
     id: int
     property_id: int
-    date: datetime
+    date: date
     entry_no: str
-    transaction_date: datetime
+    transaction_date: date
     new_owners: List[TransferOwner]
     old_owners: List[TransferOwner]
     doc_note: Optional[str] = None
@@ -59,6 +59,7 @@ class PropertyTransferLog(BaseModel):
 @router.post('/transfer/', response_model=PropertyTransferLog)
 def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db)):
     # Get property
+    print("Yes i am in")
     prop = db.query(models.Property).filter(models.Property.anuKramank == data.property_id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")

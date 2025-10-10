@@ -494,12 +494,12 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
         db.rollback()
         logging.error(f"Database error during property creation: {e}")
         # print(f"DEBUG: Database error details: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save property and owners: " + str(e))
+        raise HTTPException(status_code=500, detail="अनुक्रमांक किंवा मालमत्ता क्रमांक अद्वितीय असणे आवश्यक आहे, त्यामुळे सेव्ह करता आले नाही." + str(e))
     except Exception as e:
         db.rollback()
         logging.error(f"Unexpected error during property creation: {e}")
         # print(f"DEBUG: Unexpected error details: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save property and owners: " + str(e))
+        raise HTTPException(status_code=500, detail="अनुक्रमांक किंवा मालमत्ता क्रमांक अद्वितीय असणे आवश्यक आहे, त्यामुळे सेव्ह करता आले नाही. " + str(e))
 
 @router.get("/property_list/", response_model=List[schemas.PropertyList])
 def get_property_list(village: str, db: Session = Depends(database.get_db)):
