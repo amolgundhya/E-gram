@@ -248,6 +248,16 @@ def update_good_conduct_certificate(id: int,
         else:
             image_dir = os.path.join(UPLOAD_DIR, "goodconduct", "profiles", str(cert.id))
         os.makedirs(image_dir, exist_ok=True)
+        
+        # Clean up old images in the directory before saving new one
+        if os.path.exists(image_dir):
+            for file in os.listdir(image_dir):
+                if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+                    try:
+                        os.remove(os.path.join(image_dir, file))
+                    except Exception:
+                        pass  # Continue even if deletion fails
+        
         file_path = os.path.join(image_dir, filename_with_timestamp)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
@@ -404,7 +414,16 @@ def get_good_conduct_certificate_image(
 
     # Find the image file in the directory
     if os.path.exists(image_dir) and os.path.isdir(image_dir):
-        # Return the latest image by filename (timestamped)
+        # First, try to use the image_url from database if it points to a file in this directory
+        image_url_val = getattr(cert, 'image_url', None)
+        if image_url_val and not str(image_url_val).startswith("http"):
+            # Extract filename from the stored path
+            stored_filename = os.path.basename(image_url_val)
+            stored_file_path = os.path.join(image_dir, stored_filename)
+            if os.path.exists(stored_file_path):
+                return FileResponse(stored_file_path, media_type="image/png")
+        
+        # If stored path doesn't work, fallback to finding the latest image by filename (timestamped)
         image_files = [file for file in os.listdir(image_dir) if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
         if image_files:
             latest_file = sorted(image_files, reverse=True)[0]
