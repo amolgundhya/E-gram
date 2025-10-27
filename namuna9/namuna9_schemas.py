@@ -247,16 +247,14 @@ class Namuna9ReceiptRead(BaseModel):
     village: Optional[str] = None
     occupant: Optional[str] = None
     yearslap: Optional[str] = None
-    model_config = {
-        "from_attributes": True
-    }
+    class Config: 
+       orm_mode = True
 
 class Namuna9PropertyDataRead(Namuna9PropertyDataBase):
     id: int
     namuna9_id: int
-    model_config = {
-        "from_attributes": True
-    }
+    class Config: 
+       orm_mode = True
 
 # Schema for bulk update of property data
 class Namuna9BulkPropertyDataUpdate(BaseModel):
