@@ -507,25 +507,25 @@ def get_table_data(
         
         # Calculate ekun (total) values - use saved data if available
         if saved_data:
-            # Include dand in ekunGhar (house total)
-            ekunGhar = round(saved_data.ekunGhar or (shaktiGhar + chaluGhar + (dand or 0)), 2)
-            ekunDiva = round(saved_data.ekunDiva or (shaktiDiva + chaluDiva), 2)
-            ekunAarogyaKar = round(saved_data.ekunAarogyaKar or (shaktiAarogyaKar + chaluAarogyaKar), 2)
-            ekunSapanikar = round(saved_data.ekunSapanikar or (shaktiSapanikar + chaluSapanikar), 2)
-            ekunVpanikar = round(saved_data.ekunVpanikar or (shaktiVpanikar + chaluVpanikar), 2)
-            ekunCleaningTax = round(saved_data.ekunCleaningTax or (shaktiCleaningTax + chaluCleaningTax), 2)
+            # Include dand in ekunGhar (house total) - ensure no negative values
+            ekunGhar = round(max(saved_data.ekunGhar or (shaktiGhar + chaluGhar + (dand or 0)), 0), 2)
+            ekunDiva = round(max(saved_data.ekunDiva or (shaktiDiva + chaluDiva), 0), 2)
+            ekunAarogyaKar = round(max(saved_data.ekunAarogyaKar or (shaktiAarogyaKar + chaluAarogyaKar), 0), 2)
+            ekunSapanikar = round(max(saved_data.ekunSapanikar or (shaktiSapanikar + chaluSapanikar), 0), 2)
+            ekunVpanikar = round(max(saved_data.ekunVpanikar or (shaktiVpanikar + chaluVpanikar), 0), 2)
+            ekunCleaningTax = round(max(saved_data.ekunCleaningTax or (shaktiCleaningTax + chaluCleaningTax), 0), 2)
         else:
-            # Include dand in ekunGhar when no saved_data
-            ekunGhar = round(shaktiGhar + chaluGhar + (dand or 0), 2)
-            ekunDiva = round(shaktiDiva + chaluDiva, 2)
-            ekunAarogyaKar = round(shaktiAarogyaKar + chaluAarogyaKar, 2)
-            ekunSapanikar = round(shaktiSapanikar + chaluSapanikar, 2)
-            ekunVpanikar = round(shaktiVpanikar + chaluVpanikar, 2)
-            ekunCleaningTax = round(shaktiCleaningTax + chaluCleaningTax, 2)
+            # Include dand in ekunGhar when no saved_data - ensure no negative values
+            ekunGhar = round(max(shaktiGhar + chaluGhar + (dand or 0), 0), 2)
+            ekunDiva = round(max(shaktiDiva + chaluDiva, 0), 2)
+            ekunAarogyaKar = round(max(shaktiAarogyaKar + chaluAarogyaKar, 0), 2)
+            ekunSapanikar = round(max(shaktiSapanikar + chaluSapanikar, 0), 2)
+            ekunVpanikar = round(max(shaktiVpanikar + chaluVpanikar, 0), 2)
+            ekunCleaningTax = round(max(shaktiCleaningTax + chaluCleaningTax, 0), 2)
         
         # Total reflects ekun columns + fees + dand, avoiding double-count of shakti/chalu
         if saved_data and saved_data.total is not None:
-            total = saved_data.total
+            total = max(saved_data.total, 0)  # Ensure total is not negative
         else:
             total = (
                     (ekunGhar or 0) +
@@ -545,29 +545,29 @@ def get_table_data(
             "property_id": prop.id,  # Use actual property ID, not anuKramank
             "malmattaKramank": prop_data.get('malmattaKramank', ''),
             "ownerNames": owner_names,
-            "shaktiGhar": round(shaktiGhar, 2),
-            "dand": round(dand, 2),
-            "chaluGhar": round(chaluGhar, 2),
-            "ekunGhar": round(ekunGhar, 2),
-            "totalHouseTax": round(totalHouseTax, 2),
-            "shaktiDiva": round(shaktiDiva, 2),
-            "chaluDiva": round(chaluDiva, 2),
-            "ekunDiva": round(ekunDiva, 2),
-            "shaktiAarogyaKar": round(shaktiAarogyaKar, 2),
-            "chaluAarogyaKar": round(chaluAarogyaKar, 2),
-            "ekunAarogyaKar": round(ekunAarogyaKar, 2),
-            "shaktiSapanikar": round(shaktiSapanikar, 2),
-            "chaluSapanikar": round(chaluSapanikar, 2),
-            "ekunSapanikar": round(ekunSapanikar, 2),
-            "shaktiVpanikar": round(shaktiVpanikar, 2),
-            "chaluVpanikar": round(chaluVpanikar, 2),
-            "ekunVpanikar": round(ekunVpanikar, 2),
-            "shaktiCleaningTax": round(shaktiCleaningTax, 2),
-            "chaluCleaningTax": round(chaluCleaningTax, 2),
-            "ekunCleaningTax": round(ekunCleaningTax, 2),
-            "warrantFee": warrantFee,
-            "noticeFee": noticeFee,
-            "total": round(total, 2),
+            "shaktiGhar": round(max(shaktiGhar, 0), 2),
+            "dand": round(max(dand, 0), 2),
+            "chaluGhar": round(max(chaluGhar, 0), 2),
+            "ekunGhar": round(max(ekunGhar, 0), 2),
+            "totalHouseTax": round(max(totalHouseTax, 0), 2),
+            "shaktiDiva": round(max(shaktiDiva, 0), 2),
+            "chaluDiva": round(max(chaluDiva, 0), 2),
+            "ekunDiva": round(max(ekunDiva, 0), 2),
+            "shaktiAarogyaKar": round(max(shaktiAarogyaKar, 0), 2),
+            "chaluAarogyaKar": round(max(chaluAarogyaKar, 0), 2),
+            "ekunAarogyaKar": round(max(ekunAarogyaKar, 0), 2),
+            "shaktiSapanikar": round(max(shaktiSapanikar, 0), 2),
+            "chaluSapanikar": round(max(chaluSapanikar, 0), 2),
+            "ekunSapanikar": round(max(ekunSapanikar, 0), 2),
+            "shaktiVpanikar": round(max(shaktiVpanikar, 0), 2),
+            "chaluVpanikar": round(max(chaluVpanikar, 0), 2),
+            "ekunVpanikar": round(max(ekunVpanikar, 0), 2),
+            "shaktiCleaningTax": round(max(shaktiCleaningTax, 0), 2),
+            "chaluCleaningTax": round(max(chaluCleaningTax, 0), 2),
+            "ekunCleaningTax": round(max(ekunCleaningTax, 0), 2),
+            "warrantFee": max(warrantFee, 0),
+            "noticeFee": max(noticeFee, 0),
+            "total": round(max(total, 0), 2),
             "doesThakit": does_thakit,
             "thakitValues": thakit_values,
             "thakitYear": thakit_year
