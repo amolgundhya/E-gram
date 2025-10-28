@@ -1118,6 +1118,7 @@ def get_bulk_edit_property_list(
         result.append(schemas.BulkEditPropertyRow(
             serial_no=idx,
             id = p.id ,
+            anukramank=getattr(p, 'anuKramank', None),
             malmattaKramank=p.malmattaKramank,
             ownerName=owner_name,
             occupant="स्वतः",  # Always 'self' for now
@@ -2335,6 +2336,9 @@ def get_all_properties(
 from sqlalchemy import and_
 @router.delete("/{anu_kramank}/{village_id}", status_code=200)
 def delete_property(anu_kramank: int,village_id:int, db: Session = Depends(database.get_db)):
+    import os
+    import shutil
+    
     prop = (
     db.query(models.Property)
     .filter(
@@ -2347,6 +2351,38 @@ def delete_property(anu_kramank: int,village_id:int, db: Session = Depends(datab
 )
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
+    
+    # Clean up files before deleting database records
+    try:
+        # Clean up QR code files
+        if prop.qrcode:
+            qr_file_path = prop.qrcode
+            if os.path.exists(qr_file_path):
+                try:
+                    os.remove(qr_file_path)
+                except Exception:
+                    pass  # Continue even if file deletion fails
+        
+        # Clean up QR code directory
+        qr_dir = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.village_id), str(prop.anuKramank))
+        if os.path.exists(qr_dir):
+            try:
+                shutil.rmtree(qr_dir)
+            except Exception:
+                pass  # Continue even if directory deletion fails
+        
+        # Clean up owner photos
+        for owner in prop.owners:
+            if owner.ownerPhoto:
+                owner_photo_path = owner.ownerPhoto
+                if os.path.exists(owner_photo_path):
+                    try:
+                        os.remove(owner_photo_path)
+                    except Exception:
+                        pass  # Continue even if file deletion fails
+    except Exception:
+        pass  # Continue with database deletion even if file cleanup fails
+    
     # Remove associations with owners (many-to-many)
     prop.owners = []
     db.commit()

@@ -4,6 +4,7 @@ from namuna8 import namuna8_model as models
 from namuna8 import namuna8_schemas as schemas
 from database import get_db
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate
 import os
 from namuna8.mastertab.mastertabmodels import BuildingUsageWeightage
@@ -24,6 +25,39 @@ def calc_house_tax(rate):
         return round((float(rate) / 1000) * capital_value)
     except Exception:
         return 0
+
+# Deep rounding for all numeric fields (excluding booleans) using HALF_UP,
+# but preserve decimals for specific keys like 'length' and 'width'.
+EXEMPT_FLOAT_KEYS = {"length", "width"}
+
+def _deep_round_numbers(obj):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if isinstance(v, bool):
+                continue
+            if isinstance(v, (int, float)):
+                if k in EXEMPT_FLOAT_KEYS:
+                    # keep as float; do not coerce to int
+                    continue
+                try:
+                    obj[k] = int(Decimal(v).quantize(Decimal('0'), rounding=ROUND_HALF_UP))
+                except Exception:
+                    obj[k] = int(v)
+            elif isinstance(v, (dict, list)):
+                _deep_round_numbers(v)
+    elif isinstance(obj, list):
+        for i in range(len(obj)):
+            v = obj[i]
+            if isinstance(v, bool):
+                continue
+            if isinstance(v, (int, float)):
+                # list elements don't have keys; assume not exempt
+                try:
+                    obj[i] = int(Decimal(v).quantize(Decimal('0'), rounding=ROUND_HALF_UP))
+                except Exception:
+                    obj[i] = int(v)
+            elif isinstance(v, (dict, list)):
+                _deep_round_numbers(v)
 
 @router.get("/property_record/{anuKramank}")
 def get_property_record(
@@ -353,6 +387,8 @@ def get_property_record(
     if image_path and os.path.exists(image_path):
         response["bank_qr_code"] = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
     
+    # Coerce all numeric fields to integers except 'length' and 'width'
+    _deep_round_numbers(response)
     return response 
 
 @router.get("/property_records_by_village/{village_id}")
@@ -668,6 +704,8 @@ def get_property_records_by_village(
         
         # Add checklist fields to the response
         response.update(checklist_fields)
+        # Coerce all numeric fields to integers except 'length' and 'width'
+        _deep_round_numbers(response)
         results.append(response)
     return results 
 
@@ -969,6 +1007,8 @@ def get_property_records_by_gram_panchayat(
             if image_path and os.path.exists(image_path):
                 response["bank_qr_code"] = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
 
+            # Coerce all numeric fields to integers except 'length' and 'width'
+            _deep_round_numbers(response)
             response.update(checklist_fields)
             village_properties.append(response)
         
