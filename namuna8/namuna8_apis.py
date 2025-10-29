@@ -297,7 +297,15 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
           
             try:
                 # Use get_property_record to get accurate total tax
-                record_response = get_property_record(db_property.anuKramank, db_property.district_id, db_property.taluka_id, db_property.gram_panchayat_id,db_property.village_id, db)
+                # Match update method signature: (anuKramank, village_id, district_id, taluka_id, gram_panchayat_id, db)
+                record_response = get_property_record(
+                    db_property.anuKramank,
+                    db_property.village_id,
+                    db_property.district_id,
+                    db_property.taluka_id,
+                    db_property.gram_panchayat_id,
+                    db
+                )
                 totalTax = record_response.get('totaltax', 0)
                 srNo = response.get('anuKramank') or response.get('srNo') or ''
                 # totalArea = avg_length * avg_width if avg_length and avg_width else 0

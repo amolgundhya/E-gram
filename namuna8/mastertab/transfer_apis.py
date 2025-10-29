@@ -9,6 +9,10 @@ from pydantic import BaseModel
 import json
 from namuna8.property_owner_history_model import PropertyOwnerHistory
 from namuna8.owner_history_model import OwnerHistory
+from namuna8.namuna8_apis import build_property_response
+from namuna8.recordresponses.property_record_response import get_property_record
+from Utility.QRcodeGeneration import QRCodeGeneration
+import os
 
 router = APIRouter()
 
@@ -179,6 +183,65 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
     db.add(transfer_log_record)
     db.commit()
     db.refresh(transfer_log_record)
+
+    # Update QR code for this property after owners change (use first owner)
+    try:
+        # Refresh property to ensure relations are current
+        db.refresh(prop)
+        first_owner = prop.owners[0] if prop.owners else None
+        owner_name = first_owner.name if first_owner else ''
+        wife_name = first_owner.wifeName if first_owner and getattr(first_owner, 'wifeName', None) else None
+
+        # Pull canonical values from property_record
+        rr = get_property_record(
+            prop.anuKramank,
+            prop.village_id,
+            district_id=prop.district_id,
+            taluka_id=prop.taluka_id,
+            gram_panchayat_id=prop.gram_panchayat_id,
+            db=db
+        )
+        total_area = round(rr.get('totalArea', 0) or 0, 2)
+        mobile_number = rr.get('mobileNumber')
+        total_tax = rr.get('totaltax', 0) or 0
+        # Construction area excluding 'खाली जागा' - mirror owner_transfer logic using build_property_response
+        response = build_property_response(prop, db, prop.gram_panchayat_id)
+        cons_area = sum(
+            (c.get('length') or 0) * (c.get('width') or 0)
+            for c in (response.get('constructions', []) or [])
+            if not (str(c.get('constructionType', '') or '').strip().startswith('खाली जागा'))
+        )
+        cons_area = round(cons_area, 2)
+        open_area = round(total_area - cons_area, 2)
+
+        qr_data = {
+            "malKr.": getattr(prop, 'malmattaKramank', None),
+            "मा. नाव": owner_name,
+            "mobileNumber": mobile_number,
+            "totalArea": total_area,
+            "constructionArea": cons_area,
+            "openArea": open_area,
+            "totalTax": total_tax,
+        }
+        if wife_name:
+            qr_data["पत्नीचे नाव"] = wife_name
+
+        qr_dir = os.path.join(
+            "uploaded_images", "qrcode",
+            str(prop.district_id),
+            str(prop.taluka_id),
+            str(prop.gram_panchayat_id),
+            str(prop.village_id),
+            str(prop.anuKramank)
+        )
+        os.makedirs(qr_dir, exist_ok=True)
+        qr_path = os.path.join(qr_dir, "qrcode.png")
+        QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)
+        prop.qrcode = qr_path.replace(os.sep, "/")
+        db.commit()
+    except Exception:
+        # Do not block transfer on QR update
+        pass
     
     # Return transfer log (for API response)
     transfer_log = PropertyTransferLog(
