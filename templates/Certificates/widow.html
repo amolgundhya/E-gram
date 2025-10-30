@@ -103,12 +103,12 @@
 <table style="width:100%; border:1px solid #000; border-collapse:collapse; margin-top:0; font-size:15px;">
   <tr>
     <td style="text-align:left; width:50%; padding:4px;">
-      ग्रामसेवक / ग्रामविकास अधिकारी, ग्रा.प.{{ gramPanchayat or '' }}, ता. {{ taluka or '' }}, जिल्हा {{ jilha or '' }}
+      ग्रामसेवक / ग्रामविकास अधिकारी, ग्रा.प.{{ jilha or '' }}, ता. {{ taluka or '' }}, जिल्हा {{ gramPanchayat or '' }}
     </td>
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">
-      Gramsevak/Village Development officer,GP.{{ gramPanchayat or '' }}, Tq. {{ taluka or '' }}, Dist. {{ jilha or '' }}
+      Gramsevak/Village Development officer,GP.{{ jilha or '' }}, Tq. {{ taluka or '' }}, Dist. {{ gramPanchayat or '' }}
     </td>
   </tr>
   <tr>
@@ -124,10 +124,10 @@
     <td style="text-align:left; padding:4px;">Aadhar Card Number : {{ adhar_number_en | default('') }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">राहणार गाव.{{ village or '' }},ग्रा.प.{{ gramPanchayat or '' }}, ता. {{ taluka or '' }}, जिल्हा {{ jilha or '' }}</td>
+    <td style="text-align:left; padding:4px;">राहणार गाव.{{ village or '' }},ग्रा.प.{{ jilha or '' }}, ता. {{ taluka or '' }}, जिल्हा {{ gramPanchayat or '' }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">Residence at Village {{ village or '' }},Gp.{{ gramPanchayat or '' }}, Tq.{{ taluka or '' }}, Dist {{ jilha or '' }} </td>
+    <td style="text-align:left; padding:4px;">Residence at Village {{ village or '' }},Gp.{{ jilha or '' }}, Tq.{{ taluka or '' }}, Dist {{ gramPanchayat or '' }} </td>
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">असून त्यांचे पती कै. {{husband_name or ''}}   हे मयत असून त्या विधवा आहेत.</td>

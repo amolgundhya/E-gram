@@ -1017,5 +1017,3 @@ def get_property_records_by_gram_panchayat(
             response_data[f"{village.name}"] = village_properties
 
     return response_data 
-
-
