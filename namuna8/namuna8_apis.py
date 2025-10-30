@@ -353,13 +353,13 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
 
                 qr_data = {
                     # Marathi labels for QR display
-                    "malKr.": getattr(db_property, 'malmattaKramank', None),
-                    "मा. नाव": owner_name,
-                    "mobileNumber": mobile_number,
-                    "totalArea": totalArea,
-                    "constructionArea": constructionArea,
-                    "openArea": openArea,
-                    "totalTax": totalTax,
+                    "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
+                    "मालकाचे नाव": owner_name,
+                    # "mobileNumber": mobile_number,
+                    "एकूण क्षेत्रफळ": totalArea,
+                    "बांधकाम क्षेत्रफळ": constructionArea,
+                    "खुली जागा": openArea,
+                    "एकूण कर": totalTax,
                 }
                 if wife_name:
                     qr_data["पत्नीचे नाव"] = wife_name
@@ -908,13 +908,13 @@ def update_namuna8_entry(
 
         qr_data = {
                     # Marathi labels for QR display
-            "malKr.": getattr(db_property, 'malmattaKramank', None),
-            "मा. नाव": owner_name,
-            "mobileNumber": mobile_number,
-            "totalArea": totalArea,
-            "constructionArea": constructionArea,
-            "openArea": openArea,
-            "totalTax": totalTax,
+            "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
+            "मालकाचे नाव": owner_name,
+            # "mobileNumber": mobile_number,
+            "एकूण क्षेत्रफळ": totalArea,
+            "बांधकाम क्षेत्रफळ": constructionArea,
+            "खुली जागा": openArea,
+            "एकूण कर": totalTax,
         }
         if wife_name:
             qr_data["पत्नीचे नाव"] = wife_name
