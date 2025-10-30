@@ -172,19 +172,18 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
 
     db.commit()
 
-    # After saving transfers, generate QR codes like namuna8_apis
+    # Always re-generate QR for all transferred properties:
     try:
-        for original_anukramank, new_anukramank in anukramank_changes.items():
+        for prop in properties:
             db_property = db.query(Property).filter(
-                Property.village_id == request.to_village_id,
-                Property.anuKramank == new_anukramank
+                Property.id == prop.id
             ).first()
             if not db_property:
                 continue
 
             record_response = get_property_record(
-                new_anukramank,
-                request.to_village_id,
+                db_property.anuKramank,
+                db_property.village_id,
                 district_id=db_property.district_id,
                 taluka_id=db_property.taluka_id,
                 gram_panchayat_id=db_property.gram_panchayat_id,
@@ -194,27 +193,24 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
             wife_name = record_response.get('ownerWifeName') or (db_property.owners[0].wifeName if db_property.owners else "")
             mobile_number = record_response.get('mobileNumber')
             totalTax = record_response.get('totaltax', 0) or 0
-            # Build property response like namuna8_apis for accurate constructions array
             response = build_property_response(db_property, db, db_property.gram_panchayat_id)
             totalArea = round(record_response.get('totalArea', 0) or 0, 2)
-            # Mirror namuna8_apis: use the property response constructions (length*width) excluding 'खाली जागा'
             constructionArea = sum(
-                    (c['length'] or 0) * (c['width'] or 0)
-                    for c in response.get('constructions', [])
-                    if not (c.get('constructionType', '').strip().startswith('खाली जागा'))
-                )
+                (c['length'] or 0) * (c['width'] or 0)
+                for c in response.get('constructions', [])
+                if not (c.get('constructionType', '').strip().startswith('खाली जागा'))
+            )
             constructionArea = round(constructionArea, 2)
-            # Open area: totalArea - constructionArea
             openArea = round(totalArea - constructionArea, 2)
 
             qr_data = {
-                "malKr.": getattr(db_property, 'malmattaKramank', None),
-                "मा. नाव": owner_name,
-                "mobileNumber": mobile_number,
-                "totalArea": totalArea,
-                "constructionArea": constructionArea,
-                "openArea": openArea,
-                "totalTax": totalTax,
+                "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
+                "मालकाचे नाव": owner_name,
+                # "mobileNumber": mobile_number,
+                "एकूण क्षेत्रफळ": totalArea,
+                "बांधकाम क्षेत्रफळ": constructionArea,
+                "खुली जागा": openArea,
+                "एकूण कर": totalTax,
             }
             if wife_name:
                 qr_data["पत्नीचे नाव"] = wife_name
@@ -229,11 +225,17 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
             )
             os.makedirs(qr_dir, exist_ok=True)
             qr_path = os.path.join(qr_dir, "qrcode.png")
+            # Remove any old QR path if exists
+            old_qr_path = getattr(db_property, 'qrcode', None)
+            if old_qr_path and os.path.exists(old_qr_path):
+                try:
+                    os.remove(old_qr_path)
+                except Exception:
+                    pass
             QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)
             db_property.qrcode = qr_path.replace(os.sep, "/")
             db.flush()
     except Exception:
-        # Do not fail the transfer if QR generation has an issue
         pass
     
     return {

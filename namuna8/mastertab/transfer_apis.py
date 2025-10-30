@@ -215,13 +215,13 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         open_area = round(total_area - cons_area, 2)
 
         qr_data = {
-            "malKr.": getattr(prop, 'malmattaKramank', None),
-            "मा. नाव": owner_name,
-            "mobileNumber": mobile_number,
-            "totalArea": total_area,
-            "constructionArea": cons_area,
-            "openArea": open_area,
-            "totalTax": total_tax,
+            "अनुक्रमांक": getattr(prop, 'anuKramank', None),
+            "मालकाचे नाव": owner_name,
+            # "mobileNumber": mobile_number,
+            "एकूण क्षेत्रफळ": total_area,
+            "बांधकाम क्षेत्रफळ": cons_area,
+            "खुली जागा": open_area,
+            "एकूण कर": total_tax,
         }
         if wife_name:
             qr_data["पत्नीचे नाव"] = wife_name
