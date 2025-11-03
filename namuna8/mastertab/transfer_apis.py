@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, Integer, String, DateTime, Text
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 from namuna8 import namuna8_model as models, namuna8_schemas as schemas
 from database import get_db, Base
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 import json
 from namuna8.property_owner_history_model import PropertyOwnerHistory
 from namuna8.owner_history_model import OwnerHistory
@@ -38,9 +38,9 @@ class TransferOwner(BaseModel):
 
 class PropertyTransferCreate(BaseModel):
     property_id: int
-    date: datetime
+    date: date
     entry_no: str
-    transaction_date: Optional[datetime] = None  # Make optional
+    transaction_date: Optional[date] = None  # Make optional
     new_owners: List[TransferOwner]
     doc_note: Optional[str] = None
     register_note: Optional[str] = None
@@ -51,15 +51,16 @@ class PropertyTransferCreate(BaseModel):
 class PropertyTransferLog(BaseModel):
     id: int
     property_id: int
-    date: datetime
+    date: date
     entry_no: str
-    transaction_date: datetime
+    transaction_date: date
     new_owners: List[TransferOwner]
     old_owners: List[TransferOwner]
     doc_note: Optional[str] = None
     register_note: Optional[str] = None
     created_at: datetime
-
+   
+    
 @router.post('/transfer/', response_model=PropertyTransferLog)
 def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db)):
     # Get property
