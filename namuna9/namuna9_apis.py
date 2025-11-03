@@ -508,7 +508,7 @@ def get_table_data(
         # Calculate ekun (total) values - use saved data if available
         if saved_data:
             # Include dand in ekunGhar (house total) - ensure no negative values
-            ekunGhar = round(max(saved_data.ekunGhar or (shaktiGhar + chaluGhar + (dand or 0)), 0), 2)
+            ekunGhar = round(max(saved_data.ekunGhar or (max(shaktiGhar,0) + max(chaluGhar,0) + (max(dand,0) or 0)), 0), 2)
             ekunDiva = round(max(saved_data.ekunDiva or (shaktiDiva + chaluDiva), 0), 2)
             ekunAarogyaKar = round(max(saved_data.ekunAarogyaKar or (shaktiAarogyaKar + chaluAarogyaKar), 0), 2)
             ekunSapanikar = round(max(saved_data.ekunSapanikar or (shaktiSapanikar + chaluSapanikar), 0), 2)
@@ -516,7 +516,7 @@ def get_table_data(
             ekunCleaningTax = round(max(saved_data.ekunCleaningTax or (shaktiCleaningTax + chaluCleaningTax), 0), 2)
         else:
             # Include dand in ekunGhar when no saved_data - ensure no negative values
-            ekunGhar = round(max(shaktiGhar + chaluGhar + (dand or 0), 0), 2)
+            ekunGhar = round(max(max(shaktiGhar,0) + max(chaluGhar,0) + (max(dand,0)), 0), 2)
             ekunDiva = round(max(shaktiDiva + chaluDiva, 0), 2)
             ekunAarogyaKar = round(max(shaktiAarogyaKar + chaluAarogyaKar, 0), 2)
             ekunSapanikar = round(max(shaktiSapanikar + chaluSapanikar, 0), 2)
