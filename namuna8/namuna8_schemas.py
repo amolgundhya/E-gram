@@ -236,7 +236,7 @@ class Namuna8SettingChecklistBase(BaseModel):
     roundupArea: bool = False
     boundaryMarking: bool = False
     aadharCard: bool = False
-    mobileNumber: bool = False
+    mobileNumberAdd: bool = False
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
