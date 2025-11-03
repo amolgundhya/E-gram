@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from typing import List
 from sqlalchemy.orm import Session
 import database
 from namuna9 import namuna9_model, namuna9_schemas
@@ -109,7 +108,7 @@ def create_namuna9_year_setup(setup: namuna9_schemas.Namuna9YearSetupCreate, db:
     db.refresh(db_setup)
     return db_setup
 
-@router.get("/list", response_model=List[namuna9_schemas.Namuna9YearSetupRead])
+@router.get("/list", response_model=list[namuna9_schemas.Namuna9YearSetupRead])
 def list_namuna9_year_setups(db: Session = Depends(database.get_db)):
     return db.query(namuna9_model.Namuna9YearSetup).all()
 
