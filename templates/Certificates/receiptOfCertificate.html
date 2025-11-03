@@ -74,8 +74,8 @@
       <div style="font-size:18px; font-weight:bold;">
         दाखल्याबद्दल पावती<br/>
         Receipt of the Certificate<br/>
-        ग्रामपंचायत : {{ gramPanchayat | default('') }} तालुका : {{ taluka | default('') }} जिल्हा : {{ jilha | default('') }} <br/>
-        Grampanchyayat : {{ gramPanchayat | default('') }} Taluka : {{ taluka | default('') }} District : {{ jilha | default('') }}
+        ग्रामपंचायत : {{ jilha  | default('') }} तालुका : {{ taluka | default('') }} जिल्हा : {{ gramPanchayat | default('') }} <br/>
+        Grampanchyayat : {{ jilha | default('') }} Taluka : {{ taluka | default('') }} District : {{ gramPanchayat | default('') }}
       </div>
     </td>
   </tr>
@@ -94,10 +94,10 @@
     <td style="text-align:right; padding:4px;">Receipt Number : {{ receipt_id | default('') }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;" colspan="2">श्री/श्रीमती {{ name1 | default('') }} राहणार गाव. {{ village | default('') }} ग्रामपंचायत {{ gramPanchayat | default('') }} ता. {{ taluka | default('') }} जिल्हा {{ jilha | default('') }} याजकडून {{ name2 | default('') }} प्रमाणपत्र यासाठी रक्कम रुपये {{ receipt_amount | default('') }} प्राप्त झाले.</td>
+    <td style="text-align:left; padding:4px;" colspan="2">श्री/श्रीमती {{ name1 | default('') }} राहणार गाव. {{ village | default('') }} ग्रामपंचायत {{ jilha | default('') }} ता. {{ taluka | default('') }} जिल्हा {{ gramPanchayat | default('') }} याजकडून {{ name2 | default('') }} प्रमाणपत्र यासाठी रक्कम रुपये {{ receipt_amount | default('') }} प्राप्त झाले.</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;" colspan="2">Received from Mr./Mrs {{ name1_en | default('') }} of Village {{ village_en | default('') }} Grampanchyayat {{ gramPanchayat | default('') }} Tal. {{ taluka | default('') }} District {{ jilha | default('') }} Charge of Rs. {{ receipt_amount_en | default('') }} for the {{ name2_en | default('') }}.</td>
+    <td style="text-align:left; padding:4px;" colspan="2">Received from Mr./Mrs {{ name1_en | default('') }} of Village {{ village_en | default('') }} Grampanchyayat {{ jilha | default('') }} Tal. {{ taluka | default('') }} District {{ gramPanchayat | default('') }} Charge of Rs. {{ receipt_amount_en | default('') }} for the {{ name2_en | default('') }}.</td>
   </tr>
 </table>
 
@@ -127,8 +127,8 @@
         <div style="font-size:18px; font-weight:bold;">
           दाखल्याबद्दल पावती<br/>
           Receipt of the Certificate<br/>
-          ग्रामपंचायत : {{ gramPanchayat | default('') }} तालुका : {{ taluka | default('') }} जिल्हा : {{ jilha | default('') }} <br/>
-          Grampanchyayat : {{ gramPanchayat | default('') }} Taluka : {{ taluka | default('') }} District : {{ jilha | default('') }}
+          ग्रामपंचायत : {{ jilha | default('') }} तालुका : {{ taluka | default('') }} जिल्हा : {{ gramPanchayat | default('') }} <br/>
+          Grampanchyayat : {{ jilha | default('') }} Taluka : {{ taluka | default('') }} District : {{ gramPanchayat | default('') }}
         </div>
       </td>
     </tr>
@@ -147,10 +147,10 @@
       <td style="text-align:right; padding:4px;">Receipt Number : {{ receipt_id | default('') }}</td>
     </tr>
     <tr>
-      <td style="text-align:left; padding:4px;" colspan="2">श्री/श्रीमती {{ name1 | default('') }} राहणार गाव. {{ village | default('') }} ग्रामपंचायत {{ gramPanchayat | default('') }} ता. {{ taluka | default('') }} जिल्हा {{ jilha | default('') }} याजकडून {{ name2 | default('') }} प्रमाणपत्र यासाठी रक्कम रुपये {{ receipt_amount | default('') }} प्राप्त झाले.</td>
+      <td style="text-align:left; padding:4px;" colspan="2">श्री/श्रीमती {{ name1 | default('') }} राहणार गाव. {{ village | default('') }} ग्रामपंचायत {{ jilha | default('') }} ता. {{ taluka | default('') }} जिल्हा {{ gramPanchayat | default('') }} याजकडून {{ name2 | default('') }} प्रमाणपत्र यासाठी रक्कम रुपये {{ receipt_amount | default('') }} प्राप्त झाले.</td>
     </tr>
     <tr>
-      <td style="text-align:left; padding:4px;" colspan="2">Received from Mr./Mrs {{ name1_en | default('') }} of Village {{ village_en | default('') }} Grampanchyayat {{ gramPanchayat | default('') }} Tal. {{ taluka | default('') }} District {{ jilha | default('') }} Charge of Rs. {{ receipt_amount_en | default('') }} for the {{ name2_en | default('') }}.</td>
+      <td style="text-align:left; padding:4px;" colspan="2">Received from Mr./Mrs {{ name1_en | default('') }} of Village {{ village_en | default('') }} Grampanchyayat {{ jilha | default('') }} Tal. {{ taluka | default('') }} District {{ gramPanchayat | default('') }} Charge of Rs. {{ receipt_amount_en | default('') }} for the {{ name2_en | default('') }}.</td>
     </tr>
   </table>
   

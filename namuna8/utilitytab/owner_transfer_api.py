@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from ..namuna8_model import Owner, Property
+from ..namuna8_model import Owner, Property, ConstructionType
 import os
 from pydantic import BaseModel
 from Utility.QRcodeGeneration import QRCodeGeneration
+from namuna8.recordresponses.property_record_response import get_property_record
+from namuna8.namuna8_apis import build_property_response
 import qrcode
 router = APIRouter()
 
@@ -156,40 +158,6 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
             if new_anukramank != original_anukramank:
                 anukramank_changes[original_anukramank] = new_anukramank
                 property.anuKramank = new_anukramank
-
-                # Generate new QR
-                record_response = {
-                   "ownerName": property.owners[0].name if property.owners else "",
-                   "ownerWifeName": property.owners[0].wifeName if property.owners else "",
-                   "totaltax": property.total_tax if hasattr(property, "total_tax") else 0,
-                }
-
-                owner_name = record_response.get('ownerName', "")
-                wife_name = record_response.get('ownerWifeName', "")
-                totalTax = record_response.get('totaltax', 0)
-
-                qr_data = {
-                    "अनुक्रमांक": new_anukramank,
-                    "मालकाचे नाव": owner_name,
-                    "एकूण क्षेत्रफळ": getattr(property, "total_area", 0),
-                    "बांधकाम क्षेत्रफळ": getattr(property, "construction_area", 0),
-                    "खुली जागा": getattr(property, "open_area", 0),
-                    "एकूण कर": totalTax,
-                }
-                if wife_name:
-                    qr_data["wifename"] = wife_name
-
-                qr_dir = os.path.join("uploaded_images", "qrcode", str(property.district_id), str(property.taluka_id), str(property.gram_panchayat_id),str(request.to_village_id),str(new_anukramank))
-                # print(f"DEBUG: Creating QR directory: {qr_dir}")
-                os.makedirs(qr_dir, exist_ok=True)
-                qr_path = os.path.join(qr_dir, "qrcode.png")
-                print(f"DEBUG: QR path: {qr_path}")
-                # print(f"DEBUG: QR data: {qr_data}")
-                QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)
-                # print(f"DEBUG: QR code generated successfully")
-                property.qrcode = qr_path.replace(os.sep, "/")
-                db.flush()
-                db.flush()
             # Add the new anuKramank to existing set
             existing_anukramanks.add(new_anukramank)
 
@@ -203,6 +171,72 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
                 property.gram_panchayat_id = request.gram_panchayat_id
 
     db.commit()
+
+    # Always re-generate QR for all transferred properties:
+    try:
+        for prop in properties:
+            db_property = db.query(Property).filter(
+                Property.id == prop.id
+            ).first()
+            if not db_property:
+                continue
+
+            record_response = get_property_record(
+                db_property.anuKramank,
+                db_property.village_id,
+                district_id=db_property.district_id,
+                taluka_id=db_property.taluka_id,
+                gram_panchayat_id=db_property.gram_panchayat_id,
+                db=db
+            )
+            owner_name = record_response.get('ownerName') or (db_property.owners[0].name if db_property.owners else "")
+            wife_name = record_response.get('ownerWifeName') or (db_property.owners[0].wifeName if db_property.owners else "")
+            mobile_number = record_response.get('mobileNumber')
+            totalTax = record_response.get('totaltax', 0) or 0
+            response = build_property_response(db_property, db, db_property.gram_panchayat_id)
+            totalArea = round(record_response.get('totalArea', 0) or 0, 2)
+            constructionArea = sum(
+                (c['length'] or 0) * (c['width'] or 0)
+                for c in response.get('constructions', [])
+                if not (c.get('constructionType', '').strip().startswith('खाली जागा'))
+            )
+            constructionArea = round(constructionArea, 2)
+            openArea = round(totalArea - constructionArea, 2)
+
+            qr_data = {
+                "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
+                "मालकाचे नाव": owner_name,
+                # "mobileNumber": mobile_number,
+                "एकूण क्षेत्रफळ": totalArea,
+                "बांधकाम क्षेत्रफळ": constructionArea,
+                "खुली जागा": openArea,
+                "एकूण कर": totalTax,
+            }
+            if wife_name:
+                qr_data["पत्नीचे नाव"] = wife_name
+
+            qr_dir = os.path.join(
+                "uploaded_images", "qrcode",
+                str(db_property.district_id),
+                str(db_property.taluka_id),
+                str(db_property.gram_panchayat_id),
+                str(db_property.village_id),
+                str(db_property.anuKramank)
+            )
+            os.makedirs(qr_dir, exist_ok=True)
+            qr_path = os.path.join(qr_dir, "qrcode.png")
+            # Remove any old QR path if exists
+            old_qr_path = getattr(db_property, 'qrcode', None)
+            if old_qr_path and os.path.exists(old_qr_path):
+                try:
+                    os.remove(old_qr_path)
+                except Exception:
+                    pass
+            QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)
+            db_property.qrcode = qr_path.replace(os.sep, "/")
+            db.flush()
+    except Exception:
+        pass
     
     return {
         "success": True, 
