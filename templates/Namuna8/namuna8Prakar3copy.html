@@ -258,17 +258,26 @@
                                 <td rowspan="2"> {{row.occupantName|default('')}} </td>
                                 <td rowspan="2" style="text-align: left;">
                                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
-                        {{ row.constructionType[0].type | default('') }}<br>
-                    {% endif %}
-                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
-                        {{ row.constructionType[1].type | default('') }}<br>
-                    {% endif %}
-                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
-                        {{ row.constructionType[2].type | default('') }}<br>
-                    {% endif %}
-                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
-                        {{ row.khaliJaga[0].constructiontype | default('') }}
-                    {% endif %}
+                                        {{ row.constructionType[0].type | default('') }}<br>    
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
+                                        {{ row.constructionType[0].floor | default('') }}<br>    
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{ row.constructionType[1].type | default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
+                                        {{ row.constructionType[1].floor | default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{ row.constructionType[2].type | default('') }}<br>
+                                    {% endif %}
+                                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
+                                        {{ row.constructionType[2].floor | default('') }}<br>
+                                    {% endif %}
+                                    {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
+                                        {{ row.khaliJaga[0].constructiontype | default('') }}
+                                    {% endif %}
                                 </td>
                                 <td rowspan="2">
                                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
