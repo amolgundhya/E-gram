@@ -266,13 +266,13 @@ def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(data
 
     # Recompute ekun and total
     # Include dand in ekunGhar recompute
-    data.ekunGhar = (data.shaktiGhar or 0) + (data.chaluGhar or 0) + (data.dand or 0)
-    data.ekunDiva = (data.shaktiDiva or 0) + (data.chaluDiva or 0)
-    data.ekunAarogyaKar = (data.shaktiAarogyaKar or 0) + (data.chaluAarogyaKar or 0)
-    data.ekunSapanikar = (data.shaktiSapanikar or 0) + (data.chaluSapanikar or 0)
-    data.ekunVpanikar = (data.shaktiVpanikar or 0) + (data.chaluVpanikar or 0)
-    data.ekunCleaningTax = (data.shaktiCleaningTax or 0) + (data.chaluCleaningTax or 0)
-    data.total = (data.ekunGhar or 0) + (data.ekunDiva or 0) + (data.ekunAarogyaKar or 0) + (data.ekunSapanikar or 0) + (data.ekunVpanikar or 0) + (data.ekunCleaningTax or 0) + (data.noticeFee or 0) + (data.warrantFee or 0) + (data.dand or 0)
+    data.ekunGhar = (max(data.shaktiGhar,0) or 0) + (max(0,data.chaluGhar) or 0) + (max(0,data.dand) or 0)
+    data.ekunDiva = (max(data.shaktiDiva,0) or 0) + (max(0,data.chaluDiva) or 0)
+    data.ekunAarogyaKar = (max(0,data.shaktiAarogyaKar) or 0) + (max(0,data.chaluAarogyaKar) or 0)
+    data.ekunSapanikar = (max(data.shaktiSapanikar,0) or 0) + (max(0,data.chaluSapanikar) or 0)
+    data.ekunVpanikar = (max(0,data.shaktiVpanikar) or 0) + (max(0,data.chaluVpanikar) or 0)
+    data.ekunCleaningTax = (max(0,data.shaktiCleaningTax) or 0) + (max(0,data.chaluCleaningTax) or 0)
+    data.total = (max(0,data.ekunGhar) or 0) + (max(0,data.ekunDiva) or 0) + (max(0,data.ekunAarogyaKar) or 0) + (max(0,data.ekunSapanikar) or 0) + (max(0,data.ekunVpanikar) or 0) + (max(0,data.ekunCleaningTax) or 0) + (max(0,data.noticeFee) or 0) + (max(0,data.warrantFee) or 0) + (max(0,data.dand) or 0)
 
     db.commit()
     db.refresh(data)
