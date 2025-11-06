@@ -306,7 +306,11 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     db_property.gram_panchayat_id,
                     db
                 )
-                totalTax = record_response.get('totaltax', 0)
+              
+                vpanikar_qr = record_response.get('vpanikar',0)
+                totalTax_qr = record_response.get('totaltax',0)
+                # electricityTax = record_response.get('electricityTax', 0)
+                totalTax = totalTax_qr - vpanikar_qr
                 srNo = response.get('anuKramank') or response.get('srNo') or ''
                 # totalArea = avg_length * avg_width if avg_length and avg_width else 0
                 totalArea = round(record_response.get('totalArea', 0) or 0, 2)
@@ -871,7 +875,11 @@ def update_namuna8_entry(
     try:
         # Use get_property_record to get accurate total tax
         record_response = get_property_record(db_property.anuKramank,village_id, district_id, taluka_id, gram_panchayat_id, db)
-        totalTax = record_response.get('totaltax', 0)
+       
+        vpanikar_qr = record_response.get('vpanikar',0)
+        totalTax_qr = record_response.get('totaltax',0)
+        # electricityTax = record_response.get('electricityTax', 0)
+        totalTax = totalTax_qr - vpanikar_qr
         srNo = response.get('anuKramank') or response.get('srNo') or ''
       
         east = db_property.eastLength or 0
