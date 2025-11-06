@@ -9,7 +9,7 @@ from namuna8.mastertab import mastertabmodels as settingModels
 from sqlalchemy.exc import IntegrityError
 from namuna8.namuna8_apis import build_property_response
 from location_management import models as location_models
-
+from typing import List
 router = APIRouter(
     prefix="/namuna9",
     tags=["namuna9"]
@@ -108,7 +108,7 @@ def create_namuna9_year_setup(setup: namuna9_schemas.Namuna9YearSetupCreate, db:
     db.refresh(db_setup)
     return db_setup
 
-@router.get("/list", response_model=list[namuna9_schemas.Namuna9YearSetupRead])
+@router.get("/list", response_model=List[namuna9_schemas.Namuna9YearSetupRead])
 def list_namuna9_year_setups(db: Session = Depends(database.get_db)):
     return db.query(namuna9_model.Namuna9YearSetup).all()
 
