@@ -9,6 +9,9 @@ from Utility.QRcodeGeneration import QRCodeGeneration
 from namuna8.recordresponses.property_record_response import get_property_record
 from namuna8.namuna8_apis import build_property_response
 import qrcode
+from namuna8.PropertyDocuments.property_document_model import PropertyDocument
+import shutil
+
 router = APIRouter()
 
 class OwnerTransferRequest(BaseModel):
@@ -169,9 +172,78 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
                 property.taluka_id = request.taluka_id
             if request.gram_panchayat_id is not None:
                 property.gram_panchayat_id = request.gram_panchayat_id
+                
+            # --------------------------------------
+            # TRANSFER PROPERTY DOCUMENTS AS WELL
+            # --------------------------------------
+            docs = db.query(PropertyDocument).filter(
+            PropertyDocument.property_anuKramank == original_anukramank,
+            PropertyDocument.village_id == request.from_village_id
+            ).all()
+
+            for doc in docs:
+
+                old_village = doc.village_id
+                old_anu = doc.property_anuKramank
+
+                # Update DB fields to new village + new anuKramank
+                doc.village_id = request.to_village_id
+                doc.property_anuKramank = new_anukramank
+
+                # Move files (both document_image & document_path)
+                for attr in ("document_image", "document_path"):
+                    val = getattr(doc, attr)
+                    if not val:
+                        continue
+
+                    old_abs = val if os.path.isabs(val) else os.path.join(os.getcwd(), val)
+                    if not os.path.exists(old_abs):
+                        continue
+
+                    filename = os.path.basename(old_abs)
+
+                    # NEW TARGET DIR based on new village + new anuKramank  
+                    new_dir = os.path.join(
+                        "uploaded_images",
+                        "property_documents",
+                        str(request.to_village_id),
+                        str(new_anukramank)
+                    )
+
+                    os.makedirs(new_dir, exist_ok=True)
+                    new_abs = os.path.join(new_dir, filename)
+
+                    try:
+                        shutil.move(old_abs, new_abs)
+                    except:
+                        pass
+
+                    new_rel = os.path.relpath(new_abs, os.getcwd()).replace(os.sep, "/")
+                    setattr(doc, attr, new_rel)
+
+            if docs:
+                last_doc = docs[-1]
+                old_village = last_doc.village_id
+                old_anu = last_doc.property_anuKramank
+
+                # Remove old folder if empty
+                old_dir = os.path.join(
+                    "uploaded_images",
+                    "property_documents",
+                    str(old_village),
+                    str(old_anu)
+                )
+
+
+            try:
+                if os.path.exists(old_dir) and not os.listdir(old_dir):
+                    os.rmdir(old_dir)
+            except:
+                pass
+
 
     db.commit()
-
+    
     # Always re-generate QR for all transferred properties:
     try:
         for prop in properties:

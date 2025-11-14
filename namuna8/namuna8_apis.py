@@ -22,6 +22,7 @@ from Utility.QRcodeGeneration import QRCodeGeneration
 from namuna8.recordresponses.property_record_response import get_property_record
 from namuna8.mastertab.mastertabmodels import GeneralSetting, BuildingUsageWeightage
 from location_management import models as location_models
+from namuna8.PropertyDocuments.property_document_model import PropertyDocument
 import logging
 
 logging.basicConfig(
@@ -2334,7 +2335,53 @@ def serialize_properties(
                     db_property.malmattaKramank = str(new_anuKramank)
                 
                 db.flush()
-                
+                try:
+                    docs = db.query(PropertyDocument).filter(
+                        PropertyDocument.property_anuKramank == old_anuKramank
+                    ).all()
+                    for doc in docs:
+                        # update DB field
+                        doc.property_anuKramank = new_anuKramank
+
+                        def migrate_path(path_value):
+                            if not path_value:
+                                return None
+                            # resolve absolute path
+                            abs_path = path_value if os.path.isabs(path_value) else os.path.join(os.getcwd(), path_value)
+                            if not os.path.exists(abs_path):
+                                return None
+                            # try to replace directory segment that equals old anuKramank
+                            old_seg = os.sep + str(old_anuKramank) + os.sep
+                            if old_seg in abs_path:
+                                new_abs = abs_path.replace(old_seg, os.sep + str(new_anuKramank) + os.sep)
+                            else:
+                                # fallback: replace occurrences of the number (safe within upload tree)
+                                new_abs = abs_path.replace(str(old_anuKramank), str(new_anuKramank))
+                            new_dir = os.path.dirname(new_abs)
+                            os.makedirs(new_dir, exist_ok=True)
+                            try:
+                                shutil.move(abs_path, new_abs)
+                            except Exception:
+                                try:
+                                    shutil.copy2(abs_path, new_abs)
+                                    os.remove(abs_path)
+                                except Exception:
+                                    return None
+                            # return relative path for DB (forward slashes)
+                            return os.path.relpath(new_abs, start=os.getcwd()).replace(os.sep, '/')
+
+                        new_doc_image = migrate_path(getattr(doc, 'document_image', None))
+                        if new_doc_image:
+                            doc.document_image = new_doc_image
+                        new_doc_path = migrate_path(getattr(doc, 'document_path', None))
+                        if new_doc_path:
+                            doc.document_path = new_doc_path
+
+                    db.flush()
+                except Exception as e:
+                    logging.warning(f"PropertyDocument migration failed for {old_anuKramank} -> {new_anuKramank}: {e}")
+                # --- END INSERTED MIGRATION LOGIC ---
+
                 # Generate new QR code
                 try:
                     record_response = get_property_record(
@@ -2713,6 +2760,64 @@ def delete_property(anu_kramank: int,village_id:int, db: Session = Depends(datab
     except Exception:
         pass  # Continue with database deletion even if file cleanup fails
     
+    # -----------------------------------------
+    # DELETE PROPERTY DOCUMENT FILES
+    # -----------------------------------------
+
+    docs = (
+        db.query(PropertyDocument)
+        .filter(
+            and_(
+                PropertyDocument.property_anuKramank == anu_kramank,
+                PropertyDocument.village_id == village_id
+            )
+        )
+        .all()
+    )
+
+
+    for doc in docs:
+        # Delete document_image and document_path from filesystem
+        for attr in ("document_image", "document_path"):
+            path_val = getattr(doc, attr, None)
+            if not path_val:
+                continue
+
+            abs_path = path_val if os.path.isabs(path_val) else os.path.join(os.getcwd(), path_val)
+            if os.path.exists(abs_path):
+                try:
+                    os.remove(abs_path)
+                except:
+                    pass
+
+            # Try to remove empty folder
+            try:
+                parent = os.path.dirname(abs_path)
+                if parent.startswith(os.path.join(os.getcwd(), "uploaded_images", "property_documents")):
+                    if os.path.exists(parent) and not os.listdir(parent):
+                        os.rmdir(parent)
+            except:
+                pass
+
+        # Delete DB record
+        db.delete(doc)
+
+    db.commit()
+
+    # Delete entire directory for this property (safe cleanup)
+    prop_docs_dir = os.path.join(
+        "uploaded_images",
+        "property_documents",
+        str(village_id),
+        str(anu_kramank)
+    )
+
+    if os.path.exists(prop_docs_dir):
+        try:
+            shutil.rmtree(prop_docs_dir)
+        except:
+            pass
+
     # Remove associations with owners (many-to-many)
     prop.owners = []
     db.commit()

@@ -117,10 +117,12 @@ def get_property_record(
         unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
         if unit == 'sqm':
             total_area_m = round(prop.totalArea or 0, 2)
-            used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions), 2)
+            used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
+                                    if getattr(c, "floor", None) == "तळमजला"), 2)
         else:
             total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
-            used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions) * 0.092903, 2)
+            used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
+                                    if getattr(c, "floor", None) == "तळमजला") * 0.092903, 2)
         khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
         khali_area = round(khali_area_m / 0.092903, 2)
         # Find the bandhmastache_dar for vacantLandType construction type
@@ -445,10 +447,12 @@ def get_property_records_by_village(
             unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
             if unit == 'sqm':
                 total_area_m = round(prop.totalArea or 0, 2)
-                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions), 2)
+                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
+                                        if getattr(c, "floor", None) == "तळमजला"), 2)
             else:
                 total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
-                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions) * 0.092903, 2)
+                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
+                                        if getattr(c, "floor", None) == "तळमजला") * 0.092903, 2)
             khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
             khali_area = round(khali_area_m / 0.092903, 2)
             # Find the bandhmastache_dar for vacantLandType construction type
@@ -707,6 +711,7 @@ def get_property_records_by_village(
         # Coerce all numeric fields to integers except 'length' and 'width'
         _deep_round_numbers(response)
         results.append(response)
+    results = sorted(results, key=lambda r: r["id"])
     return results 
 
 @router.get("/property_records_by_gram_panchayat/{gram_panchayat_id}")
@@ -762,10 +767,12 @@ def get_property_records_by_gram_panchayat(
                 unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
                 if unit == 'sqm':
                     total_area_m = round(prop.totalArea or 0, 2)
-                    used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions), 2)
+                    used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
+                                            if getattr(c, "floor", None) == "तळमजला"), 2)
                 else:
                     total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
-                    used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions) * 0.092903, 2)
+                    used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
+                                            if getattr(c, "floor", None) == "तळमजला") * 0.092903, 2)
                 khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
                 khali_area = round(khali_area_m / 0.092903, 2)
                 khali_jaga_rate = 0
@@ -1011,7 +1018,7 @@ def get_property_records_by_gram_panchayat(
             _deep_round_numbers(response)
             response.update(checklist_fields)
             village_properties.append(response)
-        
+            village_properties = sorted(village_properties, key=lambda r: r["id"])
         # Add village properties to response data with village name as key
         if village_properties:  # Only add villages that have properties
             response_data[f"{village.name}"] = village_properties
