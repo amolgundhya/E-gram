@@ -541,7 +541,7 @@ def get_table_data(
             total = round(total, 2)
         
         row = {
-            "anukramk": idx,
+            "anukramk": prop.anuKramank,
             "property_id": prop.id,  # Use actual property ID, not anuKramank
             "malmattaKramank": prop_data.get('malmattaKramank', ''),
             "ownerNames": owner_names,
@@ -572,7 +572,47 @@ def get_table_data(
             "thakitValues": thakit_values,
             "thakitYear": thakit_year
         }
+        if not saved_data:
+            new_saved = namuna9_model.Namuna9PropertyData(
+            namuna9_id = rec.id,
+            property_id = prop.id,
+
+            shaktiGhar = row["shaktiGhar"],
+            shaktiDiva = row["shaktiDiva"],
+            shaktiAarogyaKar = row["shaktiAarogyaKar"],
+            shaktiSapanikar = row["shaktiSapanikar"],
+            shaktiVpanikar = row["shaktiVpanikar"],
+            shaktiCleaningTax = row["shaktiCleaningTax"],
+
+            dand = row["dand"],
+
+            chaluGhar = row["chaluGhar"],
+            chaluDiva = row["chaluDiva"],
+            chaluAarogyaKar = row["chaluAarogyaKar"],
+            chaluSapanikar = row["chaluSapanikar"],
+            chaluVpanikar = row["chaluVpanikar"],
+            chaluCleaningTax = row["chaluCleaningTax"],
+
+            ekunGhar = row["ekunGhar"],
+            ekunDiva = row["ekunDiva"],
+            ekunAarogyaKar = row["ekunAarogyaKar"],
+            ekunSapanikar = row["ekunSapanikar"],
+            ekunVpanikar = row["ekunVpanikar"],
+            ekunCleaningTax = row["ekunCleaningTax"],
+
+            warrantFee = row["warrantFee"],
+            noticeFee = row["noticeFee"],
+            total = row["total"]
+            )
+
+            db.add(new_saved)
+            db.commit()
+            db.refresh(new_saved)
+
+            saved_data = new_saved
+            saved_data_map[prop.id] = new_saved
         rows.append(row)
+    rows = sorted(rows, key=lambda r: r["anukramk"])    
     return rows 
 
 @router.get("/recordresponses/property_records_by_village")
@@ -822,7 +862,8 @@ def get_namuna9_table_data_custom(
             "pavatiSRKivyaTarik": 0
         }
         rows.append(row)
-    return rows 
+    rows = sorted(rows, key=lambda r: r["id"])
+    return rows    
 
 @router.get("/recordresponses/property_records_by_village/regular/")
 def get_property_records_by_village_regular(

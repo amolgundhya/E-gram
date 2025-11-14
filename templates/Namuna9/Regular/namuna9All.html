@@ -251,7 +251,7 @@
                 data-total-cleaning-tax="{{row.totalCleaningTax|default('0')}}"
                 data-totaltaxwithoutnoticwarrant="{{ (((row.totaltaxwithoutnoticwarrant|default('0')) - (row.totalViWaterTax|default('0'))) - (row.totlaToiletTax|default('0'))) | round(2) }}"
             >
-                <td>{{ row.srNo }}</td>
+                <td>{{ row.id }}</td>
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitHouseTax}}{% endif %}</td>

@@ -22,13 +22,9 @@ from Utility.QRcodeGeneration import QRCodeGeneration
 from namuna8.recordresponses.property_record_response import get_property_record
 from namuna8.mastertab.mastertabmodels import GeneralSetting, BuildingUsageWeightage
 from location_management import models as location_models
+from namuna8.PropertyDocuments.property_document_model import PropertyDocument
 import logging
 
-# logging.basicConfig(
-#     filename="namuna8_logs.txt",
-#     level=logging.INFO,
-#     format="%(asctime)s - %(levelname)s - %(message)s"
-# )
 
 router = APIRouter(
     prefix="/namuna8",
@@ -297,7 +293,6 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
           
             try:
                 # Use get_property_record to get accurate total tax
-                # record_response = get_property_record(db_property.anuKramank, db_property.district_id, db_property.taluka_id, db_property.gram_panchayat_id,db_property.village_id, db)
                 # Match update method signature: (anuKramank, village_id, district_id, taluka_id, gram_panchayat_id, db)
                 record_response = get_property_record(
                     db_property.anuKramank,
@@ -307,6 +302,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     db_property.gram_panchayat_id,
                     db
                 )
+              
                 vpanikar_qr = record_response.get('vpanikar',0)
                 totalTax_qr = record_response.get('totaltax',0)
                 # electricityTax = record_response.get('electricityTax', 0)
@@ -506,12 +502,12 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
         db.rollback()
         logging.error(f"Database error during property creation: {e}")
         # print(f"DEBUG: Database error details: {e}")
-        raise HTTPException(status_code=500, detail="अनुक्रमांक किंवा मालमत्ता क्रमांक अद्वितीय असणे आवश्यक आहे, त्यामुळे सेव्ह करता आले नाही." + str(e))
+        raise HTTPException(status_code=500, detail="Failed to save property and owners: " + str(e))
     except Exception as e:
         db.rollback()
         logging.error(f"Unexpected error during property creation: {e}")
         # print(f"DEBUG: Unexpected error details: {e}")
-        raise HTTPException(status_code=500, detail="अनुक्रमांक किंवा मालमत्ता क्रमांक अद्वितीय असणे आवश्यक आहे, त्यामुळे सेव्ह करता आले नाही. " + str(e))
+        raise HTTPException(status_code=500, detail="Failed to save property and owners: " + str(e))
 
 @router.get("/property_list/", response_model=List[schemas.PropertyList])
 def get_property_list(village: str, db: Session = Depends(database.get_db)):
@@ -875,6 +871,7 @@ def update_namuna8_entry(
     try:
         # Use get_property_record to get accurate total tax
         record_response = get_property_record(db_property.anuKramank,village_id, district_id, taluka_id, gram_panchayat_id, db)
+       
         vpanikar_qr = record_response.get('vpanikar',0)
         totalTax_qr = record_response.get('totaltax',0)
         # electricityTax = record_response.get('electricityTax', 0)
@@ -914,6 +911,7 @@ def update_namuna8_entry(
         boundary_south = record_response.get('boundarySouth') or getattr(db_property, 'southBoundary', None)
 
         qr_data = {
+                    # Marathi labels for QR display
             "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
             "मालकाचे नाव": owner_name,
             # "mobileNumber": mobile_number,
@@ -2201,6 +2199,7 @@ def get_properties_by_village(
 
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 
+
 @router.post("/serialize_properties/")
 def serialize_properties(
     village_id: int = Body(...),
@@ -2331,7 +2330,53 @@ def serialize_properties(
                     db_property.malmattaKramank = str(new_anuKramank)
                 
                 db.flush()
-                
+                try:
+                    docs = db.query(PropertyDocument).filter(
+                        PropertyDocument.property_anuKramank == old_anuKramank
+                    ).all()
+                    for doc in docs:
+                        # update DB field
+                        doc.property_anuKramank = new_anuKramank
+
+                        def migrate_path(path_value):
+                            if not path_value:
+                                return None
+                            # resolve absolute path
+                            abs_path = path_value if os.path.isabs(path_value) else os.path.join(os.getcwd(), path_value)
+                            if not os.path.exists(abs_path):
+                                return None
+                            # try to replace directory segment that equals old anuKramank
+                            old_seg = os.sep + str(old_anuKramank) + os.sep
+                            if old_seg in abs_path:
+                                new_abs = abs_path.replace(old_seg, os.sep + str(new_anuKramank) + os.sep)
+                            else:
+                                # fallback: replace occurrences of the number (safe within upload tree)
+                                new_abs = abs_path.replace(str(old_anuKramank), str(new_anuKramank))
+                            new_dir = os.path.dirname(new_abs)
+                            os.makedirs(new_dir, exist_ok=True)
+                            try:
+                                shutil.move(abs_path, new_abs)
+                            except Exception:
+                                try:
+                                    shutil.copy2(abs_path, new_abs)
+                                    os.remove(abs_path)
+                                except Exception:
+                                    return None
+                            # return relative path for DB (forward slashes)
+                            return os.path.relpath(new_abs, start=os.getcwd()).replace(os.sep, '/')
+
+                        new_doc_image = migrate_path(getattr(doc, 'document_image', None))
+                        if new_doc_image:
+                            doc.document_image = new_doc_image
+                        new_doc_path = migrate_path(getattr(doc, 'document_path', None))
+                        if new_doc_path:
+                            doc.document_path = new_doc_path
+
+                    db.flush()
+                except Exception as e:
+                    logging.warning(f"PropertyDocument migration failed for {old_anuKramank} -> {new_anuKramank}: {e}")
+                # --- END INSERTED MIGRATION LOGIC ---
+
                 # Generate new QR code
                 try:
                     record_response = get_property_record(
@@ -2516,8 +2561,8 @@ def serialize_properties(
         db.rollback()
         logging.error(f"Unexpected error during property serialization: {e}")
         raise HTTPException(status_code=500, detail="Failed to serialize properties: " + str(e))
-    
-    
+
+
 @router.get("/properties_by_owner/", response_model=List[schemas.PropertyRead])
 def get_properties_by_owner(
     owner_id: int, 
@@ -2710,6 +2755,64 @@ def delete_property(anu_kramank: int,village_id:int, db: Session = Depends(datab
     except Exception:
         pass  # Continue with database deletion even if file cleanup fails
     
+    # -----------------------------------------
+    # DELETE PROPERTY DOCUMENT FILES
+    # -----------------------------------------
+
+    docs = (
+        db.query(PropertyDocument)
+        .filter(
+            and_(
+                PropertyDocument.property_anuKramank == anu_kramank,
+                PropertyDocument.village_id == village_id
+            )
+        )
+        .all()
+    )
+
+
+    for doc in docs:
+        # Delete document_image and document_path from filesystem
+        for attr in ("document_image", "document_path"):
+            path_val = getattr(doc, attr, None)
+            if not path_val:
+                continue
+
+            abs_path = path_val if os.path.isabs(path_val) else os.path.join(os.getcwd(), path_val)
+            if os.path.exists(abs_path):
+                try:
+                    os.remove(abs_path)
+                except:
+                    pass
+
+            # Try to remove empty folder
+            try:
+                parent = os.path.dirname(abs_path)
+                if parent.startswith(os.path.join(os.getcwd(), "uploaded_images", "property_documents")):
+                    if os.path.exists(parent) and not os.listdir(parent):
+                        os.rmdir(parent)
+            except:
+                pass
+
+        # Delete DB record
+        db.delete(doc)
+
+    db.commit()
+
+    # Delete entire directory for this property (safe cleanup)
+    prop_docs_dir = os.path.join(
+        "uploaded_images",
+        "property_documents",
+        str(village_id),
+        str(anu_kramank)
+    )
+
+    if os.path.exists(prop_docs_dir):
+        try:
+            shutil.rmtree(prop_docs_dir)
+        except:
+            pass
+
     # Remove associations with owners (many-to-many)
     prop.owners = []
     db.commit()
