@@ -181,7 +181,7 @@
 
             {% for row in data %}
             <tr class="record-row">
-                <td>{{ row.srNo }}</td>
+                <td>{{ row.id }}</td>
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitHouseTax}}{% endif %}</td>

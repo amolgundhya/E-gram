@@ -6,7 +6,8 @@ class PropertyDocument(Base):
     id = Column(Integer, primary_key=True, index=True)
     document_name = Column(String, nullable=False)
     document_path = Column(String, nullable=True)
-    document_image = Column(String, nullable=True)  # Store image path or filename
+    document_image = Column(String, nullable=True)
+    village_id = Column(Integer,nullable=False)# Store image path or filename
     property_anuKramank = Column(Integer, ForeignKey("properties.anuKramank"), nullable=False)
     district_id = Column(Integer, ForeignKey("districts.id"), nullable=True)
     taluka_id = Column(Integer, ForeignKey("talukas.id"), nullable=True)

@@ -5,6 +5,7 @@ class PropertyDocumentBase(BaseModel):
     document_name: str
     document_path: Optional[str] = None
     document_image: Optional[str] = None
+    village_id : int
     property_anuKramank: int
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None

@@ -136,6 +136,7 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
             db_owner = models.Owner(
                 name=owner.name, 
                 wifeName=owner.wifeName, 
+                occupantName = 'स्वतः',
                 village_id=prop.village_id,
                 district_id=data.district_id,
                 taluka_id=data.taluka_id,
@@ -203,8 +204,10 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         )
         total_area = round(rr.get('totalArea', 0) or 0, 2)
         mobile_number = rr.get('mobileNumber')
-        total_tax = rr.get('totaltax', 0) or 0
-        # Construction area excluding 'खाली जागा' - mirror owner_transfer logic using build_property_response
+        vpanikar_qr = rr.get('vpanikar',0)
+        totalTax_qr = rr.get('totaltax',0)
+        # electricityTax = record_response.get('electricityTax', 0)
+        totalTax = totalTax_qr - vpanikar_qr
         response = build_property_response(prop, db, prop.gram_panchayat_id)
         cons_area = sum(
             (c.get('length') or 0) * (c.get('width') or 0)
@@ -221,7 +224,7 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
             "एकूण क्षेत्रफळ": total_area,
             "बांधकाम क्षेत्रफळ": cons_area,
             "खुली जागा": open_area,
-            "एकूण कर": total_tax,
+            "एकूण कर": totalTax,
         }
         if wife_name:
             qr_data["पत्नीचे नाव"] = wife_name
