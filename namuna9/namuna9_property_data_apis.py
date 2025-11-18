@@ -264,6 +264,21 @@ def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(data
     apply('noticeFee', 'vasuliNoticeFee', payload.vasuliNoticeFee)
     apply('warrantFee', 'vasuliWarrantFee', payload.vasuliWarrantFee)
 
+    # Clamp negative values to zero before recalculating ekun/total
+    clamp_fields = [
+        'shaktiGhar', 'chaluGhar',
+        'shaktiDiva', 'chaluDiva',
+        'shaktiAarogyaKar', 'chaluAarogyaKar',
+        'shaktiSapanikar', 'chaluSapanikar',
+        'shaktiVpanikar', 'chaluVpanikar',
+        'shaktiCleaningTax', 'chaluCleaningTax',
+        'dand', 'noticeFee', 'warrantFee'
+    ]
+    for field in clamp_fields:
+        value = getattr(data, field)
+        if value is not None and value < 0:
+            setattr(data, field, 0)
+
     # Recompute ekun and total
     # Include dand in ekunGhar recompute
     data.ekunGhar = (max(data.shaktiGhar,0) or 0) + (max(0,data.chaluGhar) or 0) + (max(0,data.dand) or 0)
