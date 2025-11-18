@@ -808,9 +808,9 @@ def get_namuna9_table_data_custom(
         ekunCleaningTax = round(shaktiCleaningTax + chaluCleaningTax, 2)
 
         total = (
-            (ekunGhar or 0) + (ekunDiva or 0) + (ekunAarogyaKar or 0) +
-            (ekunSapanikar or 0) + (ekunVpanikar or 0) + (ekunCleaningTax or 0) +
-            (warrantFee or 0) + (noticeFee or 0)
+            (max(0,ekunGhar) or 0) + (max(0,ekunDiva) or 0) + (max(0,ekunAarogyaKar) or 0) +
+            (max(0,ekunSapanikar) or 0) + (max(0,ekunVpanikar) or 0) + (max(0,ekunCleaningTax) or 0) +
+            (max(0,warrantFee) or 0) + (max(0,noticeFee) or 0)
         )
         total = round(total, 2)
         row = {
@@ -849,7 +849,7 @@ def get_namuna9_table_data_custom(
             "totaltax": round(total, 2),
             "totaltaxwithoutnoticwarrant": round(total - (warrantFee or 0) - (noticeFee or 0), 2),
             "totaltaxwithoutspanivpaninoticewaraant": round(
-                (ekunGhar or 0) + (ekunDiva or 0) + (ekunAarogyaKar or 0)
+                (max(0,ekunGhar) or 0) + (max(0,ekunDiva) or 0) + (max(0,ekunAarogyaKar) or 0)
                 - 0  # clarity
                 + 0  # clarity
                 - 0  # clarity
@@ -857,10 +857,10 @@ def get_namuna9_table_data_custom(
                 , 2
             ) if False else round(
                 (total or 0)
-                - (ekunSapanikar or 0)
-                - (ekunVpanikar or 0)
-                - (warrantFee or 0)
-                - (noticeFee or 0)
+                - (max(0,ekunSapanikar) or 0)
+                - (max(0,ekunVpanikar) or 0)
+                - (max(0,warrantFee) or 0)
+                - (max(0,noticeFee) or 0)
             , 2),
             "pavatiSRKivyaTarik": 0
         }
