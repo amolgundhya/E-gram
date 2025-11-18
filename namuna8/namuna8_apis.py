@@ -659,18 +659,22 @@ def update_namuna8_entry(
     
     # Validate malmattaKramank duplication in the same village if it's being changed
     new_malmatta_kramank = property_update_data.get('malmattaKramank')
-    if new_malmatta_kramank is not None and str(new_malmatta_kramank).strip() != "":
-        # Check if the new malmattaKramank already exists for another property in the same village
-        existing_property = db.query(models.Property).filter(
-            models.Property.village_id == village_id,
-            models.Property.malmattaKramank == new_malmatta_kramank,
-            models.Property.id != db_property.id
-        ).first()
-        if existing_property:
-            raise HTTPException(
-                status_code=400,
-                detail="मालमत्ता क्रमांक आधीच या गावात अस्तित्वात आहे / Malmatta Kramank already exists in this village"
-            )
+    current_malmatta_kramank = getattr(db_property, 'malmattaKramank', None)
+    if new_malmatta_kramank is not None:
+        new_malmatta_kramank = str(new_malmatta_kramank).strip()
+    if new_malmatta_kramank:
+        # Only validate if the value is actually changing
+        if str(current_malmatta_kramank).strip() != new_malmatta_kramank:
+            existing_property = db.query(models.Property).filter(
+                models.Property.village_id == village_id,
+                models.Property.malmattaKramank == new_malmatta_kramank,
+                models.Property.id != db_property.id
+            ).first()
+            if existing_property:
+                raise HTTPException(
+                    status_code=400,
+                    detail="मालमत्ता क्रमांक आधीच या गावात अस्तित्वात आहे / Malmatta Kramank already exists in this village"
+                )
     
     for key, value in property_update_data.items():
         setattr(db_property, key, value)

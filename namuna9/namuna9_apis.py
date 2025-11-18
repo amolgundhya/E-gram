@@ -704,7 +704,8 @@ def get_namuna9_table_data_custom(
                     'chaluCleaningTax': t_clean
                 }
 
-    properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.id.in_([int(i) for i in property_ids])).all()
+    properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.id.in_([int(i) for i in property_ids]),
+                                                         namuna8_model.Property.village_id == villageId).all()
     rows = []
     for idx, prop in enumerate(properties, 1):
         prop_data = build_property_response(prop, db, gram_panchayat_id)
