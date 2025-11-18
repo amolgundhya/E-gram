@@ -149,6 +149,7 @@
             <tr>
                 <th rowspan="3">अ.क्र.</th>
                 <th rowspan="3">मालकाचे नाव</th>
+                <th rowspan="3" style="min-width:48px;">‍‍‍‍भोगवटदाराचे नाव</th>
                 <th colspan="3">वसुली</th>
                 <th rowspan="3">एकुण</th>
                 <th rowspan="2" colspan="4">सुट</th>
@@ -179,6 +180,7 @@
             <tr class="record-row">
                 <td>{{ row.id }}</td>
                 <td>{{ row.ownerName }}</td>
+                <td>{{ row.occupant }}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitSaWaterTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.saWaterTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalSaWaterTax}}{% endif %}</td>
@@ -198,6 +200,7 @@
         <tr>
             <td colspan="1"></td>
             <td style="font-weight:normal; text-align:right;">गोषवारा</td>
+            <td></td>
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitSaWaterTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='saWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalSaWaterTax') }}{% endif %}</td>
