@@ -821,6 +821,7 @@ def get_namuna9_table_data_custom(
             "jilha": None,
             "village": prop.village.name if hasattr(prop, 'village') and prop.village else None,
             "ownerName": ', '.join([o.get('name', '') for o in prop_data.get('owners', [])]),
+            "occupant" : ', '.join([o.get('occupantName', '') for o in prop_data.get('owners', [])]),
             "propertyNumber": prop_data.get('malmattaKramank', ''),
             # Map table columns into your field names
             "dhakitHouseTax": round(shaktiGhar, 2),
