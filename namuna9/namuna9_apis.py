@@ -704,7 +704,8 @@ def get_namuna9_table_data_custom(
                     'chaluCleaningTax': t_clean
                 }
 
-    properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.id.in_([int(i) for i in property_ids])).all()
+    properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.id.in_([int(i) for i in property_ids]),
+                                                         namuna8_model.Property.village_id == villageId).all()
     rows = []
     for idx, prop in enumerate(properties, 1):
         prop_data = build_property_response(prop, db, gram_panchayat_id)
@@ -807,9 +808,9 @@ def get_namuna9_table_data_custom(
         ekunCleaningTax = round(shaktiCleaningTax + chaluCleaningTax, 2)
 
         total = (
-            (ekunGhar or 0) + (ekunDiva or 0) + (ekunAarogyaKar or 0) +
-            (ekunSapanikar or 0) + (ekunVpanikar or 0) + (ekunCleaningTax or 0) +
-            (warrantFee or 0) + (noticeFee or 0)
+            (max(0,ekunGhar) or 0) + (max(0,ekunDiva) or 0) + (max(0,ekunAarogyaKar) or 0) +
+            (max(0,ekunSapanikar) or 0) + (max(0,ekunVpanikar) or 0) + (max(0,ekunCleaningTax) or 0) +
+            (max(0,warrantFee) or 0) + (max(0,noticeFee) or 0)
         )
         total = round(total, 2)
         row = {
@@ -843,11 +844,11 @@ def get_namuna9_table_data_custom(
             "totalCleaningTax": round(ekunCleaningTax, 2),
             "dhakitToiletTax": 0,
             "toiletTax": round(toiletTax, 2),
-            "totlaToiletTax": round(toiletTax, 2),
+            "totlaToiletTax": 0,
             "totaltax": round(total, 2),
             "totaltaxwithoutnoticwarrant": round(total - (warrantFee or 0) - (noticeFee or 0), 2),
             "totaltaxwithoutspanivpaninoticewaraant": round(
-                (ekunGhar or 0) + (ekunDiva or 0) + (ekunAarogyaKar or 0)
+                 (max(0,ekunGhar) or 0) + (max(0,ekunDiva) or 0) + (max(0,ekunAarogyaKar) or 0)
                 - 0  # clarity
                 + 0  # clarity
                 - 0  # clarity
@@ -855,10 +856,10 @@ def get_namuna9_table_data_custom(
                 , 2
             ) if False else round(
                 (total or 0)
-                - (ekunSapanikar or 0)
-                - (ekunVpanikar or 0)
-                - (warrantFee or 0)
-                - (noticeFee or 0)
+                - (max(0,ekunSapanikar) or 0)
+                - (max(0,ekunVpanikar) or 0)
+                - (max(0,warrantFee) or 0)
+                - (max(0,noticeFee) or 0)
             , 2),
             "pavatiSRKivyaTarik": 0
         }
@@ -926,7 +927,7 @@ def get_property_records_by_village_regular(
         thakit["Thakit2"] = r.get('shaktiDiva', 0)
         thakit["Thakit3"] = r.get('shaktiAarogyaKar', 0)
         thakit["Thakit4"] = r.get('shaktiSapanikar', 0)
-        thakit["Thakit5"] = r.get('shaktiVpanikar', 0)
+        thakit["Thakit5"] = r.get('shaktiCleaningTax', 0)
         thakit["Thakit6"] = r.get('noticeFee', 0)
         thakit["Thakit7"] = r.get('warrantFee', 0)
 
@@ -935,7 +936,7 @@ def get_property_records_by_village_regular(
             "current2": r.get('chaluDiva', 0),
             "current3": r.get('chaluAarogyaKar', 0),
             "current4": r.get('chaluSapanikar', 0),
-            "current5": r.get('chaluVpanikar', 0),
+            "current5": r.get('chaluCleaningTax', 0),
             "current6": r.get('noticeFee', 0),
             "current7": r.get('warrantFee', 0)
         }
@@ -944,7 +945,7 @@ def get_property_records_by_village_regular(
             "total2": r.get('ekunDiva', 0),
             "total3": r.get('ekunAarogyaKar', 0),
             "total4": r.get('ekunSapanikar', 0),
-            "total5": r.get('ekunVpanikar', 0),
+            "total5": r.get('ekunCleaningTax', 0),
             # For fees, show only the fee amount once in the last column
             "total6": r.get('noticeFee', 0),
             "total7": r.get('warrantFee', 0)
@@ -1002,7 +1003,7 @@ def get_property_records_by_village_regular(
                 + (r.get('ekunDiva', 0) or 0)
                 + (r.get('ekunAarogyaKar', 0) or 0)
                 + (r.get('ekunSapanikar', 0) or 0)
-                + (r.get('ekunVpanikar', 0) or 0)
+                + (r.get('ekunCleaningTax', 0) or 0)
                 + (r.get('warrantFee', 0) or 0)
                 + (r.get('noticeFee', 0) or 0)
             ),
@@ -1014,7 +1015,7 @@ def get_property_records_by_village_regular(
                 + (r.get('ekunCleaningTax', 0) or 0)
                 + (r.get('warrantFee', 0) or 0)
                 + (r.get('noticeFee', 0) or 0)
-                - (r.get('totlaToiletTax', 0) or 0)
+                # - (r.get('totlaToiletTax', 0) or 0)
             )
         })
     return mapped
@@ -1140,8 +1141,8 @@ def get_property_records_by_village_visheshpani(
                 + (r.get('ekunCleaningTax', 0) or 0)
                 + (r.get('warrantFee', 0) or 0)
                 + (r.get('noticeFee', 0) or 0))
-                - (r.get('ekunVpanikar', 0) or 0)
-                - (r.get('totlaToiletTax', 0) or 0)
+                + (r.get('ekunVpanikar', 0) or 0)
+                # - (r.get('totlaToiletTax', 0) or 0)
             )
             ,
             "totalTaxwithoutsafaitoilet": (
