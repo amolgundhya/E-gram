@@ -119,6 +119,8 @@ def get_ferfar_record_responses(
                 "propertyNumber": str(property_details.anuKramank),
                 "propertyDescription": f"क्षेत्र: {property_details.totalAreaSqFt} चौ.फूट" if property_details.totalAreaSqFt else "",
                 "previousOwnerName": ", ".join(previous_owner_names),
+                "previousOccupantName" : old_owners[0].get("occupantName") if old_owners and old_owners[0].get("occupantName") else "स्वतः",
+                "currentOccupantName"  : new_owners[0].get("occupantName") if new_owners and new_owners[0].get("occupantName") else "स्वतः",
                 "currentOwnerName": ", ".join(current_owner_names),
                 "modification_reference_remarks": log.doc_note or "",  # Using existing doc_note
                 "assessment_register_entry_details": log.register_note or ""  # Using existing register_note
