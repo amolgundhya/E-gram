@@ -151,6 +151,7 @@
             <th >पावती क्रमांक</th>
             <th >पावती बु. क्र.</th>
             <th >पावती धारकाचे नाव</th>
+            <th >‍‍‍‍भोगवटदाराचे नाव</th>
             <th >रक्कम देण्याचे कारण </th>
             <th >प्राप्त रक्कम</th>
         </tr>
@@ -162,13 +163,14 @@
             <td>{{ row.receiptNumber }}</td>
             <td>{{ row.receiptBookNumber }}</td>
             <td>{{ row.ownername }}</td>
+            <td>{{ row.occupant }}</td>
             <td>{{ row.reason }}</td>
             <td>{{ row.receivedMoney }}</td>
         </tr>
         {% set ns.total = ns.total + (row.receivedMoney | float) %}
         {% endfor %}
         <tr>
-            <td colspan="6" class="right bold">एकूण</td>
+            <td colspan="7" class="right bold">एकूण</td>
             <td>{{ ns.total }}</td>
         </tr>
     </table>

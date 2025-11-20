@@ -147,6 +147,7 @@
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
             <tr>
+                <th rowspan="3" style="min-width:48px;">‍‍भोगवटदाराचे नाव</th>
                 <th colspan="12" style="min-width:32px;">वसुली</th>
                 <th rowspan="2" colspan="4" style="min-width:48px;">सुट</th>
                 <th rowspan="2" colspan="4" style="min-width:120px;">बाकी</th>
@@ -185,6 +186,7 @@
 
             {% for row in data %}
             <tr class="record-row">
+                <td>{{ row.occupant }}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitHouseTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.houseTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalHouseTax}}{% endif %}</td>

@@ -155,6 +155,7 @@
                 <th>अ.क्र.</th>
                 <th>मालमत्ता क्रमांक</th>
                 <th>मालमत्ता धारकाचे नाव</th>
+                <th>‍‍‍‍भोगवटदाराचे नाव	</th>
                 <th>मालमत्तेचे वर्णन</th>
                 <th>एकूण जागा लांबी रुंदी चौ. फु.</th>
                 <th>क्षेत्रफळ चौ.फु.</th>
@@ -175,6 +176,7 @@
                 <td>{{ row.srNo }}</td>
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
+                <td>{{ row.occupantName }}</td>
                 <td>
                     {% set has_kj = row.khaliJaga and row.khaliJaga|length > 0 %}
                     {% set has_ct = row.constructionType and row.constructionType|length > 0 %}

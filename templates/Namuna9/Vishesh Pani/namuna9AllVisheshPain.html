@@ -150,6 +150,7 @@
                 <th rowspan="3" style="min-width:32px;">अ.क्र.</th>
                 <th rowspan="3" style="min-width:48px;">मिळकत नंबर</th>
                 <th rowspan="3" style="min-width:120px;">ज्या व्यक्तीकडुन कर येणे असेल त्या व्यक्तीचे नाव</th>
+                <th rowspan="3" style="min-width:48px;">‍‍‍‍भोगवटदाराचे नाव</th>
                 <th colspan="16">मागणी</th>
                 <th rowspan="3" style="min-width:48px;">एकूण कर</th>
                 <th rowspan="3" style="min-width:80px;">पावती क्रमांक व तारीख</th>
@@ -187,6 +188,7 @@
                 <td>{{ row.id }}</td>
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
+                <td>{{ row.occupant }}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitHouseTax}}{% endif %}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dandHouseTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.houseTax}}{% endif %}</td>
@@ -209,7 +211,7 @@
             {% endfor  %}
         </tbody>
         <tr>
-            <td colspan="3" style="font-weight:bold; text-align:left;">गोषवारा</td>
+            <td colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
             <td colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
@@ -218,6 +220,7 @@
             <td style="font-weight:bold; text-align:center;">एकूण </td>
         </tr>
         <tr>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>

@@ -149,6 +149,7 @@
             <tr>
                 <th rowspan="3">अ.क्र.</th>
                 <th rowspan="3">मालकाचे नाव</th>
+                <th rowspan="3" style="min-width:48px;">‍‍‍‍भोगवटदाराचे नाव</th>
                 <th colspan="13">वसुली</th>
                 <th rowspan="3">एकुण</th>
                 <th rowspan="2" colspan="4">सुट</th>
@@ -192,6 +193,7 @@
             <tr class="record-row">
                 <td>{{ row.id }}</td>
                 <td>{{ row.ownerName }}</td>
+                <td>{{ row.occupant }}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitHouseTax}}{% endif %}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dandHouseTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.houseTax}}{% endif %}</td>
@@ -219,7 +221,7 @@
             {% endfor  %}
         </tbody>
         <tr>
-            <td colspan="2" style="font-weight:bold; text-align:left;">गोषवारा</td>
+            <td colspan="3" style="font-weight:bold; text-align:left;">गोषवारा</td>
             <td colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
@@ -227,6 +229,7 @@
             <td style="font-weight:bold; text-align:center;">एकूण </td>
         </tr>
         <tr>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitHouseTax') }}{% endif %}</td>
