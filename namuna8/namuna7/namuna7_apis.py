@@ -116,6 +116,7 @@ def get_namuna7_custom_list(
     for idx, item in enumerate(items, start=1):
         owner = db.query(Owner).filter(Owner.id == item.userId).first()
         ownername = owner.name if owner else ""
+        occupant = getattr(owner, "occupantName", "") or ""
         village = db.query(Village).filter(Village.id == item.villageId).first()
         grampanchayat = village.name if village else ""
         result.append({
@@ -126,6 +127,7 @@ def get_namuna7_custom_list(
             "receiptBookNumber": item.receiptBookNumber,
             "village": grampanchayat,
             "ownername": ownername,
+            "occupant":occupant,
             "reason": item.reason or "",
             "receivedMoney": item.receivedMoney,
             "currentDate": today
@@ -204,6 +206,7 @@ def get_namuna7_print(item_id: int, db: Session = Depends(get_db)):
     if not item:
         raise HTTPException(status_code=404, detail="Namuna7 not found")
     owner = db.query(Owner).filter(Owner.id == item.userId).first()
+    occupant = getattr(owner, "occupantName", "") or ""
     village = db.query(Village).filter(Village.id == item.villageId).first()
     grampanchayat = village.name if village else ""
     ownername = owner.name if owner else ""
@@ -214,6 +217,7 @@ def get_namuna7_print(item_id: int, db: Session = Depends(get_db)):
         receiptBookNumber=int(item.__dict__["receiptBookNumber"]),
         village=grampanchayat,
         ownername=ownername,
+        occupant=occupant,
         reason=str(item.__dict__["reason"]) if item.__dict__["reason"] is not None else "",
         receivedMoney=int(item.__dict__["receivedMoney"]),
         currentDate=currentDate
