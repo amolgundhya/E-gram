@@ -151,6 +151,15 @@
                     मागणीची पावती क्र : {{ record.propertyNumber or '' }}<br>
                     दिनांक : {{ record.currentDate or '' }}
                 </td>
+                <td >
+
+                        <div class="center bold" style=" width: 50% ;border: 1px solid #000; width: 100px; height: 100px; margin: 0 auto;  overflow:hidden;">
+                            {% if record.bank_qr_code %}
+                                <img src="{{ record.bank_qr_code }}" class="qr" style="width: 100px; height: 100px; object-fit: contain;" />
+                            {% else %}
+                                <div></div>
+                            {% endif %}
+                    </td>
             </tr>
         </table>
         <table style="margin-top: 2px; width:100%;">
