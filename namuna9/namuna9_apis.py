@@ -9,11 +9,12 @@ from namuna8.mastertab import mastertabmodels as settingModels
 from sqlalchemy.exc import IntegrityError
 from namuna8.namuna8_apis import build_property_response
 from location_management import models as location_models
-
+import os
 router = APIRouter(
     prefix="/namuna9",
     tags=["namuna9"]
 )
+backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 
 @router.post("/copy-from-year")
 def copy_from_year(
@@ -921,6 +922,12 @@ def get_property_records_by_village_regular(
         applyPenalty=applyPenalty,
         db=db
     )
+    bank_qr = None;
+    from location_management import helpers
+    image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
+    if image_path and os.path.exists(image_path):
+          bank_qr = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
+    
     mapped = []
     from datetime import datetime
     for r in table_rows:
@@ -984,6 +991,7 @@ def get_property_records_by_village_regular(
             "currentDate": datetime.now().strftime('%Y-%m-%d'),
             "ownerName": r.get('ownerNames', ''),
             "occupantName": occupant_name,
+            "bank_qr_code":bank_qr,
             "houseNumber": r.get('malmattaKramank', ''),
             "कराचे नाव": {
                 "घरकर": r.get('chaluGhar', 0),
@@ -1060,7 +1068,11 @@ def get_property_records_by_village_visheshpani(
         applyPenalty=False,
         db=db
     )
-
+    bank_qr = None;
+    from location_management import helpers
+    image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
+    if image_path and os.path.exists(image_path):
+          bank_qr = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
     mapped = []
     from datetime import datetime
     for r in table_rows:
@@ -1117,6 +1129,7 @@ def get_property_records_by_village_visheshpani(
             "currentDate": datetime.now().strftime('%Y-%m-%d'),
             "ownerName": r.get('ownerNames', ''),
             "occupantName": occupant_name,
+            "bank_qr_code":bank_qr,
             "houseNumber": r.get('malmattaKramank', ''),
             "recoverableAmounts": {
                 "arrears": {"Thakit": thakit, "Dand": {"Dand1": r.get('dand', 0), "Dand2": 0, "Dand3": 0, "Dand4": 0, "Dand5": 0, "Dand6": 0, "Dand7": 0}},
