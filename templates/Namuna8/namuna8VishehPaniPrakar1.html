@@ -277,7 +277,7 @@
                 data-vsa-water-tax="{{ (row.vsaWaterTax if row.vsaWaterTax is defined else row.vpanikar) | default('0') }}"
                 data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
                 data-toilet-tax="{{ row.toiletTax | default('0') }}"
-                data-total-tax="{{ (row.totaltax|default(0)|float -  (row.toiletTax|default(0)|float)) }}"
+                data-total-tax="{{ (row.totaltax|default(0)|float -  (row.toiletTax|default(0)|float)) }}">
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
                 <td style="width: 300px;">{{ row.ownerName | default('') }}</td>
