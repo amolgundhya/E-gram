@@ -155,6 +155,7 @@
                 <th>अ.क्र.</th>
                 <th>गाव / मोहोल्ला</th>
                 <th>मालमत्ता क्रमांक</th>
+                <th>‍‍‍‍भोगवटदाराचे नाव	</th>
                 <th>मालमत्तेचे वर्णन</th>
                 <th>मालमत्ता धारकाचे नाव</th>
                 <th>एकूण कर रुपये</th>
@@ -169,6 +170,7 @@
                 <td>{{ row.srNo }}</td>
                 <td>{{ row.village }}</td>
                 <td>{{ row.propertyNumber }}</td>
+                <td>{{ row.occupantName }}</td>
                 <td>
                     {% set has_kj = row.khaliJaga and row.khaliJaga|length > 0 %}
                     {% set has_ct = row.constructionType and row.constructionType|length > 0 %}

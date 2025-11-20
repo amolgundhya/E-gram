@@ -149,7 +149,9 @@
                             <th style="border: 1px solid #888;">नोंद.क्र.</th>
                             <th style="border: 1px solid #888;">गाव</th>
                             <th style="border: 1px solid #888;">जागा विकणाराचे नाव </th>
+                            <th style="border: 1px solid #888;">जागा विकणाराचे ‍‍‍‍भोगवटदाराचे नाव </th>
                             <th style="border: 1px solid #888;">जागा घेनाराचे नाव </th>
+                            <th style="border: 1px solid #888;">जागा घेनाराचे ‍‍‍‍भोगवटदाराचे नाव </th>
                             <th style="border: 1px solid #888;">व्यवहार दिनांक  </th>
                         </tr>
                         {% for entry in entries %}
@@ -159,7 +161,9 @@
                                 <td style="border: 1px solid #888;">{{ entry.entry_number }}</td>
                                 <td style="border: 1px solid #888;">{{ entry.village }}</td>
                                 <td style="border: 1px solid #888;">{{ entry.previousOwnerName }}</td>
+                                <td style="border: 1px solid #888;">{{ entry.previousOccupantName }}</td>
                                 <td style="border: 1px solid #888;">{{ entry.currentOwnerName }}</td>
+                                <td style="border: 1px solid #888;">{{ entry.currentOccupantName }}</td>
                                 <td style="border: 1px solid #888;">{{ entry.transaction_date }}</td>
                             </tr>
                             <tr>

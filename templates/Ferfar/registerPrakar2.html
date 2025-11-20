@@ -145,7 +145,9 @@
                             <th colspan="2" style="border: 1px solid #888;">मिळकती बद्दल तपशील</th>
                             <th rowspan='2' style="border: 1px solid #888;">मिळकतीचे वर्णन</th>
                             <th rowspan='2' style="border: 1px solid #888;">मुळ मालकाचे नाव</th>
+                            <th rowspan='2' style="border: 1px solid #888;">मुळ ‍‍‍‍भोगवटदाराचे नाव</th>
                             <th rowspan='2' style="border: 1px solid #888;">नवीन मालकाचे नाव </th>
+                            <th rowspan='2' style="border: 1px solid #888;">नवीन ‍‍‍‍भोगवटदाराचे नाव </th>
                             <th rowspan='2' style="border: 1px solid #888;">ज्या कागदपत्राच्या आधारे फेरफार करण्यात आले त्याचे थोडक्यात टिप्पण</th>
                             <th rowspan='2' style="border: 1px solid #888;">फेरफारची नोंद आकारणी रजिस्टरच्या जया पानावर नोंद केली ते पान नंबर व ठराव क्रमांक दिनांकासह</th>
                             <th rowspan='2' style="border: 1px solid #888;">सरपंच सही</th>
@@ -180,7 +182,9 @@
                                 {% endif %}
                             </td>
                             <td style="border: 1px solid #888;">{{ entry.previousOwnerName }}</td>
+                            <td style="border: 1px solid #888;">{{ entry.previousOccupantName }}</td>
                             <td style="border: 1px solid #888;">{{ entry.currentOwnerName }}</td>
+                            <td style="border: 1px solid #888;">{{ entry.currentOccupantName }}</td>
                             <td style="border: 1px solid #888;">{{ entry.modification_reference_remarks }}</td>
                             <td style="border: 1px solid #888;">{{ entry.assessment_register_entry_details }}</td>
                             <td style="border: 1px solid #888;"></td>

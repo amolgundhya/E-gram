@@ -151,6 +151,7 @@
             <th >पावती क्रमांक</th>
             <th >पावती बु. क्र.</th>
             <th >मालमत्ता धारकाचे नाव</th>
+            <th >‍‍‍‍भोगवटदाराचे नाव</th>
             <th >मालमत्ता क्रमांक </th>
             <th >मागील घरकर</th>
             <th >चालू घरकर</th>
@@ -176,6 +177,7 @@
             <td>{{ r.pavti_kramank }}</td>
             <td>{{ r.pa_book_kramank or '' }}</td>
             <td>{{ r.owner_name or '' }}</td>
+            <td>{{ r.occupant or '' }}</td>
             <td>{{ r.malmatta_kramank or '' }}</td>
             <td>{{ r.vasuliGhar or 0 }}</td>
             <td>{{ r.vasuliChaluGhar or 0 }}</td>
@@ -196,7 +198,7 @@
         </tr>
         {% endfor %}
         <tr>
-            <td colspan="6" class="right bold">एकूण</td>
+            <td colspan="7" class="right bold">एकूण</td>
             {% set th_g = rows|map(attribute='vasuliGhar')|sum %}
             {% set ch_g = rows|map(attribute='vasuliChaluGhar')|sum %}
             <td>{{ th_g }}</td>

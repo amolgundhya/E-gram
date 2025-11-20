@@ -154,6 +154,7 @@
             <tr>
                 <th>अ.क्र.</th>
                 <th>मालमत्ता क्रमांक</th>
+                <th>‍‍‍‍भोगवटदाराचे नाव	</th>
                 <th>घरकर</th>
                 <th>दिवाकर</th>
                 <th>आरोग्यकर</th>
@@ -168,6 +169,7 @@
             <tr class="record-row">
                 <td>{{ row.srNo }}</td>
                 <td>{{ row.propertyNumber }}</td>
+                <td>{{ row.occupantName }}</td>
                 <td>{{ row.totalHouseTax }}</td>
                 <td>{{ row.lightingTax }}</td>
                 <td>{{ row.healthTax }}</td>
@@ -177,7 +179,7 @@
             {% endfor %}
             <!-- Totals row: each total below its respective column -->
             <tr>
-                <td colspan="2" style="text-align:right;"><b>एकूण :</b></td>
+                <td colspan="3" style="text-align:right;"><b>एकूण :</b></td>
                 <td>{{ data | sum(attribute='totalHouseTax') }}</td>
                 <td>{{ data | sum(attribute='lightingTax') }}</td>
                 <td>{{ data | sum(attribute='healthTax') }}</td>
