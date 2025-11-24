@@ -236,10 +236,14 @@
                     <!-- Center Section -->
                     <div style="flex: 1;">
                         <div style="height: 80px; border-bottom: 1px solid #666; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
-                            बांधकाम <br>
-                            {{constructionType[0].length if constructionType and constructionType|length > 0 else ''}} x {{constructionType[0].width if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].length if constructionType and constructionType|length > 1 else ''}} x {{constructionType[1].width if constructionType and constructionType|length > 1 else ''}}<br>{{constructionType[2].length if constructionType and constructionType|length > 2 else ''}} x {{constructionType[2].width if constructionType and constructionType|length > 2 else ''}}<br/>
-                            
-                        </div>
+                                बांधकाम <br>
+
+                                {% for item in constructionType %}
+                                    {% if item.length and item.width %}
+                                        {{ item.length }} x {{ item.width }}<br>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
                         <div style="height: 10px; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
                             खुली जागा <br>
                             {{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}} 

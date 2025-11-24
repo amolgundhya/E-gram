@@ -216,7 +216,13 @@
         <td rowspan="2"></td>
     </tr>
     <tr>
-    <td>{{constructionType[0].rate if constructionType and constructionType|length > 0 else ''}}-{{constructionType[0].length if constructionType and constructionType|length > 0 else ''}}x{{constructionType[0].width if constructionType and constructionType|length > 0 else ''}} <br>{{constructionType[1].rate if constructionType and constructionType|length > 1 else ''}}-{{constructionType[1].length if constructionType and constructionType|length > 1 else ''}}x{{constructionType[1].width if constructionType and constructionType|length > 1 else ''}} <br>{{constructionType[2].rate if constructionType and constructionType|length > 2 else ''}}-{{constructionType[2].length if constructionType and constructionType|length > 2 else ''}}x{{constructionType[2].width if constructionType and constructionType|length > 2 else ''}}<br/></td>
+        <td>
+            {% for item in constructionType %}
+                {% if item.rate and item.length and item.width %}
+                    {{ item.rate }} - {{ item.length }}x{{ item.width }}<br>
+                {% endif %}
+            {% endfor %}
+        </td>
         <td>{{constructionType[0].depreciation_rate if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].depreciation_rate if constructionType and constructionType|length > 1 else ''}}<br>{{constructionType[2].depreciation_rate if constructionType and constructionType|length > 2 else ''}}<br/>0</td>
         <td>{{constructionType[0].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 1 else ''}}<br>{{constructionType[2].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 2 else ''}}<br/>{{khaliJaga[0].usageBasedBuildingWeightageFactor if khaliJaga and khaliJaga|length > 0 else ''}}</td>
     </tr>
