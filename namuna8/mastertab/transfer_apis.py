@@ -35,7 +35,7 @@ class TransferOwner(BaseModel):
     id: Optional[int] = None
     name: str
     wifeName: Optional[str] = None
-
+    occupantName : Optional[str] = None
 class PropertyTransferCreate(BaseModel):
     property_id: int
     date: date
@@ -69,7 +69,8 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail="Property not found")
     
     # Get old owners for log
-    old_owners = [TransferOwner(id=o.id, name=o.name, wifeName=o.wifeName) for o in prop.owners]
+    old_owners = [TransferOwner(id=o.id, name=o.name, wifeName=o.wifeName, occupantName=o.occupantName) for o in prop.owners]
+
     
     # BEFORE TRANSFER: Save previous owners to PropertyOwnerHistory
     # Get or create PropertyOwnerHistory for this property
@@ -175,8 +176,8 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         date=data.date,
         entry_no=data.entry_no,
         transaction_date=data.transaction_date if data.transaction_date else data.date,  # Use date as fallback
-        new_owners_json=json.dumps([{"id": o.id, "name": o.name, "wifeName": o.wifeName} for o in new_owners]),
-        old_owners_json=json.dumps([{"id": o.id, "name": o.name, "wifeName": o.wifeName} for o in old_owners]),
+        new_owners_json=json.dumps([{"id": o.id, "name": o.name, "wifeName": o.wifeName,"occupantName":o.occupantName} for o in new_owners]),
+        old_owners_json=json.dumps([{"id": o.id, "name": o.name, "wifeName": o.wifeName,"occupantName":o.occupantName} for o in old_owners]),
         doc_note=data.doc_note,
         register_note=data.register_note,
         created_at=datetime.utcnow()

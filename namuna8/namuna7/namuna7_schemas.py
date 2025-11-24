@@ -42,6 +42,7 @@ class Namuna7PrintResponse(BaseModel):
     receiptBookNumber: int
     village: str
     ownername: str
+    occupant: str
     reason: str
     receivedMoney: int
     currentDate: str 

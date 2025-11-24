@@ -10,11 +10,13 @@ from sqlalchemy.exc import IntegrityError
 from namuna8.namuna8_apis import build_property_response
 from location_management import models as location_models
 from typing import List
+from location_management import helpers
+import os
 router = APIRouter(
     prefix="/namuna9",
     tags=["namuna9"]
 )
-
+backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 @router.post("/copy-from-year")
 def copy_from_year(
     payload: dict,
@@ -821,6 +823,7 @@ def get_namuna9_table_data_custom(
             "jilha": None,
             "village": prop.village.name if hasattr(prop, 'village') and prop.village else None,
             "ownerName": ', '.join([o.get('name', '') for o in prop_data.get('owners', [])]),
+            "occupant" : ', '.join([o.get('occupantName', '') for o in prop_data.get('owners', [])]),
             "propertyNumber": prop_data.get('malmattaKramank', ''),
             # Map table columns into your field names
             "dhakitHouseTax": round(shaktiGhar, 2),
@@ -919,6 +922,10 @@ def get_property_records_by_village_regular(
         applyPenalty=applyPenalty,
         db=db
     )
+    bank_qr = None
+    image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
+    if image_path and os.path.exists(image_path):
+          bank_qr = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
     mapped = []
     from datetime import datetime
     for r in table_rows:
@@ -982,6 +989,7 @@ def get_property_records_by_village_regular(
             "currentDate": datetime.now().strftime('%Y-%m-%d'),
             "ownerName": r.get('ownerNames', ''),
             "occupantName": occupant_name,
+            "bank_qr_code":bank_qr,
             "houseNumber": r.get('malmattaKramank', ''),
             "कराचे नाव": {
                 "घरकर": r.get('chaluGhar', 0),
@@ -1058,7 +1066,10 @@ def get_property_records_by_village_visheshpani(
         applyPenalty=False,
         db=db
     )
-
+    bank_qr = None
+    image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
+    if image_path and os.path.exists(image_path):
+          bank_qr = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
     mapped = []
     from datetime import datetime
     for r in table_rows:
@@ -1114,6 +1125,7 @@ def get_property_records_by_village_visheshpani(
             "propertyNumber": r.get('malmattaKramank', ''),
             "currentDate": datetime.now().strftime('%Y-%m-%d'),
             "ownerName": r.get('ownerNames', ''),
+            "bank_qr_code":bank_qr,
             "occupantName": occupant_name,
             "houseNumber": r.get('malmattaKramank', ''),
             "recoverableAmounts": {
