@@ -380,6 +380,96 @@ def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database
     db.refresh(rec)
     return rec
 
+# @router.get("/receipt/list", response_model=list[Namuna9ReceiptRead])
+# def list_receipts(
+#     district_id: int,
+#     taluka_id: int,
+#     village_id: int,
+#     gram_panchayat_id: int,
+#     from_date: Optional[str] = None,
+#     to_date: Optional[str] = None,
+#     receipt_id: Optional[int] = None,
+#     show_all: bool = False,
+#     db: Session = Depends(database.get_db)
+# ):
+#     # Validate hierarchy
+#     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
+#     if not district:
+#         raise HTTPException(status_code=404, detail="District not found")
+#     taluka = db.query(location_models.Taluka).filter(
+#         location_models.Taluka.id == taluka_id,
+#         location_models.Taluka.district_id == district_id
+#     ).first()
+#     if not taluka:
+#         raise HTTPException(status_code=400, detail="Taluka does not belong to district")
+#     gram_panchayat = db.query(location_models.GramPanchayat).filter(
+#         location_models.GramPanchayat.id == gram_panchayat_id,
+#         location_models.GramPanchayat.taluka_id == taluka_id
+#     ).first()
+#     if not gram_panchayat:
+#         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to taluka")
+#     village = db.query(namuna8_model.Village).filter(
+#         namuna8_model.Village.id == village_id,
+#         namuna8_model.Village.gram_panchayat_id == gram_panchayat_id
+#     ).first()
+#     if not village:
+#         raise HTTPException(status_code=400, detail="Village does not belong to gram panchayat")
+
+#     q = db.query(namuna9_model.Namuna9Receipt).filter(
+#         namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id
+#     )
+#     # Further restrict to receipts for properties in this village
+#     prop_ids_subq = db.query(namuna8_model.Property.id).filter(namuna8_model.Property.village_id == village_id).subquery()
+#     q = q.filter(namuna9_model.Namuna9Receipt.property_id.in_(prop_ids_subq))
+#     if receipt_id:
+#         print(f"[DEBUG] Searching for receipt_id: {receipt_id} (type: {type(receipt_id)})")
+#         # Search by both id and pavti_kramank to handle both cases
+#         q = q.filter(
+#             (namuna9_model.Namuna9Receipt.id == receipt_id) | 
+#             (namuna9_model.Namuna9Receipt.pavti_kramank == receipt_id)
+#         )
+#         print(f"[DEBUG] Query after receipt_id filter: {q}")
+#     if not show_all:
+#         def _parse_dt(s: Optional[str]):
+#             if not s:
+#                 return None
+#             try:
+#                 return datetime.fromisoformat(s)
+#             except Exception:
+#                 try:
+#                     return datetime.strptime(s, '%Y-%m-%d')
+#                 except Exception:
+#                     return None
+#         fd = _parse_dt(from_date)
+#         td = _parse_dt(to_date)
+#         date_expr = func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt)
+#         if fd:
+#             q = q.filter(date_expr >= fd)
+#         if td:
+#             # include the whole day if only date provided
+#             td_end = td
+#             if td.time().hour == 0 and td.time().minute == 0 and td.time().second == 0:
+#                 td_end = td + timedelta(days=1)
+#             q = q.filter(date_expr < td_end)
+#     results = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
+#     # Ensure snapshot fields are filled for legacy rows
+#     for rec in results:
+#         if (not rec.owner_name) or (not rec.malmatta_kramank):
+#             prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == rec.property_id).first()
+#             if prop:
+#                 if not rec.malmatta_kramank:
+#                     rec.malmatta_kramank = prop.malmattaKramank
+#                 if not rec.owner_name:
+#                     try:
+#                         if prop.owners and len(prop.owners) > 0 and getattr(prop.owners[0], 'name', None):
+#                             rec.owner_name = prop.owners[0].name
+#                     except Exception:
+#                         pass
+#     db.commit()
+#     print(f"[DEBUG] Found {len(results)} receipts")
+#     for i, rec in enumerate(results):
+#         print(f"[DEBUG] Receipt {i}: id={rec.id}, pavti_kramank={rec.pavti_kramank}, property_id={rec.property_id}")
+#     return results
 @router.get("/receipt/list", response_model=list[Namuna9ReceiptRead])
 def list_receipts(
     district_id: int,
@@ -396,18 +486,21 @@ def list_receipts(
     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
     if not district:
         raise HTTPException(status_code=404, detail="District not found")
+
     taluka = db.query(location_models.Taluka).filter(
         location_models.Taluka.id == taluka_id,
         location_models.Taluka.district_id == district_id
     ).first()
     if not taluka:
         raise HTTPException(status_code=400, detail="Taluka does not belong to district")
+
     gram_panchayat = db.query(location_models.GramPanchayat).filter(
         location_models.GramPanchayat.id == gram_panchayat_id,
         location_models.GramPanchayat.taluka_id == taluka_id
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to taluka")
+
     village = db.query(namuna8_model.Village).filter(
         namuna8_model.Village.id == village_id,
         namuna8_model.Village.gram_panchayat_id == gram_panchayat_id
@@ -415,44 +508,69 @@ def list_receipts(
     if not village:
         raise HTTPException(status_code=400, detail="Village does not belong to gram panchayat")
 
-    q = db.query(namuna9_model.Namuna9Receipt).filter(
-        namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id
+    # ---------------- FILTER START ----------------
+
+    # Always filter by selected village
+    prop_ids_subq = db.query(namuna8_model.Property.id).filter(
+        namuna8_model.Property.village_id == village_id
+    ).subquery()
+
+    base_q = db.query(namuna9_model.Namuna9Receipt).filter(
+        namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id,
+        namuna9_model.Namuna9Receipt.property_id.in_(prop_ids_subq)
     )
-    # Further restrict to receipts for properties in this village
-    prop_ids_subq = db.query(namuna8_model.Property.id).filter(namuna8_model.Property.village_id == village_id).subquery()
-    q = q.filter(namuna9_model.Namuna9Receipt.property_id.in_(prop_ids_subq))
-    if receipt_id:
-        print(f"[DEBUG] Searching for receipt_id: {receipt_id} (type: {type(receipt_id)})")
-        # Search by both id and pavti_kramank to handle both cases
-        q = q.filter(
-            (namuna9_model.Namuna9Receipt.id == receipt_id) | 
-            (namuna9_model.Namuna9Receipt.pavti_kramank == receipt_id)
+
+    if show_all:
+        # Only filter by village, ignore date + receipt filters
+        q = base_q.order_by(
+            func.coalesce(
+                namuna9_model.Namuna9Receipt.pavti_date,
+                namuna9_model.Namuna9Receipt.createdAt
+            ).desc()
         )
-        print(f"[DEBUG] Query after receipt_id filter: {q}")
-    if not show_all:
+    else:
+        q = base_q
+
+        # Filter by receipt id if provided
+        if receipt_id:
+            q = q.filter(
+                (namuna9_model.Namuna9Receipt.id == receipt_id) |
+                (namuna9_model.Namuna9Receipt.pavti_kramank == receipt_id)
+            )
+
+        # Date filtering
         def _parse_dt(s: Optional[str]):
             if not s:
                 return None
             try:
                 return datetime.fromisoformat(s)
-            except Exception:
+            except:
                 try:
                     return datetime.strptime(s, '%Y-%m-%d')
-                except Exception:
+                except:
                     return None
+
         fd = _parse_dt(from_date)
         td = _parse_dt(to_date)
-        date_expr = func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt)
+
+        date_expr = func.coalesce(
+            namuna9_model.Namuna9Receipt.pavti_date,
+            namuna9_model.Namuna9Receipt.createdAt
+        )
+
         if fd:
             q = q.filter(date_expr >= fd)
         if td:
-            # include the whole day if only date provided
-            td_end = td
-            if td.time().hour == 0 and td.time().minute == 0 and td.time().second == 0:
-                td_end = td + timedelta(days=1)
+            td_end = td + timedelta(days=1)
             q = q.filter(date_expr < td_end)
-    results = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
-    # Ensure snapshot fields are filled for legacy rows
+
+        q = q.order_by(date_expr.desc())
+
+    results = q.all()
+
+    # ---------------- FILTER END ----------------
+
+    # Fill snapshot missing
     for rec in results:
         if (not rec.owner_name) or (not rec.malmatta_kramank):
             prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == rec.property_id).first()
@@ -465,11 +583,14 @@ def list_receipts(
                             rec.owner_name = prop.owners[0].name
                     except Exception:
                         pass
+
     db.commit()
-    print(f"[DEBUG] Found {len(results)} receipts")
-    for i, rec in enumerate(results):
-        print(f"[DEBUG] Receipt {i}: id={rec.id}, pavti_kramank={rec.pavti_kramank}, property_id={rec.property_id}")
+
+    print(f"[DEBUG] Show All Mode: {show_all}")
+    print(f"[DEBUG] Total receipts returned: {len(results)}")
+
     return results
+
 
 @router.post("/append-village-data")
 def append_village_data_to_namuna9(
