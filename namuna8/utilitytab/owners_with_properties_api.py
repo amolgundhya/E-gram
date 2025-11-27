@@ -51,15 +51,47 @@ def owners_with_properties_by_village(
         result.append(owner_dict)
     return result
 
+# @router.delete("/owners/delete/")
+# def delete_owners(owner_ids: list[int] = Body(...), db: Session = Depends(get_db)):
+#     for owner_id in owner_ids:
+#         owner = db.query(namuna8_model.Owner).filter(namuna8_model.Owner.id == owner_id).first()
+#         if not owner:
+#             continue
+#         # Remove owner from all properties
+#         for prop in owner.properties:
+#             prop.owners = [o for o in prop.owners if o.id != owner_id]
+#         db.delete(owner)
+#     db.commit()
+#     return {"success": True, "deleted_owner_ids": owner_ids} 
+
+
 @router.delete("/owners/delete/")
 def delete_owners(owner_ids: list[int] = Body(...), db: Session = Depends(get_db)):
+    deleted_properties = []
+
     for owner_id in owner_ids:
-        owner = db.query(namuna8_model.Owner).filter(namuna8_model.Owner.id == owner_id).first()
+        owner = db.query(namuna8_model.Owner).filter(
+            namuna8_model.Owner.id == owner_id
+        ).first()
+
         if not owner:
             continue
-        # Remove owner from all properties
-        for prop in owner.properties:
-            prop.owners = [o for o in prop.owners if o.id != owner_id]
+
+        # Collect all properties owned by this owner
+        properties = list(owner.properties)
+
+        # Delete each property
+        for prop in properties:
+            deleted_properties.append(prop.id)
+            db.delete(prop)
+
+        # Finally delete the owner
         db.delete(owner)
+
     db.commit()
-    return {"success": True, "deleted_owner_ids": owner_ids} 
+
+    return {
+        "success": True,
+        "deleted_owner_ids": owner_ids,
+        "deleted_property_ids": deleted_properties
+    }
