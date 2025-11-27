@@ -372,16 +372,12 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id),str(db_property.anuKramank))
                 # print(f"DEBUG: Creating QR directory: {qr_dir}")
                 os.makedirs(qr_dir, exist_ok=True)
-                qr_path = os.path.join(qr_dir, "qrcode.png")
-                # print(f"DEBUG: QR path: {qr_path}")
-                # print(f"DEBUG: QR data: {qr_data}")
-                QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)
-                # print(f"DEBUG: QR code generated successfully")
+                qr_path = os.path.join(qr_dir, "qrcode.png") 
+                QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)  
                 db_property.qrcode = qr_path.replace(os.sep, "/")
                 db.flush()
                 logging.info("QR code generated successfully")
-                # print(f"DEBUG: QR path saved to database: {db_property.qrcode}")
-
+                
                 ### For generating QR Template ###
                 try:
                     ###Creating new QRcode for template
@@ -418,12 +414,9 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
                     QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
                     #get template
-                    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-                    print("base_dir ----->"  , base_dir)
-                    template_dir = os.path.join(base_dir, 'templates')
-                    print("template_dir ----->"  , template_dir)
+                    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))    
+                    template_dir = os.path.join(base_dir, 'templates')  
                     namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
-                    print("namuna8_template_dir ----->"  , namuna8_template_dir)
                     env = Environment(loader=FileSystemLoader(namuna8_template_dir))
                     template = env.get_template('qrTemplate.html')
 
@@ -493,7 +486,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                         f.write(rendered_html)
 
 
-                    print("QR Template successfully created")
+                   
 
 
                 except Exception as e:
@@ -501,17 +494,15 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
         ### For generating QR Template ###
             except Exception as e:
                 logging.error(f"QR code generation failed: {e}")
-                # print(f"QR code generation failed: {e}")
+               
             return response
     except SQLAlchemyError as e:
         db.rollback()
         logging.error(f"Database error during property creation: {e}")
-        # print(f"DEBUG: Database error details: {e}")
         raise HTTPException(status_code=500, detail="Failed to save property and owners: " + str(e))
     except Exception as e:
         db.rollback()
         logging.error(f"Unexpected error during property creation: {e}")
-        # print(f"DEBUG: Unexpected error details: {e}")
         raise HTTPException(status_code=500, detail="Failed to save property and owners: " + str(e))
 
 @router.get("/property_list/", response_model=list[schemas.PropertyList])
@@ -1096,11 +1087,8 @@ def update_namuna8_entry(
             QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
             #get template
             base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-            print("base_dir ----->"  , base_dir)
             template_dir = os.path.join(base_dir, 'templates')
-            print("template_dir ----->"  , template_dir)
             namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
-            print("namuna8_template_dir ----->"  , namuna8_template_dir)
             env = Environment(loader=FileSystemLoader(namuna8_template_dir))
             template = env.get_template('qrTemplate.html')
 
@@ -1149,11 +1137,10 @@ def update_namuna8_entry(
                 f.write(rendered_html)
 
 
-            print("QR Template successfully created")
+            
         except Exception as e:
             logging.error("Error in generating the qr template : %s", e)
-        ### For generating QR Template ###
-        # print(f"DEBUG UPDATE: QR path saved to database: {db_property.qrcode}")
+       
     except Exception as e:
         logging.error(f"QR code update failed: {e}")
     return response
