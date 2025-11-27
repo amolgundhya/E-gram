@@ -181,18 +181,18 @@ def get_property_record(
                 
             khaliJaga = [{
                 "constructiontype": prop.vacantLandType,
-                "length": round(khali_area, 2),
+                "length": round(khali_area),
                 "width": 1,
                 "year": datetime.now().year,
                 "rate": khali_jaga_rate,
                 "floor": "तळमजला",
                 "usage": prop.vacantLandType,
-                "capitalValue": 0 if prop.karLaguNahi else round(capital_value, 2),
+                "capitalValue": 0 if prop.karLaguNahi else round(capital_value),
                 "houseTax": 0 if prop.karLaguNahi else house_tax,
                 "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
                 "taxRates": 0 if prop.karLaguNahi else (getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0),
-                "totalkhalijagaareainfoot": round(khali_area, 2),
-                "totalkhalijagaareainmeters": round(khali_area * 0.092903, 2)
+                "totalkhalijagaareainfoot": round(khali_area),
+                "totalkhalijagaareainmeters": round(khali_area * 0.092903)
             }]
     # else: khaliJaga remains []
     # Fetch weightage mapping for usage
@@ -308,8 +308,8 @@ def get_property_record(
         "photoURL": photo_url,
         "bank_qr_code": None,
         "QRcodeURL": None,
-        "total_arearinfoot": round(prop.totalAreaSqFt or 0, 2),
-        "totalareainmeters": round((prop.totalAreaSqFt or 0) * 0.092903, 2),
+        "total_arearinfoot": round(prop.totalAreaSqFt or 0),
+        "totalareainmeters": round((prop.totalAreaSqFt or 0) * 0.092903),
         "occupantName": owner.occupantName if owner else None,
         "aadharNumber": owner.aadhaarNumber if owner else None,
         "ownerName": owner.name if owner else None,
@@ -321,7 +321,7 @@ def get_property_record(
         "areaWest": prop.westLength,
         "areaNorth": prop.northLength,
         "areaSouth": prop.southLength,
-        "totalArea": round(prop.totalAreaSqFt or 0, 2),
+        "totalArea": round(prop.totalAreaSqFt or 0),
         "boundaryEast": prop.eastBoundary,
         "boundaryWest": prop.westBoundary,
         "boundaryNorth": prop.northBoundary,
@@ -518,12 +518,12 @@ def get_property_records_by_village(
                     "rate": khali_jaga_rate,
                     "floor": "तळमजला",
                     "usage": prop.vacantLandType,
-                    "capitalValue": 0 if prop.karLaguNahi else round(capital_value, 2),
+                    "capitalValue": 0 if prop.karLaguNahi else round(capital_value),
                     "houseTax": 0 if prop.karLaguNahi else house_tax,
                     "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
                     "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
-                    "totalkhalijagaareainfoot": round(khali_area, 2),
-                    "totalkhalijagaareainmeters": round(khali_area_m, 2)
+                    "totalkhalijagaareainfoot": round(khali_area),
+                    "totalkhalijagaareainmeters": round(khali_area_m)
                 }]
         # else: khaliJaga remains []
         # Fetch weightage mapping for usage
