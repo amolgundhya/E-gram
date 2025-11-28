@@ -218,17 +218,25 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         cons_area = round(cons_area, 2)
         open_area = round(total_area - cons_area, 2)
 
+        # qr_data = {
+        #     "अनुक्रमांक": getattr(prop, 'anuKramank', None),
+        #     "मालकाचे नाव": owner_name,
+        #     # "mobileNumber": mobile_number,
+        #     "एकूण क्षेत्रफळ": total_area,
+        #     "बांधकाम क्षेत्रफळ": cons_area,
+        #     "खुली जागा": open_area,
+        #     "एकूण कर": totalTax,
+        # }
+        # if wife_name:
+        #     qr_data["पत्नीचे नाव"] = wife_name
+
         qr_data = {
-            "अनुक्रमांक": getattr(prop, 'anuKramank', None),
-            "मालकाचे नाव": owner_name,
-            # "mobileNumber": mobile_number,
-            "एकूण क्षेत्रफळ": total_area,
-            "बांधकाम क्षेत्रफळ": cons_area,
-            "खुली जागा": open_area,
-            "एकूण कर": totalTax,
+            # Marathi labels for QR display
+            "मा. धा. ना.": owner_name,
+            "Mal. Kr." : getattr(prop, 'malmattaKramank', None),
+            "T. A.": total_area,
+            "T. T.": totalTax
         }
-        if wife_name:
-            qr_data["पत्नीचे नाव"] = wife_name
 
         qr_dir = os.path.join(
             "uploaded_images", "qrcode",

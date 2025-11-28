@@ -278,17 +278,25 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
             constructionArea = round(constructionArea, 2)
             openArea = round(totalArea - constructionArea, 2)
 
+            # qr_data = {
+            #     "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
+            #     "मालकाचे नाव": owner_name,
+            #     # "mobileNumber": mobile_number,
+            #     "एकूण क्षेत्रफळ": totalArea,
+            #     "बांधकाम क्षेत्रफळ": constructionArea,
+            #     "खुली जागा": openArea,
+            #     "एकूण कर": totalTax,
+            # }
+            # if wife_name:
+            #     qr_data["पत्नीचे नाव"] = wife_name
+
             qr_data = {
-                "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
-                "मालकाचे नाव": owner_name,
-                # "mobileNumber": mobile_number,
-                "एकूण क्षेत्रफळ": totalArea,
-                "बांधकाम क्षेत्रफळ": constructionArea,
-                "खुली जागा": openArea,
-                "एकूण कर": totalTax,
+                    # Marathi labels for QR display
+                    "मा. धा. ना.": owner_name,
+                    "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
+                    "T. A.": totalArea,
+                    "T. T.": totalTax
             }
-            if wife_name:
-                qr_data["पत्नीचे नाव"] = wife_name
 
             qr_dir = os.path.join(
                 "uploaded_images", "qrcode",
