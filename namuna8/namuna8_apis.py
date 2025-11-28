@@ -365,7 +365,6 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 }
                 # Create location-based QR directory structure
                 qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id),str(db_property.anuKramank))
-                # print(f"DEBUG: Creating QR directory: {qr_dir}")
                 os.makedirs(qr_dir, exist_ok=True)
                 qr_path = os.path.join(qr_dir, "qrcode.png") 
                 QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)  
