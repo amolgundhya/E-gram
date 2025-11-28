@@ -349,13 +349,14 @@
                         <div style="flex: 1;">
                             <div style="height: 80px; border-bottom: 1px solid #666; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
                                 बांधकाम <br>
-                               {% for item in constructionType %}
+
+                                {% for item in constructionType %}
                                     {% if item.length and item.width %}
                                         {{ item.length }} x {{ item.width }}<br>
                                     {% endif %}
                                 {% endfor %}
-                                
                             </div>
+
                             <div style="height: 10px; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
                                 खुली जागा <br>
                                 {{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}}

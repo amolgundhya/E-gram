@@ -352,17 +352,13 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
 
                 qr_data = {
-                    # Marathi labels for QR display
-                    "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
-                    "मालकाचे नाव": owner_name,
-                    # "mobileNumber": mobile_number,
-                    "एकूण क्षेत्रफळ": totalArea,
-                    "बांधकाम क्षेत्रफळ": constructionArea,
-                    "खुली जागा": openArea,
-                    "एकूण कर": totalTax,
+                    "मा. धा. ना.": owner_name,
+                    "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
+                    "T. A.": totalArea,
+                    "T. T.": totalTax
                 }
-                if wife_name:
-                    qr_data["पत्नीचे नाव"] = wife_name
+                # if wife_name:
+                #     qr_data["पत्नीचे नाव"] = wife_name
                 # Create location-based QR directory structure
                 qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id),str(db_property.anuKramank))
                 # print(f"DEBUG: Creating QR directory: {qr_dir}")
@@ -1008,17 +1004,11 @@ def update_namuna8_entry(
         boundary_south = record_response.get('boundarySouth') or getattr(db_property, 'southBoundary', None)
 
         qr_data = {
-                    # Marathi labels for QR display
-            "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
-            "मालकाचे नाव": owner_name,
-            # "mobileNumber": mobile_number,
-            "एकूण क्षेत्रफळ": totalArea,
-            "बांधकाम क्षेत्रफळ": constructionArea,
-            "खुली जागा": openArea,
-            "एकूण कर": totalTax,
+            "मा. धा. ना.": owner_name,
+            "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
+            "T. A.": totalArea,
+            "T. T.": totalTax
         }
-        if wife_name:
-            qr_data["पत्नीचे नाव"] = wife_name
         
         # Create location-based QR directory structure
         qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id), str(db_property.anuKramank))
@@ -2529,15 +2519,13 @@ def serialize_properties(
                     gp_name = safe_name(gram_panchayat_obj.name if gram_panchayat_obj else str(db_property.gram_panchayat_id))
                     
                     qr_data = {
-                        "अनुक्रमांक": db_property.anuKramank,
-                        "मालकाचे नाव": owner_name,
-                        "एकूण क्षेत्रफळ": totalArea,
-                        "बांधकाम क्षेत्रफळ": constructionArea,
-                        "खुली जागा": openArea,
-                        "एकूण कर": totalTax,
+                        # Marathi labels for QR display
+                        "मा. धा. ना.": owner_name,
+                        "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
+                        "T. A.": totalArea,
+                        "T. T.": totalTax
                     }
-                    if wife_name:
-                        qr_data["पत्नीचे नाव"] = wife_name
+                    
                     
                     # Create location-based QR directory structure
                     qr_dir = os.path.join(

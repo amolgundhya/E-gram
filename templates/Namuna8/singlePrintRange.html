@@ -250,13 +250,14 @@
         <td rowspan="2"></td>
     </tr>
     <tr>
-         <td>
+                <td>
             {% for item in row.constructionType %}
                 {% if item.rate and item.length and item.width %}
                     {{ item.rate }} - {{ item.length }}x{{ item.width }}<br>
                 {% endif %}
             {% endfor %}
         </td>
+
         <td>{{row.constructionType[0].depreciation_rate if row.constructionType and row.constructionType|length > 0 else ''}}<br>{{row.constructionType[1].depreciation_rate if row.constructionType and row.constructionType|length > 1 else ''}}<br>{{row.constructionType[2].depreciation_rate if row.constructionType and row.constructionType|length > 2 else ''}}<br/>0</td>
         <td>{{row.constructionType[0].usageBasedBuildingWeightageFactor if row.constructionType and row.constructionType|length > 0 else ''}}<br> {{row.constructionType[1].usageBasedBuildingWeightageFactor if row.constructionType and row.constructionType|length > 1 else ''}} <br> {{row.constructionType[2].usageBasedBuildingWeightageFactor if row.constructionType and row.constructionType|length > 2 else ''}} <br/> {{row.khaliJaga[0].usageBasedBuildingWeightageFactor if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
     </tr>
@@ -367,7 +368,7 @@
                     <!-- Center Section -->
                     <div style="flex: 1;">
                         <div style="height: 80px; border-bottom: 1px solid #666; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
-                               बांधकाम <br>
+                                बांधकाम <br>
 
                                 {% for item in row.constructionType %}
                                     {% if item.length and item.width %}
@@ -375,8 +376,6 @@
                                     {% endif %}
                                 {% endfor %}
                             </div>
-                            
-                        </div>
                         <div style="height: 10px; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
                             खुली जागा <br>
                             {{row.khaliJaga[0].length if row.khaliJaga and row.khaliJaga|length > 0 else ''}} 
