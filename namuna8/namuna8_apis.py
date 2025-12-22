@@ -141,19 +141,27 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 # Before using usageBasedBuildingWeightageFactor, build the mapping
                 weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
                 usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
-                if formula1:
-                    # capital_value = (( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * AnnualLandValueRate ) + ( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
-                    capital_value = (( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
-                    # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                    capital_value = round(capital_value, 2)
-                    # print("capital_value_from_formula1" , capital_value)
+                
+                # Check if karLaguNahi is True - if so, set all taxes to zero
+                karLaguNahi = bool(getattr(property_data, 'karLaguNahi', False))
+                
+                if karLaguNahi:
+                    # If tax is not applicable, set capital value and house tax to 0
+                    capital_value = 0
+                    house_tax = 0
                 else:
-                    capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
-                    capital_value = round(capital_value, 2)
-                    # print("capital_value_from_formula2" , capital_value)
+                    if formula1:
+                        # capital_value = (( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * AnnualLandValueRate ) + ( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
+                        capital_value = (( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
+                        # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+                        capital_value = round(capital_value, 2)
+                        # print("capital_value_from_formula1" , capital_value)
+                    else:
+                        capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
+                        capital_value = round(capital_value, 2)
+                        # print("capital_value_from_formula2" , capital_value)
                     
-                    
-                house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value, 2)
+                    house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value, 2)
                 
                 # Debug logging for construction creation
                 construction_district_id = getattr(property_data, 'district_id', None)
@@ -470,6 +478,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                         "owner_name": owner_name,
                         # Others
                         "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
+                        "occupant_name": occupant_name,
                         "report_images": rel_report_images,
                         "reports": rel_reports,
                         "qrcode": rel_qrcode,
@@ -1116,6 +1125,7 @@ def update_namuna8_entry(
                 "owner_name": owner_name,
                 # Others
                 "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
+                "occupant_name": occupant_name,
                 "report_images": rel_report_images,
                 "reports": rel_reports,
                 "qrcode": rel_qrcode,
@@ -1203,20 +1213,25 @@ def get_bulk_edit_property_list(
     result = []
     for idx, p in enumerate(properties, start=1):
         owner_name = p.owners[0].name if p.owners else ""
+        occupant_name = p.owners[0].occupantName if p.owners else ""
         total_area = p.totalAreaSqFt or 0
         divaArogyaKar = bool(getattr(p, 'divaArogyaKar', False))
+        karLaguNahi = bool(getattr(p, 'karLaguNahi', False))
         result.append(schemas.BulkEditPropertyRow(
             serial_no=idx,
             id = p.id ,
             anukramank=getattr(p, 'anuKramank', None),
             malmattaKramank=p.malmattaKramank,
             ownerName=owner_name,
-            occupant="स्वतः",  # Always 'self' for now
-            gharKar=sum([c.houseTax or 0 for c in p.constructions]),
-            divaKar=get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0,
-            aarogyaKar=get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0,
-            sapanikar=get_water_facility_price(getattr(p, 'waterFacility1', None)),
-            vpanikar=get_water_facility_price(getattr(p, 'waterFacility2', None)),
+            occupant=occupant_name,  # Always 'self' for now
+            gharKar=0 if karLaguNahi else round(sum([c.houseTax or 0 for c in p.constructions]), 2),
+            divaKar=0 if karLaguNahi else (get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0),
+            aarogyaKar=0 if karLaguNahi else (get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0),
+            cleaningTax=0 if karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if getattr(p, 'safaiKar', False) else 0),
+            toiletTax=0 if karLaguNahi else (get_tax_by_area(total_area, 'bathroom') if getattr(p, 'shauchalayKar', False) else 0),
+            sapanikar=0 if karLaguNahi else get_water_facility_price(getattr(p, 'waterFacility1', None)),
+            vpanikar=0 if karLaguNahi else get_water_facility_price(getattr(p, 'waterFacility2', None)),
+            totaltax=0 if karLaguNahi else (sum([c.houseTax or 0 for c in p.constructions]) + get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0 + get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0 + get_tax_by_area(total_area, 'cleaning') if getattr(p, 'safaiKar', False) else 0 + get_tax_by_area(total_area, 'bathroom') if getattr(p, 'shauchalayKar', False) else 0 + get_water_facility_price(getattr(p, 'waterFacility1', None)) + get_water_facility_price(getattr(p, 'waterFacility2', None)))
         ))
     return result
 
@@ -2600,6 +2615,7 @@ def serialize_properties(
                                 "gram_panchayat_name": gram_panchayat_obj.name if gram_panchayat_obj else "",
                                 "village_name": village_obj.name if village_obj else "",
                                 "owner_name": owner_name,
+                                "occupant_name": occupant_name,
                                 "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
                                 "report_images": rel_report_images,
                                 "reports": rel_reports,

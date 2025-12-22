@@ -208,14 +208,20 @@ def get_namuna7_print(item_id: int, db: Session = Depends(get_db)):
     owner = db.query(Owner).filter(Owner.id == item.userId).first()
     occupant = getattr(owner, "occupantName", "") or ""
     village = db.query(Village).filter(Village.id == item.villageId).first()
-    grampanchayat = village.name if village else ""
+    grampanchayat = ""
+    if item.gram_panchayat_id:
+        gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == item.gram_panchayat_id).first()
+        grampanchayat = gram_panchayat.name if gram_panchayat else ""
+    elif village and village.gram_panchayat_id:
+        gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == village.gram_panchayat_id).first()
+        grampanchayat = gram_panchayat.name if gram_panchayat else ""
     ownername = owner.name if owner else ""
     currentDate = datetime.now().strftime("%d/%m/%Y")
     return Namuna7PrintResponse(
         grampanchayat=grampanchayat,
         receiptNumber=int(item.__dict__["receiptNumber"]),
         receiptBookNumber=int(item.__dict__["receiptBookNumber"]),
-        village=grampanchayat,
+        village=village.name if village else "",
         ownername=ownername,
         occupant=occupant,
         reason=str(item.__dict__["reason"]) if item.__dict__["reason"] is not None else "",
