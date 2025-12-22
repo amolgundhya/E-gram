@@ -244,6 +244,8 @@ class Namuna9ReceiptRead(BaseModel):
     createdAt: Optional[datetime] = None
     # Enriched fields
     grampanchayat: Optional[str] = None
+    district: Optional[str] = None
+    taluka: Optional[str] = None
     village: Optional[str] = None
     occupant: Optional[str] = None
     yearslap: Optional[str] = None

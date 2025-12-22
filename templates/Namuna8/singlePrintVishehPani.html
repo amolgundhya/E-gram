@@ -218,13 +218,14 @@
         <td rowspan="2"></td>
     </tr>
     <tr>
-        <td>
+                <td>
             {% for item in constructionType %}
                 {% if item.rate and item.length and item.width %}
                     {{ item.rate }} - {{ item.length }}x{{ item.width }}<br>
                 {% endif %}
             {% endfor %}
         </td>
+
         <td>{{constructionType[0].depreciation_rate if constructionType and constructionType|length > 0 else ''}}<br>{{constructionType[1].depreciation_rate if constructionType and constructionType|length > 1 else ''}}<br>{{constructionType[2].depreciation_rate if constructionType and constructionType|length > 2 else ''}}<br/>0</td>
         <td>{{constructionType[0].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 0 else ''}}<br> {{constructionType[1].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 1 else ''}} <br> {{constructionType[2].usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 2 else ''}} <br/> {{khaliJaga[0].usageBasedBuildingWeightageFactor if khaliJaga and khaliJaga|length > 0 else ''}} </td>
     </tr>
@@ -341,7 +342,7 @@
                     <!-- Center Section -->
                     <div style="flex: 1;">
                         <div style="height: 80px; border-bottom: 1px solid #666; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
-                           बांधकाम <br>
+                                बांधकाम <br>
 
                                 {% for item in constructionType %}
                                     {% if item.length and item.width %}

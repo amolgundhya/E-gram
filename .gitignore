@@ -8,6 +8,7 @@ myenv/
 windows7env/
 namuna8_logs.txt
 reports/qrcode.png
+/env/
 
 # Database files
 *.db

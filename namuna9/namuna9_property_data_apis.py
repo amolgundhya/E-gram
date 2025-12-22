@@ -35,9 +35,13 @@ def create_property_data(property_data: Namuna9PropertyDataCreate, db: Session =
             if field in ("namuna9_id", "property_id"):
                 continue
             setattr(existing, field, value)
-        # Recompute ekun and total consistently
-        # Include dand in ekunGhar (house total)
-        existing.ekunGhar = (existing.shaktiGhar or 0) + (existing.chaluGhar or 0) + (existing.dand or 0)
+        # Canonical calculation for chaluGhar/ekunGhar
+        prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == property_data.property_id).first()
+        constructions = db.query(namuna8_model.Construction).filter(namuna8_model.Construction.property_id == property_data.property_id).all()
+        from namuna9.tax_calculations import calculate_total_house_tax
+        totalHouseTax = calculate_total_house_tax(prop, constructions, db)
+        existing.chaluGhar = totalHouseTax
+        existing.ekunGhar = totalHouseTax + (existing.dand or 0) + (existing.shaktiGhar or 0)
         existing.ekunDiva = (existing.shaktiDiva or 0) + (existing.chaluDiva or 0)
         existing.ekunAarogyaKar = (existing.shaktiAarogyaKar or 0) + (existing.chaluAarogyaKar or 0)
         existing.ekunSapanikar = (existing.shaktiSapanikar or 0) + (existing.chaluSapanikar or 0)
@@ -48,10 +52,15 @@ def create_property_data(property_data: Namuna9PropertyDataCreate, db: Session =
         db.refresh(existing)
         return existing
 
+
     db_property_data = namuna9_model.Namuna9PropertyData(**property_data.dict())
-    # Initialize ekun and total on create too
-    # Include dand in ekunGhar (house total)
-    db_property_data.ekunGhar = (db_property_data.shaktiGhar or 0) + (db_property_data.chaluGhar or 0) + (db_property_data.dand or 0)
+    # Canonical calculation for chaluGhar/ekunGhar
+    prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == property_data.property_id).first()
+    constructions = db.query(namuna8_model.Construction).filter(namuna8_model.Construction.property_id == property_data.property_id).all()
+    from namuna9.tax_calculations import calculate_total_house_tax
+    totalHouseTax = calculate_total_house_tax(prop, constructions, db)
+    db_property_data.chaluGhar = totalHouseTax
+    db_property_data.ekunGhar = totalHouseTax + (db_property_data.dand or 0) + (db_property_data.shaktiGhar or 0)
     db_property_data.ekunDiva = (db_property_data.shaktiDiva or 0) + (db_property_data.chaluDiva or 0)
     db_property_data.ekunAarogyaKar = (db_property_data.shaktiAarogyaKar or 0) + (db_property_data.chaluAarogyaKar or 0)
     db_property_data.ekunSapanikar = (db_property_data.shaktiSapanikar or 0) + (db_property_data.chaluSapanikar or 0)
@@ -103,9 +112,15 @@ def update_property_data(property_data_id: int, property_data: Namuna9PropertyDa
 @router.get("/property-data/{namuna9_id}", response_model=List[Namuna9PropertyDataRead])
 def get_property_data(namuna9_id: int, db: Session = Depends(database.get_db)):
     """Get all property data for a specific Namuna9 record"""
-    return db.query(namuna9_model.Namuna9PropertyData).filter(
+    rows = db.query(namuna9_model.Namuna9PropertyData).filter(
         namuna9_model.Namuna9PropertyData.namuna9_id == namuna9_id
     ).all()
+    # Stable numeric ordering by property_id (and id as tiebreaker)
+    try:
+        rows = sorted(rows, key=lambda r: (int(r.property_id or 0), int(r.id or 0)))
+    except Exception:
+        rows = sorted(rows, key=lambda r: (r.property_id or 0, r.id or 0))
+    return rows
 
 @router.get("/property-data/by-receipt/{receipt_id}", response_model=Namuna9PropertyDataRead)
 def get_property_data_by_receipt(receipt_id: int, db: Session = Depends(database.get_db)):
@@ -523,12 +538,7 @@ def list_receipts(
 
     if show_all:
         # Only filter by village, ignore date + receipt filters
-        q = base_q.order_by(
-            func.coalesce(
-                namuna9_model.Namuna9Receipt.pavti_date,
-                namuna9_model.Namuna9Receipt.createdAt
-            ).desc()
-        )
+        q = base_q
     else:
         q = base_q
 
@@ -565,9 +575,11 @@ def list_receipts(
             td_end = td + timedelta(days=1)
             q = q.filter(date_expr < td_end)
 
-        q = q.order_by(date_expr.desc())
-
     results = q.all()
+    try:
+        results = sorted(results, key=lambda r: int(r.pavti_kramank or 0))
+    except Exception:
+        results = sorted(results, key=lambda r: r.pavti_kramank or 0)
 
     # ---------------- FILTER END ----------------
 
@@ -692,6 +704,12 @@ def get_receipt(receipt_id: int, db: Session = Depends(database.get_db)):
         # village
         v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop2.village_id).first()
         result.village = getattr(v, 'name', None)
+        # district
+        d = db.query(location_models.District).filter(location_models.District.id == v.district_id).first()
+        result.district = getattr(d, 'name', None)
+        # taluka
+        t = db.query(location_models.Taluka).filter(location_models.Taluka.id == v.taluka_id).first()
+        result.taluka = getattr(t, 'name', None)
         # grampanchayat
         if v:
             gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == v.gram_panchayat_id).first()
@@ -796,7 +814,11 @@ def list_receipts_by_date_village(
             td_end = td + timedelta(days=1)
         q = q.filter(date_expr < td_end)
 
-    rows = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
+    rows = q.all()
+    try:
+        rows = sorted(rows, key=lambda r: int(r.pavti_kramank or 0))
+    except Exception:
+        rows = sorted(rows, key=lambda r: r.pavti_kramank or 0)
     return [_enrich_receipt(r, db) for r in rows]
 
 @router.get("/receipts/by-date-all", response_model=List[Namuna9ReceiptRead])
@@ -830,7 +852,11 @@ def list_receipts_by_date_all(
         if td.time().hour == 0 and td.time().minute == 0 and td.time().second == 0:
             td_end = td + timedelta(days=1)
         q = q.filter(date_expr < td_end)
-    rows = q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
+    rows = q.all()
+    try:
+        rows = sorted(rows, key=lambda r: int(r.pavti_kramank or 0))
+    except Exception:
+        rows = sorted(rows, key=lambda r: r.pavti_kramank or 0)
     return [_enrich_receipt(r, db) for r in rows]
 
 @router.get("/receipt/by-date", response_model=List[Namuna9ReceiptRead])
@@ -908,7 +934,12 @@ def list_receipts_by_date(
             td_end = td + timedelta(days=1)
         q = q.filter(date_expr < td_end)
 
-    return q.order_by(func.coalesce(namuna9_model.Namuna9Receipt.pavti_date, namuna9_model.Namuna9Receipt.createdAt).desc()).all()
+    rows = q.all()
+    try:
+        rows = sorted(rows, key=lambda r: int(r.pavti_kramank or 0))
+    except Exception:
+        rows = sorted(rows, key=lambda r: r.pavti_kramank or 0)
+    return rows
 
 @router.put("/receipt/{receipt_id}", response_model=Namuna9ReceiptRead)
 def update_receipt(

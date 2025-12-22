@@ -12,6 +12,13 @@ from location_management import models as location_models
 from typing import List
 from location_management import helpers
 import os
+import logging
+
+logging.basicConfig(
+    filename="namuna9_logs.txt",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 router = APIRouter(
     prefix="/namuna9",
     tags=["namuna9"]
@@ -112,7 +119,12 @@ def create_namuna9_year_setup(setup: namuna9_schemas.Namuna9YearSetupCreate, db:
 
 @router.get("/list", response_model=List[namuna9_schemas.Namuna9YearSetupRead])
 def list_namuna9_year_setups(db: Session = Depends(database.get_db)):
-    return db.query(namuna9_model.Namuna9YearSetup).all()
+    # Sorted by year then village for stable ordering
+    return (
+        db.query(namuna9_model.Namuna9YearSetup)
+        .order_by(namuna9_model.Namuna9YearSetup.year, namuna9_model.Namuna9YearSetup.village)
+        .all()
+    )
 
 @router.get("/exists")
 def check_if_setup_exists(village: str, year: str, db: Session = Depends(database.get_db)):
@@ -264,7 +276,12 @@ def create_or_carry_forward_namuna9(
 
 @router.get("/list-all")
 def list_all_namuna9(db: Session = Depends(database.get_db)):
-    records = db.query(namuna9_model.Namuna9).all()
+    # Sorted by yearslap then villageId for consistent output
+    records = (
+        db.query(namuna9_model.Namuna9)
+        .order_by(namuna9_model.Namuna9.yearslap, namuna9_model.Namuna9.villageId)
+        .all()
+    )
     # Return as dicts for easier inspection
     return [
         {
@@ -290,9 +307,19 @@ def get_delete_options(db: Session = Depends(database.get_db)):
         unique_village_ids.add(r.villageId)
         unique_years.add(r.yearslap)
         pairs.append({"villageId": str(r.villageId), "yearslap": r.yearslap})
-    # Get village names for these IDs
-    villages = db.query(namuna8_model.Village).filter(namuna8_model.Village.id.in_(unique_village_ids)).all()
+    # Get village names sorted by name for consistency
+    villages = (
+        db.query(namuna8_model.Village)
+        .filter(namuna8_model.Village.id.in_(unique_village_ids))
+        .order_by(namuna8_model.Village.name)
+        .all()
+    )
     village_list = [{"id": v.id, "name": v.name} for v in villages]
+    # Sort pairs by numeric villageId then yearslap for stable ordering
+    try:
+        pairs = sorted(pairs, key=lambda p: (int(p["villageId"]), p["yearslap"]))
+    except Exception:
+        pairs = sorted(pairs, key=lambda p: (p["villageId"], p["yearslap"]))
     return {"villages": village_list, "years": sorted(list(unique_years)), "pairs": pairs} 
 
 @router.get("/table-data")
@@ -368,12 +395,15 @@ def get_table_data(
                     namuna8_model.Construction.property_id == thakit_prop.id
                 ).all()
                 
-                thakit_house_tax = sum([c.houseTax or 0 for c in thakit_constructions])
-                thakit_lighting_tax = thakit_prop_data.get('divaKar', 0) or 0
-                thakit_health_tax = thakit_prop_data.get('aarogyaKar', 0) or thakit_prop_data.get('healthTax', 0) or 0
-                thakit_sapanikar = thakit_prop_data.get('sapanikar', 0) or 0
-                thakit_vpanikar = thakit_prop_data.get('vpanikar', 0) or 0
-                thakit_cleaning_tax = thakit_prop_data.get('cleaningTax', 0) or 0
+                # Check if karLaguNahi is True - if so, set all taxes to zero
+                thakit_karLaguNahi = bool(getattr(thakit_prop, 'karLaguNahi', False))
+                
+                thakit_house_tax = 0 if thakit_karLaguNahi else sum([c.houseTax or 0 for c in thakit_constructions])
+                thakit_lighting_tax = 0 if thakit_karLaguNahi else (thakit_prop_data.get('divaKar', 0) or 0)
+                thakit_health_tax = 0 if thakit_karLaguNahi else (thakit_prop_data.get('aarogyaKar', 0) or thakit_prop_data.get('healthTax', 0) or 0)
+                thakit_sapanikar = 0 if thakit_karLaguNahi else (thakit_prop_data.get('sapanikar', 0) or 0)
+                thakit_vpanikar = 0 if thakit_karLaguNahi else (thakit_prop_data.get('vpanikar', 0) or 0)
+                thakit_cleaning_tax = 0 if thakit_karLaguNahi else (thakit_prop_data.get('cleaningTax', 0) or 0)
                 
                 # Calculate total for thakit year
                 thakit_total = thakit_house_tax + thakit_lighting_tax + thakit_health_tax + thakit_sapanikar + thakit_vpanikar + thakit_cleaning_tax
@@ -411,27 +441,12 @@ def get_table_data(
         constructions = db.query(namuna8_model.Construction).filter(
             namuna8_model.Construction.property_id == prop.id
         ).all()
-        # Calculate totalHouseTax from constructions (includes 'खाली जागा' constructions) and add synthetic khali jaga if any leftover area exists
-        totalHouseTax = sum([(c.houseTax or 0) for c in constructions])
-        # Khali jaga addition similar to Namuna8 property_record_response
-        vacant_land_type = getattr(prop, 'vacantLandType', None)
-        if vacant_land_type not in [None, '', 'null']:
-            total_area = prop.totalAreaSqFt or 0
-            used_area = sum((c.length or 0) * (c.width or 0) for c in constructions)
-            khali_area = max(total_area - used_area, 0)
-            if khali_area > 0:
-                khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == "खाली जागा").first()
-                if khali_construction_type:
-                    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-                    formula1 = userFormulaPreference.capitalFormula1 if userFormulaPreference else None
-                    area_in_meter = khali_area * 0.092903
-                    annual_land_value_rate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                    if formula1:
-                        capital_value_kj = (khali_area * annual_land_value_rate)
-                    else:
-                        capital_value_kj = (area_in_meter * annual_land_value_rate)
-                    totalHouseTax += round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj)
-        totalHouseTax = round(totalHouseTax, 2)
+         
+        # Check if karLaguNahi is True - if so, set all taxes to zero
+        karLaguNahi = bool(getattr(prop, 'karLaguNahi', False))
+        
+        from namuna9.tax_calculations import calculate_total_house_tax
+        totalHouseTax = calculate_total_house_tax(prop, constructions, db)
         # Join all owner names
         owner_names = ', '.join([o.get('name', '') for o in prop_data.get('owners', [])])
         # lightingTax, healthTax, sapanikar, vpanikar, cleaningTax
@@ -511,7 +526,7 @@ def get_table_data(
         # Calculate ekun (total) values - use saved data if available
         if saved_data:
             # Include dand in ekunGhar (house total) - ensure no negative values
-            ekunGhar = round(max(saved_data.ekunGhar or (max(shaktiGhar,0) + max(chaluGhar,0) + (max(dand,0) or 0)), 0), 2)
+            ekunGhar = round(max(totalHouseTax + (max(dand,0) or 0), (max(shaktiGhar,0) + max(chaluGhar,0) + (max(dand,0) or 0)), 0), 2)
             ekunDiva = round(max(saved_data.ekunDiva or (shaktiDiva + chaluDiva), 0), 2)
             ekunAarogyaKar = round(max(saved_data.ekunAarogyaKar or (shaktiAarogyaKar + chaluAarogyaKar), 0), 2)
             ekunSapanikar = round(max(saved_data.ekunSapanikar or (shaktiSapanikar + chaluSapanikar), 0), 2)
@@ -519,7 +534,7 @@ def get_table_data(
             ekunCleaningTax = round(max(saved_data.ekunCleaningTax or (shaktiCleaningTax + chaluCleaningTax), 0), 2)
         else:
             # Include dand in ekunGhar when no saved_data - ensure no negative values
-            ekunGhar = round(max(max(shaktiGhar,0) + max(chaluGhar,0) + (max(dand,0)), 0), 2)
+            ekunGhar = round(max(totalHouseTax + (max(dand,0) or 0), (max(shaktiGhar,0) + max(chaluGhar,0) + (max(dand,0) or 0)), 0), 2)
             ekunDiva = round(max(shaktiDiva + chaluDiva, 0), 2)
             ekunAarogyaKar = round(max(shaktiAarogyaKar + chaluAarogyaKar, 0), 2)
             ekunSapanikar = round(max(shaktiSapanikar + chaluSapanikar, 0), 2)
@@ -542,6 +557,29 @@ def get_table_data(
                     (dand or 0)
             )
             total = round(total, 2)
+
+        # Final override: If karLaguNahi is True, set ALL taxes to 0 (this ensures automatic update from namuna8)
+        if karLaguNahi:
+            shaktiGhar = 0
+            shaktiDiva = 0
+            shaktiAarogyaKar = 0
+            shaktiSapanikar = 0
+            shaktiVpanikar = 0
+            shaktiCleaningTax = 0
+            chaluGhar = 0
+            chaluDiva = 0
+            chaluAarogyaKar = 0
+            chaluSapanikar = 0
+            chaluVpanikar = 0
+            chaluCleaningTax = 0
+            ekunGhar = 0
+            ekunDiva = 0
+            ekunAarogyaKar = 0
+            ekunSapanikar = 0
+            ekunVpanikar = 0
+            ekunCleaningTax = 0
+            totalHouseTax = 0
+            total = warrantFee + noticeFee  # Only fees remain, no taxes
         
         row = {
             "anukramk": prop.anuKramank,
@@ -615,7 +653,7 @@ def get_table_data(
             saved_data = new_saved
             saved_data_map[prop.id] = new_saved
         rows.append(row)
-    rows = sorted(rows, key=lambda r: r["anukramk"])    
+    rows = sorted(rows, key=lambda r: int(r["anukramk"]))
     return rows 
 
 @router.get("/recordresponses/property_records_by_village")
@@ -634,6 +672,7 @@ def get_namuna9_table_data_custom(
     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
     if not district:
         raise HTTPException(status_code=404, detail="District not found")
+    district_name_ic = getattr(district, 'name', None)
     
     taluka = db.query(location_models.Taluka).filter(
         location_models.Taluka.id == taluka_id,
@@ -641,6 +680,7 @@ def get_namuna9_table_data_custom(
     ).first()
     if not taluka:
         raise HTTPException(status_code=400, detail="Taluka does not belong to the specified district")
+    taluka_name_ic = getattr(taluka, 'name', None)
     
     gram_panchayat = db.query(location_models.GramPanchayat).filter(
         location_models.GramPanchayat.id == gram_panchayat_id,
@@ -691,12 +731,16 @@ def get_namuna9_table_data_custom(
                 thakit_constructions = db.query(namuna8_model.Construction).filter(
                     namuna8_model.Construction.property_id == thakit_prop.id
                 ).all()
-                t_house_tax = sum([c.houseTax or 0 for c in thakit_constructions])
-                t_lighting = thakit_prop_data.get('divaKar', 0) or 0
-                t_health = thakit_prop_data.get('aarogyaKar', 0) or thakit_prop_data.get('healthTax', 0) or 0
-                t_sa = thakit_prop_data.get('sapanikar', 0) or 0
-                t_vi = thakit_prop_data.get('vpanikar', 0) or 0
-                t_clean = thakit_prop_data.get('cleaningTax', 0) or 0
+                
+                # Check if karLaguNahi is True - if so, set all taxes to zero
+                thakit_karLaguNahi = bool(getattr(thakit_prop, 'karLaguNahi', False))
+                
+                t_house_tax = 0 if thakit_karLaguNahi else sum([c.houseTax or 0 for c in thakit_constructions])
+                t_lighting = 0 if thakit_karLaguNahi else (thakit_prop_data.get('divaKar', 0) or 0)
+                t_health = 0 if thakit_karLaguNahi else (thakit_prop_data.get('aarogyaKar', 0) or thakit_prop_data.get('healthTax', 0) or 0)
+                t_sa = 0 if thakit_karLaguNahi else (thakit_prop_data.get('sapanikar', 0) or 0)
+                t_vi = 0 if thakit_karLaguNahi else (thakit_prop_data.get('vpanikar', 0) or 0)
+                t_clean = 0 if thakit_karLaguNahi else (thakit_prop_data.get('cleaningTax', 0) or 0)
                 thakit_data[thakit_prop.id] = {
                     'chaluGhar': t_house_tax,
                     'chaluDiva': t_lighting,
@@ -714,31 +758,40 @@ def get_namuna9_table_data_custom(
         constructions = db.query(namuna8_model.Construction).filter(
             namuna8_model.Construction.property_id == prop.id
         ).all()
+
+        
+        # Check if karLaguNahi is True - if so, set all taxes to zero
+        karLaguNahi = bool(getattr(prop, 'karLaguNahi', False))
+        
         # Base total house tax from constructions
-        totalHouseTax = sum([(c.houseTax or 0) for c in constructions])
-        # Khali jaga addition with unit handling similar to Namuna8
-        vacant_land_type = getattr(prop, 'vacantLandType', None)
-        if vacant_land_type not in [None, '', 'null']:
-            unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-            if unit == 'sqm':
-                total_area_m = round(prop.totalArea or 0, 2)
-                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in constructions), 2)
-            else:
-                total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
-                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in constructions) * 0.092903, 2)
-            khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
-            khali_area = round(khali_area_m / 0.092903, 2)
-            if khali_area > 0:
-                khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == "खाली जागा").first()
-                if khali_construction_type:
-                    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-                    formula1 = userFormulaPreference.capitalFormula1 if userFormulaPreference else None
-                    AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                    if formula1:
-                        capital_value_kj = (khali_area_m * AnnualLandValueRate)
-                    else:
-                        capital_value_kj = (khali_area_m * AnnualLandValueRate)
-                    totalHouseTax += round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj)
+        if karLaguNahi:
+            totalHouseTax = 0
+        else:
+            # Base total house tax from constructions
+            totalHouseTax = sum([(c.houseTax or 0) for c in constructions])
+            # Khali jaga addition with unit handling similar to Namuna8
+            vacant_land_type = getattr(prop, 'vacantLandType', None)
+            if vacant_land_type not in [None, '', 'null']:
+                unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
+                if unit == 'sqm':
+                    total_area_m = round(prop.totalArea or 0, 2)
+                    used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in constructions), 2)
+                else:
+                    total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
+                    used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in constructions) * 0.092903, 2)
+                khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
+                khali_area = round(khali_area_m / 0.092903, 2)
+                if khali_area > 0:
+                    khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == "खाली जागा").first()
+                    if khali_construction_type:
+                        userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
+                        formula1 = userFormulaPreference.capitalFormula1 if userFormulaPreference else None
+                        AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
+                        if formula1:
+                            capital_value_kj = (khali_area_m * AnnualLandValueRate)
+                        else:
+                            capital_value_kj = (khali_area_m * AnnualLandValueRate)
+                        totalHouseTax += round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj)
         totalHouseTax = round(totalHouseTax, 2)
         # Taxes
         lightingTax = round((prop_data.get('divaKar', 0) or prop_data.get('lightingTax', 0) or 0), 2)
@@ -815,12 +868,37 @@ def get_namuna9_table_data_custom(
             (max(0,warrantFee) or 0) + (max(0,noticeFee) or 0)
         )
         total = round(total, 2)
+
+         
+        # Final override: If karLaguNahi is True, set ALL taxes to 0 (this ensures automatic update from namuna8)
+        if karLaguNahi:
+            shaktiGhar = 0
+            shaktiDiva = 0
+            shaktiAarogyaKar = 0
+            shaktiSapanikar = 0
+            shaktiVpanikar = 0
+            shaktiCleaningTax = 0
+            chaluGhar = 0
+            chaluDiva = 0
+            chaluAarogyaKar = 0
+            chaluSapanikar = 0
+            chaluVpanikar = 0
+            chaluCleaningTax = 0
+            ekunGhar = 0
+            ekunDiva = 0
+            ekunAarogyaKar = 0
+            ekunSapanikar = 0
+            ekunVpanikar = 0
+            ekunCleaningTax = 0
+            totalHouseTax = 0
+            total = warrantFee + noticeFee  # Only fees remain, no taxes
+
         row = {
             "id": str(prop.anuKramank),
             "srNo": idx,
-            "gramPanchayat": prop.village.name if hasattr(prop, 'village') and prop.village else None,
-            "taluka": None,
-            "jilha": None,
+            "gramPanchayat": gram_panchayat.name if gram_panchayat else None,
+            "taluka": taluka_name_ic if taluka_name_ic else None,
+            "jilha": district_name_ic if district_name_ic else None,
             "village": prop.village.name if hasattr(prop, 'village') and prop.village else None,
             "ownerName": ', '.join([o.get('name', '') for o in prop_data.get('owners', [])]),
             "occupant" : ', '.join([o.get('occupantName', '') for o in prop_data.get('owners', [])]),
@@ -867,7 +945,7 @@ def get_namuna9_table_data_custom(
             "pavatiSRKivyaTarik": 0
         }
         rows.append(row)
-    rows = sorted(rows, key=lambda r: r["id"])
+    rows = sorted(rows, key=lambda r: int(r["id"]))
     return rows    
 
 @router.get("/recordresponses/property_records_by_village/regular/")
@@ -886,6 +964,7 @@ def get_property_records_by_village_regular(
     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
     if not district:
         raise HTTPException(status_code=404, detail="District not found")
+    district_name_ic = getattr(district, 'name', None)
     
     taluka = db.query(location_models.Taluka).filter(
         location_models.Taluka.id == taluka_id,
@@ -893,6 +972,7 @@ def get_property_records_by_village_regular(
     ).first()
     if not taluka:
         raise HTTPException(status_code=400, detail="Taluka does not belong to the specified district")
+    taluka_name_ic = getattr(taluka, 'name', None)
     
     gram_panchayat = db.query(location_models.GramPanchayat).filter(
         location_models.GramPanchayat.id == gram_panchayat_id,
@@ -948,14 +1028,14 @@ def get_property_records_by_village_regular(
             "current7": r.get('warrantFee', 0)
         }
         total = {
-            "total1": r.get('ekunGhar', 0),
-            "total2": r.get('ekunDiva', 0),
-            "total3": r.get('ekunAarogyaKar', 0),
-            "total4": r.get('ekunSapanikar', 0),
-            "total5": r.get('ekunCleaningTax', 0),
+            "total1": round(r.get('ekunGhar', 0)),
+            "total2": round(r.get('ekunDiva', 0)),
+            "total3": round(r.get('ekunAarogyaKar', 0)),
+            "total4": round(r.get('ekunSapanikar', 0)),
+            "total5": round(r.get('ekunCleaningTax', 0)),
             # For fees, show only the fee amount once in the last column
-            "total6": r.get('noticeFee', 0),
-            "total7": r.get('warrantFee', 0)
+            "total6": round(r.get('noticeFee', 0)),
+            "total7": round(r.get('warrantFee', 0))
         }
         # Build Dand map sourced from table row (use dand in house column)
         dand_map = {f"Dand{i}": 0 for i in range(1, 8)}
@@ -972,6 +1052,16 @@ def get_property_records_by_village_regular(
                 if v:
                     gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == v.gram_panchayat_id).first()
                     gp_name = getattr(gp, 'name', None)
+                    taluka_name = getattr(gp, 'taluka_id', None)
+                    if taluka_name:
+                        taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == taluka_name).first()
+                        if taluka:
+                            taluka_name = getattr(taluka, 'name', None)
+                    district_name = getattr(gp, 'district_id', None)
+                    if district_name:
+                        district = db.query(location_models.District).filter(location_models.District.id == district_name).first()
+                        if district:
+                            district_name = getattr(district, 'name', None)
                 # Occupant name from owners via build_property_response
                 prop_data_full = build_property_response(prop, db, gram_panchayat_id)
                 owners = prop_data_full.get('owners', [])
@@ -984,6 +1074,8 @@ def get_property_records_by_village_regular(
 
         mapped.append({
             "gramPanchayat": gp_name or "",
+            "taluka": taluka_name_ic or "",
+            "district": district_name_ic or "",
             "yearSlap": yearslap,
             "propertyNumber": r.get('malmattaKramank', ''),
             "currentDate": datetime.now().strftime('%Y-%m-%d'),
@@ -1006,7 +1098,7 @@ def get_property_records_by_village_regular(
                 "total": total
             },
             # Compute totalTax explicitly to avoid double-counting dand (already included in ekunGhar)
-            "totalTax": (
+            "totalTax": round(
                 (r.get('ekunGhar', 0) or 0)
                 + (r.get('ekunDiva', 0) or 0)
                 + (r.get('ekunAarogyaKar', 0) or 0)
@@ -1015,7 +1107,7 @@ def get_property_records_by_village_regular(
                 + (r.get('warrantFee', 0) or 0)
                 + (r.get('noticeFee', 0) or 0)
             ),
-            "totalTaxwithoutvipanitoilet": (
+            "totalTaxwithoutvipanitoilet": round(
                 (r.get('ekunGhar', 0) or 0)
                 + (r.get('ekunDiva', 0) or 0)
                 + (r.get('ekunAarogyaKar', 0) or 0)
@@ -1041,12 +1133,14 @@ def get_property_records_by_village_visheshpani(
     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
     if not district:
         raise HTTPException(status_code=404, detail="District not found")
+    district_name_ic = getattr(district, 'name', None)
     taluka = db.query(location_models.Taluka).filter(
         location_models.Taluka.id == taluka_id,
         location_models.Taluka.district_id == district_id
     ).first()
     if not taluka:
         raise HTTPException(status_code=400, detail="Taluka does not belong to the specified district")
+    taluka_name_ic = getattr(taluka, 'name', None)
     gram_panchayat = db.query(location_models.GramPanchayat).filter(
         location_models.GramPanchayat.id == gram_panchayat_id,
         location_models.GramPanchayat.taluka_id == taluka_id
@@ -1093,13 +1187,13 @@ def get_property_records_by_village_visheshpani(
             "current7": r.get('warrantFee', 0)
         }
         total = {
-            "total1": r.get('ekunGhar', 0),
-            "total2": r.get('ekunDiva', 0),
-            "total3": r.get('ekunAarogyaKar', 0),
-            "total4": r.get('ekunSapanikar', 0),
-            "total5": r.get('ekunVpanikar', 0),
-            "total6": r.get('noticeFee', 0),
-            "total7": r.get('warrantFee', 0)
+            "total1": round(r.get('ekunGhar', 0)),
+            "total2": round(r.get('ekunDiva', 0)),
+            "total3": round(r.get('ekunAarogyaKar', 0)),
+            "total4": round(r.get('ekunSapanikar', 0)),
+            "total5": round(r.get('ekunVpanikar', 0)),
+            "total6": round(r.get('noticeFee', 0)),
+            "total7": round(r.get('warrantFee', 0))
         }
 
         # Resolve gram panchayat and occupant like regular
@@ -1121,6 +1215,8 @@ def get_property_records_by_village_visheshpani(
 
         mapped.append({
             "gramPanchayat": gp_name or "",
+            "taluka": taluka_name_ic or "",
+            "district": district_name_ic or "",
             "yearSlap": yearslap,
             "propertyNumber": r.get('malmattaKramank', ''),
             "currentDate": datetime.now().strftime('%Y-%m-%d'),
@@ -1134,7 +1230,7 @@ def get_property_records_by_village_visheshpani(
                 "total": total
             },
             # Compute total tax in line with regular API
-            "totalTax": (
+            "totalTax": round(
                 (r.get('ekunGhar', 0) or 0)
                 + (r.get('ekunDiva', 0) or 0)
                 + (r.get('ekunAarogyaKar', 0) or 0)
@@ -1145,19 +1241,19 @@ def get_property_records_by_village_visheshpani(
                 + (r.get('noticeFee', 0) or 0)
             ),
             # Also expose without vi pani and toilet to match downstream templates
-            "totalTaxwithoutvipanitoilet": (
+            "totalTaxwithoutvipanitoilet": round(
                 ((r.get('ekunGhar', 0) or 0)
                 + (r.get('ekunDiva', 0) or 0)
                 + (r.get('ekunAarogyaKar', 0) or 0)
                 + (r.get('ekunSapanikar', 0) or 0)
                 + (r.get('ekunCleaningTax', 0) or 0)
                 + (r.get('warrantFee', 0) or 0)
-                + (r.get('noticeFee', 0) or 0))
+                + (r.get('noticeFee', 0) or 0)
                 + (r.get('ekunVpanikar', 0) or 0)
-                # - (r.get('totlaToiletTax', 0) or 0)
-            )
+                - 0
+            ))
             ,
-            "totalTaxwithoutsafaitoilet": (
+            "totalTaxwithoutsafaitoilet": round(
                 ((r.get('ekunGhar', 0) or 0)
                 + (r.get('ekunDiva', 0) or 0)
                 + (r.get('ekunAarogyaKar', 0) or 0)

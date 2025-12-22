@@ -28,7 +28,15 @@ def calc_house_tax(rate):
 
 # Deep rounding for all numeric fields (excluding booleans) using HALF_UP,
 # but preserve decimals for specific keys like 'length' and 'width'.
-EXEMPT_FLOAT_KEYS = {"length", "width"}
+EXEMPT_FLOAT_KEYS = {
+    "length",
+    "width",
+    "areaEast",
+    "areaWest",
+    "areaNorth",
+    "areaSouth",
+    "taxRates"
+}
 
 def _deep_round_numbers(obj):
     if isinstance(obj, dict):
@@ -200,7 +208,7 @@ def get_property_record(
     constructionType = [
         {
             "type": c.construction_type.name,
-            "length": c.length,
+            "length": round(c.length),
             "width": c.width,
             "year": c.constructionYear,
             "rate": getattr(c.construction_type, 'bandhmastache_dar', 0),
@@ -531,17 +539,17 @@ def get_property_records_by_village(
         constructionType = [
             {
                 "type": c.construction_type.name,
-                "length": c.length,
+                "length": round(c.length),
                 "width": c.width,
                 "year": c.constructionYear,
                 "rate": getattr(c.construction_type, 'bandhmastache_dar', 0),
                 "floor": c.floor,
                 "usage": getattr(c, 'bharank', None),
-                "capitalValue": c.capitalValue,
-                "houseTax": c.houseTax,
+                "capitalValue": 0 if prop.karLaguNahi else c.capitalValue,
+                "houseTax": 0 if prop.karLaguNahi else c.houseTax,
                 "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name),
                 "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
-                "taxRates": getattr(c.construction_type, 'rate', 0),
+                "taxRates": 0 if prop.karLaguNahi else getattr(c.construction_type, 'rate', 0),
             }
             for c in prop.constructions
         ]
@@ -623,6 +631,7 @@ def get_property_records_by_village(
             "jilha": district.name if district else None,
             "yearFrom" : str(year_from) + "-" + str(year_from + 1),
             "yearTo": str(year_to) + "-" + str(year_to + 1),
+            "todays_date": date.today().strftime("%d-%m-%Y"),
             "photoURL": None,
             "QRcodeURL": None,
             "total_arearinfoot": total_area_sqft,
@@ -652,18 +661,18 @@ def get_property_records_by_village(
             "waterFacility2": prop.waterFacility2,
             "toilet": str(prop.toilet) if prop.toilet is not None else "",
             "house": prop.roofType,
-            "totalCapitalValue": int(total_capital_value),
-            "totalHouseTax": int(total_house_tax),
+            "totalCapitalValue": int(0 if prop.karLaguNahi else total_capital_value),
+            "totalHouseTax": int(0 if prop.karLaguNahi else total_house_tax),
             "totalconstructionareainfoot": total_construction_area_foot,
             "totalconstructionareainmeter": total_construction_area_meter,
             "housingUnit": prop.areaUnit,
-            "lightingTax": get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0,
-            "healthTax": get_tax_by_area(total_area, 'health') if not prop.divaArogyaKar else 0,
+            "lightingTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0),
+            "healthTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'health') if not prop.divaArogyaKar else 0),
             "waterTax": 0,
-            "cleaningTax": get_tax_by_area(total_area, 'cleaning') if prop.safaiKar else 0,
-            "toiletTax": get_tax_by_area(total_area, 'bathroom') if prop.shauchalayKar else 0,
-            "sapanikar": get_water_facility_price(prop.waterFacility1),
-            "vpanikar": get_water_facility_price(prop.waterFacility2),
+            "cleaningTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if prop.safaiKar else 0),
+            "toiletTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'bathroom') if prop.shauchalayKar else 0),
+            "sapanikar": 0 if prop.karLaguNahi else get_water_facility_price(prop.waterFacility1),
+            "vpanikar": 0 if prop.karLaguNahi else get_water_facility_price(prop.waterFacility2),
             "totaltax": 0,
             "remarks" : prop.remarks
         }
@@ -711,7 +720,7 @@ def get_property_records_by_village(
         # Coerce all numeric fields to integers except 'length' and 'width'
         _deep_round_numbers(response)
         results.append(response)
-    results = sorted(results, key=lambda r: r["id"])
+    results = sorted(results, key=lambda r: int(r["id"]))
     return results 
 
 @router.get("/property_records_by_gram_panchayat/{gram_panchayat_id}")
@@ -838,7 +847,7 @@ def get_property_records_by_gram_panchayat(
             constructionType = [
                 {
                     "type": c.construction_type.name,
-                    "length": c.length,
+                    "length": round(c.length),
                     "width": c.width,
                     "year": c.constructionYear,
                     "rate": getattr(c.construction_type, 'bandhmastache_dar', 0),
@@ -1018,7 +1027,7 @@ def get_property_records_by_gram_panchayat(
             _deep_round_numbers(response)
             response.update(checklist_fields)
             village_properties.append(response)
-            village_properties = sorted(village_properties, key=lambda r: r["id"])
+            village_properties = sorted(village_properties, key=lambda r: int(r["id"]))
         # Add village properties to response data with village name as key
         if village_properties:  # Only add villages that have properties
             response_data[f"{village.name}"] = village_properties
