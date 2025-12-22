@@ -266,6 +266,7 @@
                                 data-cleaning-tax="{{ row.cleaningTax | default('0') }}"
                                 data-toilet-tax="{{ row.toiletTax | default('0') }}"
                                 data-total-tax="{{ (row.totaltax|default(0)|float -(row.cleaningTax|default(0)|float) - (row.toiletTax|default(0)|float)) }}"
+                                <td rowspan="2" > </td>
                                 <td rowspan="2" > {{ row.srNo | default('') }} </td>
                                 <td rowspan="2" style="text-align: left;"> {{ row.roadName | default('') }} </td>
                                 <td rowspan="2"> {{ row.cityWardGatNumber | default('') }} </td>

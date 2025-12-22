@@ -33,9 +33,12 @@ def get_outward_entries_by_date_range(
         entries = db.query(OutwardEntry).filter(
             OutwardEntry.created_at >= from_dt,
             OutwardEntry.created_at <= to_dt
-        ).order_by(OutwardEntry.created_at.desc()).all()
-        
-        return [entry.to_dict() for entry in entries]
+        ).all()
+
+        # Sort numerically by srNo so that values like "1", "2", "10" are in true numeric order
+        results = [entry.to_dict() for entry in entries]
+        results = sorted(results, key=lambda r: int(r["srNo"]))  # assumes srNo is numeric-like
+        return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching outward entries by date range: {str(e)}")
 

@@ -5,3 +5,11 @@ pydantic
 python-barcode
 pillow
 qrcode
+Jinja2==3.1.6
+python-multipart==0.0.21
+requests==2.32.5
+httpx==0.28.1
+python-jose==3.5.0
+python-dotenv==1.2.1
+cryptography==46.0.3
+bcrypt==5.0.0

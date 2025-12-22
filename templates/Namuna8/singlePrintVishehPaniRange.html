@@ -247,7 +247,7 @@
         </td>
         <td rowspan="2">{{row.constructionType[0].year if row.constructionType and row.constructionType|length > 0 else ''}} <br>{{row.constructionType[1].year if row.constructionType and row.constructionType|length > 1 else ''}} <br>{{row.constructionType[2].year if row.constructionType and row.constructionType|length > 2 else ''}}<br/> <br></td>
         <td rowspan="2">{{row.areaEast|default('')}} x {{row.areaNorth|default('')}}</td>
-        <td rowspan="2">{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}}</td>
+        <td rowspan="2">{{row.khaliJaga[0].rate if row.khaliJaga and row.khaliJaga|length > 0 else ''}}-{{row.khaliJaga[0].length if row.khaliJaga and row.khaliJaga|length > 0 else ''}}</td>
         <td rowspan="2"></td>
     </tr>
     <tr>
