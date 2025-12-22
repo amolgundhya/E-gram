@@ -222,7 +222,7 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
 
         qr_data = {
            # Marathi labels for QR display
-            "मा. धा. ना.": owner_name,
+            # "मा. धा. ना.": owner_name,
             "Mal. Kr." : getattr(prop, 'malmattaKramank', None),
             "T. A.": total_area,
             "T. T.": totalTax

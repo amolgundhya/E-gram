@@ -352,7 +352,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
 
                 qr_data = {
-                    "मा. धा. ना.": owner_name,
+                    # "Mal. Dhr. Nav.": owner_name,
                     "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
                     "T. A.": totalArea,
                     "T. T.": totalTax
@@ -410,11 +410,11 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
                     #get template
                     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-                    print("base_dir ----->"  , base_dir)
+                    # print("base_dir ----->"  , base_dir)
                     template_dir = os.path.join(base_dir, 'templates')
-                    print("template_dir ----->"  , template_dir)
+                    # print("template_dir ----->"  , template_dir)
                     namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
-                    print("namuna8_template_dir ----->"  , namuna8_template_dir)
+                    # print("namuna8_template_dir ----->"  , namuna8_template_dir)
                     env = Environment(loader=FileSystemLoader(namuna8_template_dir))
                     template = env.get_template('qrTemplate.html')
 
@@ -1004,7 +1004,7 @@ def update_namuna8_entry(
         boundary_south = record_response.get('boundarySouth') or getattr(db_property, 'southBoundary', None)
 
         qr_data = {
-            "मा. धा. ना.": owner_name,
+            # "मा. धा. ना.": owner_name,
             "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
             "T. A.": totalArea,
             "T. T.": totalTax
@@ -2520,7 +2520,7 @@ def serialize_properties(
                     
                     qr_data = {
                         # Marathi labels for QR display
-                        "मा. धा. ना.": owner_name,
+                        # "मा. धा. ना.": owner_name,
                         "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
                         "T. A.": totalArea,
                         "T. T.": totalTax
