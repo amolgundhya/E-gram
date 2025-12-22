@@ -140,7 +140,9 @@
         {% for copy in [1,2] %}
         <table class="header-table" style="width:100%;">
             <tr>
-                <td class="center bold" style="width: 33%;">ग्रामपंचायत : {{ record.grampanchayat or 'ग्रामपंचायत' }}</td>
+                <td class="center bold">ग्रामपंचायत : {{ record.grampanchayat or 'ग्रामपंचायत' }}</td>
+                <td class="center bold">जिल्हा<br>{{ record.district or '' }}</td>
+                <td class="center bold">तलुका<br>{{ record.taluka or '' }}</td>   
                 <td class="center bold" style="width: 34%; ">
                     कर वसुलीची पावती<br>
                     नमुना क्र. १०
