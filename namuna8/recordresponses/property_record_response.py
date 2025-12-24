@@ -520,7 +520,7 @@ def get_property_records_by_village(
                 
                 khaliJaga = [{
                     "constructiontype": "खाली जागा",
-                    "length": round(khali_area, 2),
+                    "length": round(khali_area),
                     "width": 1,
                     "year": datetime.now().year,
                     "rate": khali_jaga_rate,
