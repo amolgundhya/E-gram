@@ -191,7 +191,7 @@ def get_property_record(
                 
             khaliJaga = [{
                 "constructiontype": prop.vacantLandType,
-                "length": round(khali_area),
+                "length": (khali_area),
                 "width": 1,
                 "year": datetime.now().year,
                 "rate": khali_jaga_rate,
@@ -210,7 +210,7 @@ def get_property_record(
     constructionType = [
         {
             "type": c.construction_type.name,
-            "length": round(c.length),
+            "length": (c.length),
             "width": c.width,
             "year": c.constructionYear,
             "rate": getattr(c.construction_type, 'bandhmastache_dar', 0),
@@ -522,7 +522,7 @@ def get_property_records_by_village(
                 
                 khaliJaga = [{
                     "constructiontype": "खाली जागा",
-                    "length": round(khali_area),
+                    "length": (khali_area),
                     "width": 1,
                     "year": datetime.now().year,
                     "rate": khali_jaga_rate,
@@ -541,7 +541,7 @@ def get_property_records_by_village(
         constructionType = [
             {
                 "type": c.construction_type.name,
-                "length": round(c.length),
+                "length": (c.length),
                 "width": c.width,
                 "year": c.constructionYear,
                 "rate": getattr(c.construction_type, 'bandhmastache_dar', 0),
