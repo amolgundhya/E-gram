@@ -1,3 +1,4 @@
+import math
 from fastapi import APIRouter, Depends, HTTPException, status, Body, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 import database
@@ -154,14 +155,14 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                         # capital_value = (( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * AnnualLandValueRate ) + ( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                         capital_value = (( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                         # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                        capital_value = round(capital_value, 2)
+                        capital_value = math.ceil(capital_value)
                         # print("capital_value_from_formula1" , capital_value)
                     else:
                         capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
-                        capital_value = round(capital_value, 2)
+                        capital_value = math.ceil(capital_value)
                         # print("capital_value_from_formula2" , capital_value)
                     
-                    house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value, 2)
+                    house_tax = math.ceil((getattr(construction_type, 'rate', 0) / 1000) * capital_value)
                 
                 # Debug logging for construction creation
                 construction_district_id = getattr(property_data, 'district_id', None)
@@ -874,13 +875,13 @@ def update_namuna8_entry(
             if formula1:
                 capital_value =(( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                 # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                capital_value = round(capital_value, 2)
+                capital_value = math.ceil(capital_value)
                 # print("capital_value_from_formula1" , capital_value)
             else:
                 capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
-                capital_value = round(capital_value, 2)
+                capital_value = math.ceil(capital_value)
                     
-            house_tax = round((getattr(construction_type, 'rate', 0) / 1000) * capital_value  ,2)
+            house_tax = math.ceil((getattr(construction_type, 'rate', 0) / 1000) * capital_value)
             new_construction = models.Construction(
                 construction_type_id=construction_type.id,
                 length=construction_data.length,
