@@ -1,3 +1,4 @@
+import math
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from namuna8 import namuna8_model as models
@@ -183,10 +184,10 @@ def get_property_record(
                     capital_value = (khali_area_m * AnnualLandValueRate)
                 else:
                     capital_value = AreaInMeter * AnnualLandValueRate
-                capital_value = round(capital_value, 2)
+                capital_value = math.ceil(capital_value)
                 
                 # Calculate house tax - exact same logic as Namuna8
-                house_tax = round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+                house_tax = math.ceil((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
             else:
                 capital_value = 0
                 house_tax = 0
@@ -200,8 +201,8 @@ def get_property_record(
                 "rate": khali_jaga_rate,
                 "floor": "तळमजला",
                 "usage": prop.vacantLandType,
-                "capitalValue": 0 if prop.karLaguNahi else round(capital_value),
-                "houseTax": 0 if prop.karLaguNahi else house_tax,
+                "capitalValue": 0 if prop.karLaguNahi else math.ceil(capital_value),
+                "houseTax": 0 if prop.karLaguNahi else math.ceil(house_tax),
                 "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
                 "taxRates": 0 if prop.karLaguNahi else (getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0),
                 "totalkhalijagaareainfoot": round(khali_area),
@@ -517,10 +518,10 @@ def get_property_records_by_village(
                         capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
                     else:
                         capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
-                    capital_value = round(capital_value, 2)
+                    capital_value = math.ceil(capital_value)
                     
                     # Calculate house tax - exact same logic as Namuna8
-                    house_tax = round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+                    house_tax = math.ceil((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
                 else:
                     capital_value = 0
                     house_tax = 0
@@ -533,8 +534,8 @@ def get_property_records_by_village(
                     "rate": khali_jaga_rate,
                     "floor": "तळमजला",
                     "usage": prop.vacantLandType,
-                    "capitalValue": 0 if prop.karLaguNahi else round(capital_value),
-                    "houseTax": 0 if prop.karLaguNahi else house_tax,
+                    "capitalValue": 0 if prop.karLaguNahi else math.ceil(capital_value),
+                    "houseTax": 0 if prop.karLaguNahi else math.ceil(house_tax),
                     "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
                     "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
                     "totalkhalijagaareainfoot": round(khali_area),
