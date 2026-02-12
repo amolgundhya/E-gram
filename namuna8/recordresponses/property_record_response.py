@@ -152,7 +152,8 @@ def get_property_record(
         # Calculate capital value and house tax for khali jaga using same logic as Namuna8
         if khali_area > 0:
             # Get construction type for khali jaga
-            khali_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == "खाली जागा").first()
+            khali_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == prop.vacantLandType).first()
+            print("prop.vacantLandType -------------------->", prop.vacantLandType)
             
             if khali_construction_type:
                 # Get user formula preference - same as Namuna8
@@ -168,6 +169,8 @@ def get_property_record(
                 # Calculate area in meters - same as Namuna8
                 AreaInMeter = round(khali_area * 1 * 0.092903, 2)  # length * width * 0.092903
                 AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
+                print("AnnualLandValueRate -------------------->", AnnualLandValueRate)
+                print("khali_construction_type -------------------->", khali_construction_type)
                 ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
                 depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
                 
@@ -483,8 +486,10 @@ def get_property_records_by_village(
                 # Ensure khali_area_m is defined in this scope
                 unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
                 khali_area_m = round(khali_area, 2) if unit == 'sqm' else round(khali_area * 0.092903, 2)
-                # Get construction type for khali jaga
-                khali_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == "खाली जागा").first()
+                # Get construction type for khali jaga (respect property vacantLandType)
+                khali_construction_type = db.query(models.ConstructionType).filter(
+                    models.ConstructionType.name == prop.vacantLandType
+                ).first()
                 
                 if khali_construction_type:
                     # Get user formula preference - same as Namuna8
@@ -521,7 +526,7 @@ def get_property_records_by_village(
                     house_tax = 0
                 
                 khaliJaga = [{
-                    "constructiontype": "खाली जागा",
+                    "constructiontype": prop.vacantLandType or "खाली जागा",
                     "length": (khali_area),
                     "width": 1,
                     "year": datetime.now().year,
@@ -799,7 +804,9 @@ def get_property_records_by_gram_panchayat(
                             khali_jaga_rate = getattr(similar_construction, 'bandhmastache_dar', 0)
 
                 if khali_area > 0:
-                    khali_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == "खाली जागा").first()
+                    khali_construction_type = db.query(models.ConstructionType).filter(
+                        models.ConstructionType.name == prop.vacantLandType
+                    ).first()
 
                     if khali_construction_type:
                         userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
@@ -830,7 +837,7 @@ def get_property_records_by_gram_panchayat(
                         house_tax = 0
 
                     khaliJaga = [{
-                        "constructiontype": "खाली जागा",
+                        "constructiontype": prop.vacantLandType or "खाली जागा",
                         "length": round(khali_area),
                         "width": 1,
                         "year": datetime.now().year,
