@@ -1298,12 +1298,12 @@ def get_bulk_edit_property_list(
                     usageBasedBuildingWeightageFactor = weightage_map.get(p.vacantLandType, 1)
 
                     if formula1:
-                        capital_value = (khali_area_m * AnnualLandValueRate)
+                        capital_value = math.ceil(khali_area_m * AnnualLandValueRate)
                     else:
-                        capital_value = AreaInMeter * AnnualLandValueRate
+                        capital_value = math.ceil(AreaInMeter * AnnualLandValueRate)
                     capital_value = round(capital_value, 2)
 
-                    house_tax = round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+                    house_tax = math.ceil((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
                 else:
                     capital_value = 0
                     house_tax = 0
