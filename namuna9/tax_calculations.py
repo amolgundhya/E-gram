@@ -48,7 +48,7 @@ def calculate_total_house_tax(prop, constructions, db):
             khali_area = round(max(total_area - used_area, 0), 2)
             area_in_meter = round(khali_area * 0.092903, 2)
         if khali_area > 0:
-            khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == "खाली जागा").first()
+            khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == vacant_land_type).first()
             if khali_construction_type:
                 annual_land_value_rate = getattr(khali_construction_type, 'annualLandValueRate', 1)
                 if formula1:

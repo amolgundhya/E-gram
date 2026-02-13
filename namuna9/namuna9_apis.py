@@ -526,7 +526,7 @@ def get_table_data(
         # Calculate ekun (total) values - use saved data if available
         if saved_data:
             # Include dand in ekunGhar (house total) - ensure no negative values
-            ekunGhar = round(max(totalHouseTax + (max(dand,0) or 0), (max(shaktiGhar,0) + max(chaluGhar,0) + (max(dand,0) or 0)), 0), 2)
+            ekunGhar = round(max(shaktiGhar,0) + max(chaluGhar,0) + (max(dand,0) or 0), 2)
             ekunDiva = round(max(saved_data.ekunDiva or (shaktiDiva + chaluDiva), 0), 2)
             ekunAarogyaKar = round(max(saved_data.ekunAarogyaKar or (shaktiAarogyaKar + chaluAarogyaKar), 0), 2)
             ekunSapanikar = round(max(saved_data.ekunSapanikar or (shaktiSapanikar + chaluSapanikar), 0), 2)
@@ -782,7 +782,7 @@ def get_namuna9_table_data_custom(
                 khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
                 khali_area = round(khali_area_m / 0.092903, 2)
                 if khali_area > 0:
-                    khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == "खाली जागा").first()
+                    khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == vacant_land_type).first()
                     if khali_construction_type:
                         userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
                         formula1 = userFormulaPreference.capitalFormula1 if userFormulaPreference else None
