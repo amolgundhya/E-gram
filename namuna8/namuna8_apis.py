@@ -1218,21 +1218,141 @@ def get_bulk_edit_property_list(
         total_area = p.totalAreaSqFt or 0
         divaArogyaKar = bool(getattr(p, 'divaArogyaKar', False))
         karLaguNahi = bool(getattr(p, 'karLaguNahi', False))
+
+        # ---------- Khali Jaga calculation (same logic as in get_property_record) ----------
+        khaliJaga = []
+        if getattr(p, 'vacantLandType', None) not in [None, '', 'null']:
+            # Compute khali area in both sqm and sqft based on stored unit
+            unit = getattr(p, 'areaUnit', 'sqft') or 'sqft'
+            if unit == 'sqm':
+                total_area_m = round(p.totalArea or 0, 2)
+                used_area_m = round(sum((c.length or 0) * (c.width or 0)
+                                        for c in p.constructions
+                                        if getattr(c, "floor", None) == "तळमजला"), 2)
+            else:
+                total_area_m = round((p.totalAreaSqFt or 0) * 0.092903, 2)
+                used_area_m = round(sum((c.length or 0) * (c.width or 0)
+                                        for c in p.constructions
+                                        if getattr(c, "floor", None) == "तळमजला") * 0.092903, 2)
+            khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
+            khali_area = round(khali_area_m / 0.092903, 2)
+
+            # Find the bandhmastache_dar for vacantLandType construction type
+            khali_jaga_rate = 0
+            vacant_construction_type = None
+
+            if p.vacantLandType:
+                # Query construction type directly, same as property_record_response
+                vacant_construction_type = db.query(models.ConstructionType).filter(
+                    models.ConstructionType.name == p.vacantLandType
+                ).first()
+                if vacant_construction_type:
+                    khali_jaga_rate = getattr(vacant_construction_type, 'bandhmastache_dar', 0)
+                else:
+                    similar_construction = db.query(models.ConstructionType).filter(
+                        models.ConstructionType.name.like(f"%{p.vacantLandType}%")
+                    ).first()
+                    if similar_construction:
+                        khali_jaga_rate = getattr(similar_construction, 'bandhmastache_dar', 0)
+
+            if khali_area > 0:
+                # Use the selected vacant land type for construction type lookup,
+                # same as in property_record_response, instead of hardcoding "खाली जागा"
+                khali_construction_type = db.query(models.ConstructionType).filter(
+                    models.ConstructionType.name == p.vacantLandType
+                ).first()
+
+                if khali_construction_type:
+                    # User formula preference – same as in property_record_response
+                    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
+                    if userFormulaPreference:
+                        formula1 = userFormulaPreference.capitalFormula1
+                        formula2 = userFormulaPreference.capitalFormula2
+                    else:
+                        formula1 = None
+                        formula2 = None
+
+                    AreaInMeter = round(khali_area * 1 * 0.092903, 2)
+                    AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
+                    ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
+                    depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
+
+                    weightage_map = {
+                        row.building_usage: row.weightage
+                        for row in db.query(BuildingUsageWeightage).all()
+                    }
+                    usageBasedBuildingWeightageFactor = weightage_map.get(p.vacantLandType, 1)
+
+                    if formula1:
+                        capital_value = math.ceil(khali_area_m * AnnualLandValueRate)
+                    else:
+                        capital_value = math.ceil(AreaInMeter * AnnualLandValueRate)
+                    capital_value = round(capital_value, 2)
+
+                    house_tax = math.ceil((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+                else:
+                    capital_value = 0
+                    house_tax = 0
+
+                khaliJaga = [{
+                    "constructiontype": p.vacantLandType,
+                    "length": khali_area,
+                    "width": 1,
+                    "year": datetime.now().year,
+                    "rate": khali_jaga_rate,
+                    "floor": "तळमजला",
+                    "usage": p.vacantLandType,
+                    "capitalValue": 0 if p.karLaguNahi else round(capital_value),
+                    "houseTax": 0 if p.karLaguNahi else house_tax,
+                    "usageBasedBuildingWeightageFactor": 1,
+                    "taxRates": 0 if p.karLaguNahi else (
+                        getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0
+                    ),
+                    "totalkhalijagaareainfoot": round(khali_area),
+                    "totalkhalijagaareainmeters": round(khali_area * 0.092903)
+                }]
+
+        # ---------- House tax total (same approach as property_record_response) ----------
+        base_house_tax = sum((c.houseTax or 0) for c in p.constructions)
+        total_house_tax = base_house_tax
+        if khaliJaga:
+            total_house_tax += sum(item.get("houseTax", 0) for item in khaliJaga)
+
+        if karLaguNahi:
+            total_house_tax = 0
+
+        diva_kar = 0 if karLaguNahi else (get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0)
+        aarogya_kar = 0 if karLaguNahi else (get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0)
+        cleaning_tax = 0 if karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if getattr(p, 'safaiKar', False) else 0)
+        toilet_tax = 0 if karLaguNahi else (get_tax_by_area(total_area, 'bathroom') if getattr(p, 'shauchalayKar', False) else 0)
+        sapanikar_val = 0 if karLaguNahi else get_water_facility_price(getattr(p, 'waterFacility1', None))
+        vpanikar_val = 0 if karLaguNahi else get_water_facility_price(getattr(p, 'waterFacility2', None))
+
+        totaltax_val = 0 if karLaguNahi else (
+            total_house_tax +
+            diva_kar +
+            aarogya_kar +
+            cleaning_tax +
+            toilet_tax +
+            sapanikar_val +
+            vpanikar_val
+        )
+
         result.append(schemas.BulkEditPropertyRow(
             serial_no=idx,
-            id = p.id ,
+            id=p.id,
             anukramank=getattr(p, 'anuKramank', None),
             malmattaKramank=p.malmattaKramank,
             ownerName=owner_name,
             occupant=occupant_name,  # Always 'self' for now
-            gharKar=0 if karLaguNahi else round(sum([c.houseTax or 0 for c in p.constructions]), 2),
-            divaKar=0 if karLaguNahi else (get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0),
-            aarogyaKar=0 if karLaguNahi else (get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0),
-            cleaningTax=0 if karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if getattr(p, 'safaiKar', False) else 0),
-            toiletTax=0 if karLaguNahi else (get_tax_by_area(total_area, 'bathroom') if getattr(p, 'shauchalayKar', False) else 0),
-            sapanikar=0 if karLaguNahi else get_water_facility_price(getattr(p, 'waterFacility1', None)),
-            vpanikar=0 if karLaguNahi else get_water_facility_price(getattr(p, 'waterFacility2', None)),
-            totaltax=0 if karLaguNahi else (sum([c.houseTax or 0 for c in p.constructions]) + get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0 + get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0 + get_tax_by_area(total_area, 'cleaning') if getattr(p, 'safaiKar', False) else 0 + get_tax_by_area(total_area, 'bathroom') if getattr(p, 'shauchalayKar', False) else 0 + get_water_facility_price(getattr(p, 'waterFacility1', None)) + get_water_facility_price(getattr(p, 'waterFacility2', None)))
+            gharKar=0 if karLaguNahi else round(total_house_tax, 2),
+            divaKar=diva_kar,
+            aarogyaKar=aarogya_kar,
+            cleaningTax=cleaning_tax,
+            toiletTax=toilet_tax,
+            sapanikar=sapanikar_val,
+            vpanikar=vpanikar_val,
+            totaltax=round(totaltax_val, 2)
         ))
     return result
 
