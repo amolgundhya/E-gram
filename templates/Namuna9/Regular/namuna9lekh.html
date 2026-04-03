@@ -1,184 +1,408 @@
-<!DOCTYPE html>
-<html >
-<head>
-    <meta charset="UTF-8">
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
     <title>नमुना ९ लेख</title>
     <style>
-        body { font-family: 'Mangal', Arial, sans-serif; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #000; padding: 2px 6px; font-size: 15px; }
-        .no-border { border: none !important; }
-        .center { text-align: center; }
-        .right { text-align: right; }
-        .bold { font-weight: bold; }
-        .header-table td { border: none; }
-        .sub-header { font-size: 18px; font-weight: bold; }
-        .watermark {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            color: #bbb;
-            font-size: 48px;
-            opacity: 0.2;
-            z-index: 0;
-            pointer-events: none;
+      body {
+        font-family: "Mangal", Arial, sans-serif;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border: 1px solid #000;
+        padding: 2px 6px;
+        font-size: 15px;
+      }
+      .no-border {
+        border: none !important;
+      }
+      .center {
+        text-align: center;
+      }
+      .right {
+        text-align: right;
+      }
+      .bold {
+        font-weight: bold;
+      }
+      .header-table td {
+        border: none;
+      }
+      .sub-header {
+        font-size: 18px;
+        font-weight: bold;
+      }
+      .watermark {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        color: #bbb;
+        font-size: 48px;
+        opacity: 0.2;
+        z-index: 0;
+        pointer-events: none;
+      }
+      .outer-border {
+        border: 2px solid #000;
+        padding: 8px;
+        margin: 16px auto;
+        width: 95%;
+        background: #fff;
+        position: relative;
+      }
+      @media print {
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        #toolbar {
+          display: none !important;
         }
         .outer-border {
-            border: 2px solid #000;
-            padding: 8px;
-            margin: 16px auto;
-            width: 95%;
-            background: #fff;
-            position: relative;
+          page-break-after: always;
         }
-        @media print {
-            @page {
-                size: A4;
-                margin: 0;
-            }
-            #toolbar {
-                display: none !important;
-            }
-            .outer-border {
-                page-break-after: always;
-            }
-            .outer-border:last-of-type {
-                page-break-after: auto;
-            }
+        .outer-border:last-of-type {
+          page-break-after: auto;
         }
+      }
     </style>
-</head>
-<body>
-    <div id="toolbar" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f8f8f8; border-bottom: 1px solid #ccc;">
-        <!-- Left: Icon Buttons & Navigation -->
-        <div style="display: flex; align-items: center; gap: 6px;">
-            <button title="First Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏮️</button>
-            <button title="Previous Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">◀️</button>
-            <input type="text" value="1" id="pageInput" style="width: 32px; text-align: center; font-size: 14px; border: 1px solid #ccc; border-radius: 2px; margin: 0 2px;" oninput="goToPage(this.value)" />
-            <span id="pageTotal" style="font-size: 14px; color: #888;"></span>
-            <button title="Next Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">▶️</button>
-            <button title="Last Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏭️</button>
-            <button title="Zoom Out" onclick="zoomOut()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➖</button>
-            <span id="zoomPercent" style="min-width: 40px; text-align: center; font-size: 14px;">100%</span>
-            <button title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
-        </div>
-        <!-- Right: Print & Exit Buttons -->
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
-            <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
-        </div>
+  </head>
+  <body>
+    <div
+      id="toolbar"
+      style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 12px;
+        background: #f8f8f8;
+        border-bottom: 1px solid #ccc;
+      "
+    >
+      <!-- Left: Icon Buttons & Navigation -->
+      <div style="display: flex; align-items: center; gap: 6px">
+        <button
+          title="First Page"
+          style="
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          ⏮️
+        </button>
+        <button
+          title="Previous Page"
+          style="
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          ◀️
+        </button>
+        <input
+          type="text"
+          value="1"
+          id="pageInput"
+          style="
+            width: 32px;
+            text-align: center;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            margin: 0 2px;
+          "
+          oninput="goToPage(this.value)"
+        />
+        <span id="pageTotal" style="font-size: 14px; color: #888"></span>
+        <button
+          title="Next Page"
+          style="
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          ▶️
+        </button>
+        <button
+          title="Last Page"
+          style="
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          ⏭️
+        </button>
+        <button
+          title="Zoom Out"
+          onclick="zoomOut()"
+          style="
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+          "
+        >
+          ➖
+        </button>
+        <span
+          id="zoomPercent"
+          style="min-width: 40px; text-align: center; font-size: 14px"
+          >100%</span
+        >
+        <button
+          title="Zoom In"
+          onclick="zoomIn()"
+          style="
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+          "
+        >
+          ➕
+        </button>
+      </div>
+      <!-- Right: Print & Exit Buttons -->
+      <div style="display: flex; align-items: center; gap: 8px">
+        <label for="fromPage" style="font-size: 16px">From Page:</label>
+        <input
+          type="number"
+          id="fromPage"
+          name="fromPage"
+          min="1"
+          style="
+            width: 60px;
+            font-size: 16px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+          "
+        />
+        <label for="toPage" style="font-size: 16px">To Page:</label>
+        <input
+          type="number"
+          id="toPage"
+          name="toPage"
+          min="1"
+          style="
+            width: 60px;
+            font-size: 16px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+          "
+        />
+        <button
+          onclick="printPage()"
+          style="
+            background: #4caf50;
+            color: #fff;
+            font-weight: bold;
+            font-size: 20px;
+            border: none;
+            border-radius: 20px;
+            padding: 2px 24px;
+            cursor: pointer;
+          "
+        >
+          Print
+        </button>
+        <button
+          onclick="exitPage()"
+          style="
+            background: #b71c1c;
+            color: #fff;
+            font-weight: bold;
+            font-size: 20px;
+            border: none;
+            border-radius: 20px;
+            padding: 2px 24px;
+            cursor: pointer;
+          "
+        >
+          EXIT
+        </button>
+      </div>
     </div>
     <script>
-        let zoomLevel = 1.0;
-        const minZoom = 0.5;
-        const maxZoom = 2.0;
-        const zoomStep = 0.1;
-        let currentPage = 1;
-        const recordsPerPage = 1;
-        let totalPages = 0;
-        let allRecords = [];
+      let zoomLevel = 1.0;
+      const minZoom = 0.5;
+      const maxZoom = 2.0;
+      const zoomStep = 0.1;
+      let currentPage = 1;
+      const recordsPerPage = 1;
+      let totalPages = 0;
+      let allRecords = [];
 
-        function updateZoom() {
-            document.querySelectorAll('.outer-border').forEach(el => el.style.zoom = zoomLevel);
-            document.getElementById('zoomPercent').innerText = Math.round(zoomLevel * 100) + '%';
+      function updateZoom() {
+        document
+          .querySelectorAll(".outer-border")
+          .forEach((el) => (el.style.zoom = zoomLevel));
+        document.getElementById("zoomPercent").innerText =
+          Math.round(zoomLevel * 100) + "%";
+      }
+      function zoomIn() {
+        if (zoomLevel < maxZoom) {
+          zoomLevel += zoomStep;
+          updateZoom();
         }
-        function zoomIn() {
-            if (zoomLevel < maxZoom) {
-                zoomLevel += zoomStep;
-                updateZoom();
-            }
+      }
+      function zoomOut() {
+        if (zoomLevel > minZoom) {
+          zoomLevel -= zoomStep;
+          updateZoom();
         }
-        function zoomOut() {
-            if (zoomLevel > minZoom) {
-                zoomLevel -= zoomStep;
-                updateZoom();
-            }
+      }
+      function showPage(page) {
+        if (!allRecords.length) {
+          allRecords = Array.from(document.querySelectorAll(".outer-border"));
         }
-        function showPage(page) {
-            if (!allRecords.length) {
-                allRecords = Array.from(document.querySelectorAll('.outer-border'));
-            }
-            totalPages = Math.ceil(allRecords.length / recordsPerPage);
+        totalPages = Math.ceil(allRecords.length / recordsPerPage);
 
-            if (page < 1) page = 1;
-            if (page > totalPages) page = totalPages;
-            currentPage = page;
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
 
-            allRecords.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                el.style.display = (pageIdx === currentPage) ? '' : 'none';
-            });
+        allRecords.forEach((el, idx) => {
+          const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+          el.style.display = pageIdx === currentPage ? "" : "none";
+        });
 
-            document.getElementById('pageInput').value = currentPage;
-            document.getElementById('pageTotal').innerText = '/ ' + totalPages;
+        document.getElementById("pageInput").value = currentPage;
+        document.getElementById("pageTotal").innerText = "/ " + totalPages;
+        // Set default From/To Page values
+        const fromPageInput = document.getElementById("fromPage");
+        const toPageInput = document.getElementById("toPage");
+        if (fromPageInput && toPageInput) {
+          fromPageInput.value = 1;
+          toPageInput.value = totalPages;
         }
+      }
 
-        function goToPage(pageNumber) {
-            const page = parseInt(pageNumber, 10);
-            if (!isNaN(page)) {
-                showPage(page);
-            }
+      function goToPage(pageNumber) {
+        const page = parseInt(pageNumber, 10);
+        if (!isNaN(page)) {
+          showPage(page);
         }
-        function nextPage() { showPage(currentPage + 1); }
-        function prevPage() { showPage(currentPage - 1); }
-        function firstPage() { showPage(1); }
-        function lastPage() { showPage(totalPages); }
-        
-        function printPage() {
-            const originalDisplay = allRecords.map(el => el.style.display);
-            allRecords.forEach(el => el.style.display = 'block');
-            window.print();
-            allRecords.forEach((el, idx) => el.style.display = originalDisplay[idx]);
-        }
+      }
+      function nextPage() {
+        showPage(currentPage + 1);
+      }
+      function prevPage() {
+        showPage(currentPage - 1);
+      }
+      function firstPage() {
+        showPage(1);
+      }
+      function lastPage() {
+        showPage(totalPages);
+      }
 
-        function exitPage() {
-            window.close();
-        }
+      function printPage() {
+        // Get page range from input
+        const fromPage =
+          parseInt(document.getElementById("fromPage").value) || 1;
+        const toPage =
+          parseInt(document.getElementById("toPage").value) || totalPages;
+        const originalDisplay = allRecords.map((el) => el.style.display);
+        allRecords.forEach((el, idx) => {
+          const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+          if (pageIdx >= fromPage && pageIdx <= toPage) {
+            el.style.display = "block";
+          } else {
+            el.style.display = "none";
+          }
+        });
+        window.print();
+        allRecords.forEach(
+          (el, idx) => (el.style.display = originalDisplay[idx]),
+        );
+      }
 
-        window.onload = function() {
-            showPage(1);
-            updateZoom();
-            document.querySelector('button[title="First Page"]').onclick = firstPage;
-            document.querySelector('button[title="Previous Page"]').onclick = prevPage;
-            document.querySelector('button[title="Next Page"]').onclick = nextPage;
-            document.querySelector('button[title="Last Page"]').onclick = lastPage;
-        };
+      function exitPage() {
+        window.close();
+      }
+
+      window.onload = function () {
+        showPage(1);
+        updateZoom();
+        document.querySelector('button[title="First Page"]').onclick =
+          firstPage;
+        document.querySelector('button[title="Previous Page"]').onclick =
+          prevPage;
+        document.querySelector('button[title="Next Page"]').onclick = nextPage;
+        document.querySelector('button[title="Last Page"]').onclick = lastPage;
+        // Set default From/To Page values on load
+        setTimeout(() => {
+          const fromPageInput = document.getElementById("fromPage");
+          const toPageInput = document.getElementById("toPage");
+          if (fromPageInput && toPageInput) {
+            fromPageInput.value = 1;
+            toPageInput.value = totalPages;
+          }
+        }, 0);
+      };
     </script>
     {% for record in data %}
     <div class="outer-border">
-        {% for copy in [1, 2] %}
-        <div>
-            <div class="bold main-title center">सरपंच {{ record.gramPanchayat or '' }}</div>
-            <div class="center subtitle">नमुना ९ लेख<br> मागणी लेख नमुना <br> नमुना ३ पहा</div>
-            <table class="details-table" style="margin-top: 8px;">
-                <tr>
-                    <td style="width: 12%;">श्री / श्रीमती :</td>
-                    <td class="bold">{{ record.ownerName or '' }}</td>
-                </tr>
-                <tr>
-                    <td>भोगवटदार :</td>
-                    <td class="bold">{{ record.occupantName or '' }}</td>
-                </tr>
-                <tr>
-                    <td>राहणार :</td>
-                    <td class="bold">{{ record.gramPanchayat or '' }}</td>
-                </tr>
-            </table>
-            <div class="center bold notice-box">नोटीस देण्यात येते कि</div>
-            <div class="marathi-text" style="min-height: 120px;">
-                <div class="watermark">{{ record.gramPanchayat or '' }}</div>
-                यांज कडे घर, दिवा, आरोग्य, पाणी कर याजकडून दिनांक    /   /    रोजी सुरु होणाऱ्या  आणि दिनांक   /   /    रोजी संपणाऱ्या वर्षाच्या मुदतीसाठी येणे असलेली एकूण रक्कम रुपये {{record.totalTax}} च्या रकमेची मागणी करीत आहे आणि ह्या लेखांची बजावणी केल्याच्या तारखेपासून ३० (तीस) दिवसांच्या आत उक्त रक्कम व या मागणीच्या लेखाबाद्दलची फी रुपये     हि  येथील ग्रामपंचायतीच्या कार्यालयात भरण्यात आली नाही किवा ती न भरल्यास पंच्यायातीची खात्री होईल अशा रीतीने पुरेसे कारण दर्शविण्यात आले नाही तर ती रक्कम खर्चासह वसूल करण्यासाठी जप्तीचे अधिपत्र काढण्यात येईल 
-            </div>
-            <div class="signature">
-                ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी {{ record.gramPanchayat or '' }}
-            </div>
+      {% for copy in [1, 2] %}
+      <div>
+        <div class="bold main-title center">
+          सरपंच {{ record.gramPanchayat or '' }}
         </div>
-        {% if copy == 1 %}
-        <div  style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
-        {% endif %}
-        {% endfor %}
+        <div class="center subtitle">
+          नमुना ९ लेख<br />
+          मागणी लेख नमुना <br />
+          नमुना ३ पहा
+        </div>
+        <table class="details-table" style="margin-top: 8px">
+          <tr>
+            <td style="width: 12%">श्री / श्रीमती :</td>
+            <td class="bold">{{ record.ownerName or '' }}</td>
+          </tr>
+          <tr>
+            <td>भोगवटदार :</td>
+            <td class="bold">{{ record.occupantName or '' }}</td>
+          </tr>
+          <tr>
+            <td>राहणार :</td>
+            <td class="bold">{{ record.gramPanchayat or '' }}</td>
+          </tr>
+        </table>
+        <div class="center bold notice-box">नोटीस देण्यात येते कि</div>
+        <div class="marathi-text" style="min-height: 120px">
+          <div class="watermark">{{ record.gramPanchayat or '' }}</div>
+          यांज कडे घर, दिवा, आरोग्य, पाणी कर याजकडून दिनांक / / रोजी सुरु
+          होणाऱ्या आणि दिनांक / / रोजी संपणाऱ्या वर्षाच्या मुदतीसाठी येणे असलेली
+          एकूण रक्कम रुपये {{record.totalTax}} च्या रकमेची मागणी करीत आहे आणि
+          ह्या लेखांची बजावणी केल्याच्या तारखेपासून ३० (तीस) दिवसांच्या आत उक्त
+          रक्कम व या मागणीच्या लेखाबाद्दलची फी रुपये हि येथील ग्रामपंचायतीच्या
+          कार्यालयात भरण्यात आली नाही किवा ती न भरल्यास पंच्यायातीची खात्री होईल
+          अशा रीतीने पुरेसे कारण दर्शविण्यात आले नाही तर ती रक्कम खर्चासह वसूल
+          करण्यासाठी जप्तीचे अधिपत्र काढण्यात येईल
+        </div>
+        <div class="signature">
+          ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी {{ record.gramPanchayat
+          or '' }}
+        </div>
+      </div>
+      {% if copy == 1 %}
+      <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0"></div>
+      {% endif %} {% endfor %}
     </div>
     {% endfor %}
-</body>
+  </body>
 </html>

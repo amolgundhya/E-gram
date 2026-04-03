@@ -200,6 +200,10 @@
       </div>
       <!-- Right: Print & Exit Buttons -->
       <div style="display: flex; align-items: center; gap: 8px">
+        <label style="font-size: 14px;">From:</label>
+        <input id="printFrom" type="number" min="1" style="width: 48px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; padding: 2px 4px;" />
+        <label style="font-size: 14px;">To:</label>
+        <input id="printTo" type="number" min="1" style="width: 48px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; padding: 2px 4px;" />
         <button
           onclick="printPage()"
           style="
@@ -318,17 +322,27 @@
         showPage(totalPages);
       }
       function printPage() {
-        // Show all pages before printing, then restore current page
-        const recordPages = Array.from(
-          document.querySelectorAll(".record-page")
-        );
+        // Print only the selected page range if specified
+        const fromInput = document.getElementById('printFrom');
+        const toInput = document.getElementById('printTo');
+        const recordPages = Array.from(document.querySelectorAll('.record-page'));
+        let from = parseInt(fromInput && fromInput.value ? fromInput.value : '1');
+        let to = parseInt(toInput && toInput.value ? toInput.value : recordPages.length.toString());
+        if (isNaN(from) || from < 1) from = 1;
+        if (isNaN(to) || to > recordPages.length) to = recordPages.length;
+        if (from > to) [from, to] = [to, from];
+        // Save current display states
         const prevStates = recordPages.map((el) => el.style.display);
-        recordPages.forEach((el) => (el.style.display = ""));
+        // Show only selected pages
+        recordPages.forEach((el, idx) => {
+          el.style.display = (idx + 1 >= from && idx + 1 <= to) ? '' : 'none';
+        });
         setTimeout(() => {
           window.print();
           setTimeout(() => {
+            // Restore previous display states
             recordPages.forEach((el, idx) => {
-              el.style.display = idx + 1 === currentPage ? "" : "none";
+              el.style.display = prevStates[idx];
             });
           }, 100);
         }, 50);
