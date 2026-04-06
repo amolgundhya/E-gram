@@ -50,7 +50,7 @@
             #toolbar {
                 display: none !important;
             }
-            .record-row { display: table-row !important; }
+            .record-row { display: table-row; }
         }
     </style>
 </head>
@@ -70,9 +70,41 @@
         </div>
         <!-- Right: Print & Exit Buttons -->
         <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="fromPage" style="font-size:16px;">From Page:</label>
+            <input type="number" id="fromPage" name="fromPage" min="1" style="width:60px; font-size:16px; padding:2px 8px; border-radius:4px; border:1px solid #ccc;">
+            <label for="toPage" style="font-size:16px;">To Page:</label>
+            <input type="number" id="toPage" name="toPage" min="1" style="width:60px; font-size:16px; padding:2px 8px; border-radius:4px; border:1px solid #ccc;">
             <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
             <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
         </div>
+        <script>
+        // Fix for printPage: Print only selected pages if "From" and "To" are specified
+        function printPage() {
+            const fromPage = parseInt(document.getElementById('fromPage').value, 10) || 1;
+            const toPage = parseInt(document.getElementById('toPage').value, 10) || totalPages;
+            const records = Array.from(document.querySelectorAll('.record-row'));
+            const oldDisplays = records.map(el => el.style.display);
+
+            // Hide all rows at first
+            records.forEach(el => el.style.display = 'none');
+            
+            // Calculate which rows to show
+            for (let idx = 0; idx < records.length; idx++) {
+                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                if (pageIdx >= fromPage && pageIdx <= toPage) {
+                    records[idx].style.display = '';
+                }
+            }
+
+            window.print();
+
+            // Restore previous display after printing
+            setTimeout(() => {
+                records.forEach((el, i) => el.style.display = oldDisplays[i]);
+                showPage(currentPage);
+            }, 100);
+        }
+        </script>
     </div>
     <script>
         let zoomLevel = 1.0;
@@ -118,10 +150,6 @@
         function prevPage() { showPage(currentPage - 1); }
         function firstPage() { showPage(1); }
         function lastPage() { showPage(totalPages); }
-        function printPage() {
-            // Print all pages; visibility handled by @media print CSS
-            window.print();
-        }
         function exitPage() {
             window.close();
         }

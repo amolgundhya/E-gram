@@ -76,10 +76,15 @@
             <button title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
         </div>
         <!-- Right: Print & Exit Buttons -->
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
-            <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
-        </div>
+       <div style="display: flex; align-items: center; gap: 8px;">
+        <!-- Page range selection for printing -->
+        <span style="font-size: 16px;">Print pages:</span>
+        <input type="number" id="printFrom" min="1" value="1" style="width: 48px; font-size: 16px; border-radius: 6px; border: 1px solid #ccc; margin-right: 2px;" />
+        <span style="font-size: 16px;">to</span>
+        <input type="number" id="printTo" min="1" value="1" style="width: 48px; font-size: 16px; border-radius: 6px; border: 1px solid #ccc; margin-right: 8px;" />
+        <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
+        <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
+      </div>
     </div>
     <script>
         let zoomLevel = 1.0;
@@ -152,13 +157,20 @@
         function firstPage() { showPage(1); }
         function lastPage() { showPage(totalPages); }
         function printPage() {
-            // Show all records before printing, then restore current page
+            // Get the page range from the input fields
+            const from = parseInt(document.getElementById('printFrom').value, 10);
+            const to = parseInt(document.getElementById('printTo').value, 10);
             const records = Array.from(document.querySelectorAll('.record-row'));
             const prevStates = records.map(el => el.style.display);
-            records.forEach(el => el.style.display = '');
+            // Show only records in the selected page range
+            records.forEach((el, idx) => {
+                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                el.style.display = (pageIdx >= from && pageIdx <= to) ? '' : 'none';
+            });
             setTimeout(() => {
                 window.print();
                 setTimeout(() => {
+                    // Restore previous state (show only current page)
                     records.forEach((el, idx) => {
                         const pageIdx = Math.floor(idx / recordsPerPage) + 1;
                         el.style.display = (pageIdx === currentPage) ? '' : 'none';
@@ -166,6 +178,7 @@
                 }, 100);
             }, 50);
         }
+        
         function exitPage() {
             window.close();
         }

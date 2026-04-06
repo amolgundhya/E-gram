@@ -1,150 +1,462 @@
-<!DOCTYPE html>
-<html >
-<head>
-    <meta charset="UTF-8">
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
     <title>नमूना ७</title>
     <style>
-        @media print {
-            @page {
-                size: A4;
-            }
-            #toolbar {
-                display: none !important;
-            }
+      @media print {
+        @page {
+          size: A4;
         }
-        table th, table td {
-            padding: 2px 4px !important;
-            border: 1px solid #000 !important;
+        #toolbar {
+          display: none !important;
         }
+      }
+      table th,
+      table td {
+        padding: 2px 4px !important;
+        border: 1px solid #000 !important;
+      }
     </style>
-</head>
-<div id="toolbar" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #f8f8f8; border-bottom: 1px solid #ccc;">
+  </head>
+  <div
+    id="toolbar"
+    style="
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: #f8f8f8;
+      border-bottom: 1px solid #ccc;
+    "
+  >
     <!-- Left: Icon Buttons & Navigation -->
-    <div style="display: flex; align-items: center; gap: 6px;">
-        <button title="First Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏮️</button>
-        <button title="Previous Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">◀️</button>
-        <input type="text" value="1" id="pageInput" style="width: 32px; text-align: center; font-size: 14px; border: 1px solid #ccc; border-radius: 2px; margin: 0 2px;" />
-        <span style="font-size: 14px; color: #888;">/1</span>
-        <button title="Next Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">▶️</button>
-        <button title="Last Page" style="background: none; border: none; font-size: 16px; cursor: pointer;">⏭️</button>
-        <button title="Zoom Out" onclick="zoomOut()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➖</button>
-        <span id="zoomPercent" style="min-width: 40px; text-align: center; font-size: 14px;">100%</span>
-        <button title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
+    <div style="display: flex; align-items: center; gap: 6px">
+      <button
+        title="First Page"
+        style="background: none; border: none; font-size: 16px; cursor: pointer"
+      >
+        ⏮️
+      </button>
+      <button
+        title="Previous Page"
+        style="background: none; border: none; font-size: 16px; cursor: pointer"
+      >
+        ◀️
+      </button>
+      <input
+        type="text"
+        value="1"
+        id="pageInput"
+        style="
+          width: 32px;
+          text-align: center;
+          font-size: 14px;
+          border: 1px solid #ccc;
+          border-radius: 2px;
+          margin: 0 2px;
+        "
+      />
+      <span style="font-size: 14px; color: #888">/1</span>
+      <button
+        title="Next Page"
+        style="background: none; border: none; font-size: 16px; cursor: pointer"
+      >
+        ▶️
+      </button>
+      <button
+        title="Last Page"
+        style="background: none; border: none; font-size: 16px; cursor: pointer"
+      >
+        ⏭️
+      </button>
+      <button
+        title="Zoom Out"
+        onclick="zoomOut()"
+        style="background: none; border: none; font-size: 18px; cursor: pointer"
+      >
+        ➖
+      </button>
+      <span
+        id="zoomPercent"
+        style="min-width: 40px; text-align: center; font-size: 14px"
+        >100%</span
+      >
+      <button
+        title="Zoom In"
+        onclick="zoomIn()"
+        style="background: none; border: none; font-size: 18px; cursor: pointer"
+      >
+        ➕
+      </button>
     </div>
     <!-- Right: Print & Exit Buttons -->
-    <div style="display: flex; align-items: center; gap: 8px;">
-        <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
-        <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
+    <div style="display: flex; align-items: center; gap: 8px">
+      <label for="fromPage" style="font-size: 16px">From Page:</label>
+      <input
+        type="number"
+        id="fromPage"
+        name="fromPage"
+        min="1"
+        style="
+          width: 60px;
+          font-size: 16px;
+          padding: 2px 8px;
+          border-radius: 4px;
+          border: 1px solid #ccc;
+        "
+      />
+      <label for="toPage" style="font-size: 16px">To Page:</label>
+      <input
+        type="number"
+        id="toPage"
+        name="toPage"
+        min="1"
+        style="
+          width: 60px;
+          font-size: 16px;
+          padding: 2px 8px;
+          border-radius: 4px;
+          border: 1px solid #ccc;
+        "
+      />
+      <button
+        onclick="printPage()"
+        style="
+          background: #4caf50;
+          color: #fff;
+          font-weight: bold;
+          font-size: 20px;
+          border: none;
+          border-radius: 20px;
+          padding: 2px 24px;
+          cursor: pointer;
+        "
+      >
+        Print
+      </button>
+      <button
+        onclick="exitPage()"
+        style="
+          background: #b71c1c;
+          color: #fff;
+          font-weight: bold;
+          font-size: 20px;
+          border: none;
+          border-radius: 20px;
+          padding: 2px 24px;
+          cursor: pointer;
+        "
+      >
+        EXIT
+      </button>
     </div>
-</div>
-<script>
+  </div>
+  <script>
     let zoomLevel = 1.0;
     const minZoom = 0.5;
     const maxZoom = 2.0;
     const zoomStep = 0.1;
     function updateZoom() {
-        document.getElementById('mainContent').style.zoom = zoomLevel;
-        document.getElementById('zoomPercent').innerText = Math.round(zoomLevel * 100) + '%';
+      document.getElementById("mainContent").style.zoom = zoomLevel;
+      document.getElementById("zoomPercent").innerText =
+        Math.round(zoomLevel * 100) + "%";
     }
     function zoomIn() {
-        if (zoomLevel < maxZoom) {
-            zoomLevel += zoomStep;
-            zoomLevel = Math.min(maxZoom, zoomLevel);
-            updateZoom();
-        }
+      if (zoomLevel < maxZoom) {
+        zoomLevel += zoomStep;
+        zoomLevel = Math.min(maxZoom, zoomLevel);
+        updateZoom();
+      }
     }
     function zoomOut() {
-        if (zoomLevel > minZoom) {
-            zoomLevel -= zoomStep;
-            zoomLevel = Math.max(minZoom, zoomLevel);
-            updateZoom();
-        }
+      if (zoomLevel > minZoom) {
+        zoomLevel -= zoomStep;
+        zoomLevel = Math.max(minZoom, zoomLevel);
+        updateZoom();
+      }
     }
     function printPage() {
+      // Get page range from input
+      const fromPage = parseInt(document.getElementById("fromPage").value) || 1;
+      const toPage = parseInt(document.getElementById("toPage").value) || 1;
+      const records = Array.from(document.querySelectorAll(".record-row"));
+      if (records.length === 0) {
+        // No pagination, just print
         window.print();
+        return;
+      }
+      const recordsPerPage = 10;
+      const prevStates = records.map((el) => el.style.display);
+      // Show only records in the selected page range
+      records.forEach((el, idx) => {
+        const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+        if (pageIdx >= fromPage && pageIdx <= toPage) {
+          el.style.display = "";
+        } else {
+          el.style.display = "none";
+        }
+      });
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+          // Restore previous display states
+          records.forEach((el, idx) => {
+            el.style.display = prevStates[idx];
+          });
+        }, 100);
+      }, 50);
     }
     function exitPage() {
-        window.close();
+      window.close();
+    }
+    function showPage(page) {
+      const records = Array.from(document.querySelectorAll(".record-row"));
+      const recordsPerPage = 10;
+      let totalPages = 1;
+      if (records.length > 0) {
+        totalPages = Math.ceil(records.length / recordsPerPage);
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        records.forEach((el, idx) => {
+          const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+          el.style.display = pageIdx === page ? "" : "none";
+        });
+        document.getElementById("pageInput").value = page;
+        const pageTotalSpan = document.querySelector("#toolbar span");
+        if (pageTotalSpan) pageTotalSpan.innerText = "/" + totalPages;
+      }
+      // Set default From/To Page values
+      const fromPageInput = document.getElementById("fromPage");
+      const toPageInput = document.getElementById("toPage");
+      if (fromPageInput && toPageInput) {
+        fromPageInput.value = 1;
+        toPageInput.value = totalPages;
+      }
     }
     // Initialize zoom display
-    window.onload = updateZoom;
-</script>
-<div id="mainContent">
-<div style="border: 2px double #333; padding: 10px; margin: 10px; font-family: 'Mangal', 'Noto Sans Devanagari', Arial, sans-serif;">
-  <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 4px;">नमुना ७</div>
-  <div style="text-align: center; font-size: 14px; margin-bottom: 8px;">
-    [ नियम ११(९),२२(२), ३३(२), ३३(४) (क) आणि ४(च), ३५, ३६(२) आणि ३७(२) पहा ]
-  </div>
-  <table style="width: 100%; border-collapse: collapse; margin-bottom: 0;">
-    <tr>
-      <td colspan="4" style="background: #ccc; text-align: center; font-size: 18px; font-weight: bold; padding: 6px 0; border: 1px solid #333;">:: सामान्य पावती ::</td>
-    </tr>
-    
-  </table>
-  <div style="display: flex; justify-content: space-between; margin-top: 10px;" >
-    <span>ग्रामपंचायत : {{grampanchayat}} </span>
-    <span style="margin-right: 100px;">पावती क्रमांक : {{receiptNumber}} </span>
-  </div>
-  <div style="display: flex; justify-content: space-between; margin-top: 10px;" >
-    <span>गाव / मोहोल्ला : {{village}} </span>
-    <span style="margin-right: 100px;">पुस्तक क्रमांक : {{receiptBookNumber}} </span>
-  </div>
-  <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0;"></div>
-  <div style="display: flex; justify-content: space-between; margin-top: 10px;" >
-    <span>नाव (श्री/श्रीमती) : {{ownername}} </span>
-    <span>‍‍‍‍भोगवटदाराचे नाव: {{occupant}} </span>
-    <span style="margin-right: 100px;">यांचे कडून :</span>
-  </div>
-  <div style="margin-top: 20px;">पुढील कारणास्तव : {{reason}} </div>
-  <div style="margin-top: 20px;">प्राप्त रक्कम : {{receivedMoney}} </div>
-  <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0;"></div>
-  <div style="display: flex; justify-content: space-between; margin-top: 10px;" >
-    <span>दिनांक  : {{currentDate}} </span>
-    <span style="margin-right: 100px;">ग्रामपंचायत अधिकारी / सरपंच :</span>
-  </div>
-  <div style="margin-top: 20px;">टीप : -</div>
-  <div style="margin-left: 30px;">(१) या पावतीची प्रति लिपी असावी</div>
-  <div style="margin-left: 30px;">(२) नमुने देण्यात येतील तेव्हा पुस्तकाचे व पावत्यांचे क्रमांक त्यावर छापलेले किंवा शिक्क्याने उमटवलेले असावेत.</div>
-  <div style="margin-left: 30px;">(३) पंचायतेच्या वतीने सरपंचाने किंवा, यथास्थिती, सचिवाने स्वीकारलेल्या रकमेबद्दल ही पावती सरपंचाने किंवा सचिवाने द्यावी.</div>
-</div>
+    window.onload = function () {
+      updateZoom();
+      if (typeof showPage === "function") showPage(1);
+      // Wire up navigation buttons if present
+      const firstBtn = document.querySelector('button[title="First Page"]');
+      const prevBtn = document.querySelector('button[title="Previous Page"]');
+      const nextBtn = document.querySelector('button[title="Next Page"]');
+      const lastBtn = document.querySelector('button[title="Last Page"]');
+      if (firstBtn)
+        firstBtn.onclick = function () {
+          showPage(1);
+        };
+      if (prevBtn)
+        prevBtn.onclick = function () {
+          showPage(
+            (parseInt(document.getElementById("pageInput").value) || 1) - 1,
+          );
+        };
+      if (nextBtn)
+        nextBtn.onclick = function () {
+          showPage(
+            (parseInt(document.getElementById("pageInput").value) || 1) + 1,
+          );
+        };
+      if (lastBtn)
+        lastBtn.onclick = function () {
+          const records = Array.from(document.querySelectorAll(".record-row"));
+          const recordsPerPage = 10;
+          let totalPages = 1;
+          if (records.length > 0) {
+            totalPages = Math.ceil(records.length / recordsPerPage);
+          }
+          showPage(totalPages);
+        };
+      // Set default From/To Page values on load
+      setTimeout(() => {
+        const fromPageInput = document.getElementById("fromPage");
+        const toPageInput = document.getElementById("toPage");
+        const records = Array.from(document.querySelectorAll(".record-row"));
+        const recordsPerPage = 10;
+        let totalPages = 1;
+        if (records.length > 0) {
+          totalPages = Math.ceil(records.length / recordsPerPage);
+        }
+        if (fromPageInput && toPageInput) {
+          fromPageInput.value = 1;
+          toPageInput.value = totalPages;
+        }
+      }, 0);
+    };
+  </script>
+  <div id="mainContent">
+    <div
+      style="
+        border: 2px double #333;
+        padding: 10px;
+        margin: 10px;
+        font-family:
+          &quot;Mangal&quot;, &quot;Noto Sans Devanagari&quot;, Arial,
+          sans-serif;
+      "
+    >
+      <div
+        style="
+          text-align: center;
+          font-size: 20px;
+          font-weight: bold;
+          margin-bottom: 4px;
+        "
+      >
+        नमुना ७
+      </div>
+      <div style="text-align: center; font-size: 14px; margin-bottom: 8px">
+        [ नियम ११(९),२२(२), ३३(२), ३३(४) (क) आणि ४(च), ३५, ३६(२) आणि ३७(२) पहा ]
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 0">
+        <tr>
+          <td
+            colspan="4"
+            style="
+              background: #ccc;
+              text-align: center;
+              font-size: 18px;
+              font-weight: bold;
+              padding: 6px 0;
+              border: 1px solid #333;
+            "
+          >
+            :: सामान्य पावती ::
+          </td>
+        </tr>
+      </table>
+      <div
+        style="display: flex; justify-content: space-between; margin-top: 10px"
+      >
+        <span>ग्रामपंचायत : {{grampanchayat}} </span>
+        <span style="margin-right: 100px"
+          >पावती क्रमांक : {{receiptNumber}}
+        </span>
+      </div>
+      <div
+        style="display: flex; justify-content: space-between; margin-top: 10px"
+      >
+        <span>गाव / मोहोल्ला : {{village}} </span>
+        <span style="margin-right: 100px"
+          >पुस्तक क्रमांक : {{receiptBookNumber}}
+        </span>
+      </div>
+      <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0"></div>
+      <div
+        style="display: flex; justify-content: space-between; margin-top: 10px"
+      >
+        <span>नाव (श्री/श्रीमती) : {{ownername}} </span>
+        <span>‍‍‍‍भोगवटदाराचे नाव: {{occupant}} </span>
+        <span style="margin-right: 100px">यांचे कडून :</span>
+      </div>
+      <div style="margin-top: 20px">पुढील कारणास्तव : {{reason}}</div>
+      <div style="margin-top: 20px">प्राप्त रक्कम : {{receivedMoney}}</div>
+      <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0"></div>
+      <div
+        style="display: flex; justify-content: space-between; margin-top: 10px"
+      >
+        <span>दिनांक : {{currentDate}} </span>
+        <span style="margin-right: 100px">ग्रामपंचायत अधिकारी / सरपंच :</span>
+      </div>
+      <div style="margin-top: 20px">टीप : -</div>
+      <div style="margin-left: 30px">(१) या पावतीची प्रति लिपी असावी</div>
+      <div style="margin-left: 30px">
+        (२) नमुने देण्यात येतील तेव्हा पुस्तकाचे व पावत्यांचे क्रमांक त्यावर
+        छापलेले किंवा शिक्क्याने उमटवलेले असावेत.
+      </div>
+      <div style="margin-left: 30px">
+        (३) पंचायतेच्या वतीने सरपंचाने किंवा, यथास्थिती, सचिवाने स्वीकारलेल्या
+        रकमेबद्दल ही पावती सरपंचाने किंवा सचिवाने द्यावी.
+      </div>
+    </div>
 
-<div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
+    <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0"></div>
 
-<div style="border: 2px double #333; padding: 10px; margin: 10px; font-family: 'Mangal', 'Noto Sans Devanagari', Arial, sans-serif;">
-    <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 4px;">नमुना ७</div>
-    <div style="text-align: center; font-size: 14px; margin-bottom: 8px;">
-      [ नियम ११(९),२२(२), ३३(२), ३३(४) (क) आणि ४(च), ३५, ३६(२) आणि ३७(२) पहा ]
+    <div
+      style="
+        border: 2px double #333;
+        padding: 10px;
+        margin: 10px;
+        font-family:
+          &quot;Mangal&quot;, &quot;Noto Sans Devanagari&quot;, Arial,
+          sans-serif;
+      "
+    >
+      <div
+        style="
+          text-align: center;
+          font-size: 20px;
+          font-weight: bold;
+          margin-bottom: 4px;
+        "
+      >
+        नमुना ७
+      </div>
+      <div style="text-align: center; font-size: 14px; margin-bottom: 8px">
+        [ नियम ११(९),२२(२), ३३(२), ३३(४) (क) आणि ४(च), ३५, ३६(२) आणि ३७(२) पहा ]
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 0">
+        <tr>
+          <td
+            colspan="4"
+            style="
+              background: #ccc;
+              text-align: center;
+              font-size: 18px;
+              font-weight: bold;
+              padding: 6px 0;
+              border: 1px solid #333;
+            "
+          >
+            :: सामान्य पावती ::
+          </td>
+        </tr>
+      </table>
+      <div
+        style="display: flex; justify-content: space-between; margin-top: 10px"
+      >
+        <span>ग्रामपंचायत : {{grampanchayat}} </span>
+        <span style="margin-right: 100px"
+          >पावती क्रमांक : {{receiptNumber}}
+        </span>
+      </div>
+      <div
+        style="display: flex; justify-content: space-between; margin-top: 10px"
+      >
+        <span>गाव / मोहोल्ला : {{village}} </span>
+        <span style="margin-right: 100px"
+          >पुस्तक क्रमांक : {{receiptBookNumber}}
+        </span>
+      </div>
+      <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0"></div>
+      <div
+        style="display: flex; justify-content: space-between; margin-top: 10px"
+      >
+        <span>नाव (श्री/श्रीमती) : {{ownername}} </span>
+        <span>‍‍‍‍भोगवटदाराचे नाव: {{occupant}} </span>>
+        <span style="margin-right: 100px">यांचे कडून :</span>
+      </div>
+      <div style="margin-top: 20px">पुढील कारणास्तव : {{reason}}</div>
+      <div style="margin-top: 20px">प्राप्त रक्कम : {{receivedMoney}}</div>
+      <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0"></div>
+      <div
+        style="display: flex; justify-content: space-between; margin-top: 10px"
+      >
+        <span>दिनांक : {{currentDate}} </span>
+        <span style="margin-right: 100px">ग्रामपंचायत अधिकारी / सरपंच :</span>
+      </div>
+      <div style="margin-top: 20px">टीप : -</div>
+      <div style="margin-left: 30px">(१) या पावतीची प्रति लिपी असावी</div>
+      <div style="margin-left: 30px">
+        (२) नमुने देण्यात येतील तेव्हा पुस्तकाचे व पावत्यांचे क्रमांक त्यावर
+        छापलेले किंवा शिक्क्याने उमटवलेले असावेत.
+      </div>
+      <div style="margin-left: 30px">
+        (३) पंचायतेच्या वतीने सरपंचाने किंवा, यथास्थिती, सचिवाने स्वीकारलेल्या
+        रकमेबद्दल ही पावती सरपंचाने किंवा सचिवाने द्यावी.
+      </div>
     </div>
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 0;">
-      <tr>
-        <td colspan="4" style="background: #ccc; text-align: center; font-size: 18px; font-weight: bold; padding: 6px 0; border: 1px solid #333;">:: सामान्य पावती ::</td>
-      </tr>
-      
-    </table>
-    <div style="display: flex; justify-content: space-between; margin-top: 10px;" >
-      <span>ग्रामपंचायत :  {{grampanchayat}} </span>
-      <span style="margin-right: 100px;">पावती क्रमांक : {{receiptNumber}} </span>
-    </div>
-    <div style="display: flex; justify-content: space-between; margin-top: 10px;" >
-      <span>गाव / मोहोल्ला : {{village}} </span>
-      <span style="margin-right: 100px;">पुस्तक क्रमांक : {{receiptBookNumber}} </span>
-    </div>
-    <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0;"></div>
-    <div style="display: flex; justify-content: space-between; margin-top: 10px;" >
-      <span>नाव (श्री/श्रीमती) : {{ownername}} </span>
-      <span>‍‍‍‍भोगवटदाराचे नाव: {{occupant}} </span>>
-      <span style="margin-right: 100px;">यांचे कडून :</span>
-    </div>
-    <div style="margin-top: 20px;">पुढील कारणास्तव : {{reason}} </div>
-    <div style="margin-top: 20px;">प्राप्त रक्कम : {{receivedMoney}} </div>
-    <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0;"></div>
-    <div style="display: flex; justify-content: space-between; margin-top: 10px;" >
-      <span>दिनांक  : {{currentDate}} </span>
-      <span style="margin-right: 100px;">ग्रामपंचायत अधिकारी / सरपंच :</span>
-    </div>
-    <div style="margin-top: 20px;">टीप : -</div>
-    <div style="margin-left: 30px;">(१) या पावतीची प्रति लिपी असावी</div>
-    <div style="margin-left: 30px;">(२) नमुने देण्यात येतील तेव्हा पुस्तकाचे व पावत्यांचे क्रमांक त्यावर छापलेले किंवा शिक्क्याने उमटवलेले असावेत.</div>
-    <div style="margin-left: 30px;">(३) पंचायतेच्या वतीने सरपंचाने किंवा, यथास्थिती, सचिवाने स्वीकारलेल्या रकमेबद्दल ही पावती सरपंचाने किंवा सचिवाने द्यावी.</div>
-  </div>    
-</div>
+  </div>
+</html>

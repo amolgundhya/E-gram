@@ -50,7 +50,7 @@
             #toolbar {
                 display: none !important;
             }
-            .record-row { display: table-row !important; }
+            .record-row { display: table-row; }
         }
     </style>
 </head>
@@ -70,6 +70,10 @@
         </div>
         <!-- Right: Print & Exit Buttons -->
         <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="fromPage" style="font-size:16px;">From Page:</label>
+            <input type="number" id="fromPage" name="fromPage" min="1" style="width:60px; font-size:16px; padding:2px 8px; border-radius:4px; border:1px solid #ccc;">
+            <label for="toPage" style="font-size:16px;">To Page:</label>
+            <input type="number" id="toPage" name="toPage" min="1" style="width:60px; font-size:16px; padding:2px 8px; border-radius:4px; border:1px solid #ccc;">
             <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
             <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
         </div>
@@ -113,14 +117,42 @@
             });
             document.getElementById('pageInput').value = currentPage;
             document.getElementById('pageTotal').innerText = '/' + totalPages;
+            // Set default From/To Page values
+            const fromPageInput = document.getElementById('fromPage');
+            const toPageInput = document.getElementById('toPage');
+            if (fromPageInput && toPageInput) {
+                fromPageInput.value = 1;
+                toPageInput.value = totalPages;
+            }
         }
         function nextPage() { showPage(currentPage + 1); }
         function prevPage() { showPage(currentPage - 1); }
         function firstPage() { showPage(1); }
         function lastPage() { showPage(totalPages); }
         function printPage() {
-            // Print all pages; visibility handled by @media print CSS
-            window.print();
+            // Get page range from input
+            const fromPage = parseInt(document.getElementById('fromPage').value) || 1;
+            const toPage = parseInt(document.getElementById('toPage').value) || totalPages;
+            const records = Array.from(document.querySelectorAll('.record-row'));
+            const prevStates = records.map(el => el.style.display);
+            // Show only records in the selected page range
+            records.forEach((el, idx) => {
+                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                if (pageIdx >= fromPage && pageIdx <= toPage) {
+                    el.style.display = '';
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => {
+                    // Restore previous display states
+                    records.forEach((el, idx) => {
+                        el.style.display = prevStates[idx];
+                    });
+                }, 100);
+            }, 50);
         }
         function exitPage() {
             window.close();
@@ -133,6 +165,15 @@
             document.querySelector('button[title="Previous Page"]').onclick = prevPage;
             document.querySelector('button[title="Next Page"]').onclick = nextPage;
             document.querySelector('button[title="Last Page"]').onclick = lastPage;
+            // Set default From/To Page values on load
+            setTimeout(() => {
+                const fromPageInput = document.getElementById('fromPage');
+                const toPageInput = document.getElementById('toPage');
+                if (fromPageInput && toPageInput) {
+                    fromPageInput.value = 1;
+                    toPageInput.value = totalPages;
+                }
+            }, 0);
         };
     </script>
     <div id="mainContent">

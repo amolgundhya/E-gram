@@ -29,6 +29,11 @@
     </div>
     <!-- Right: Print & Exit Buttons -->
     <div style="display: flex; align-items: center; gap: 8px;">
+        <!-- Page range selection for printing -->
+        <span style="font-size: 16px;">Print pages:</span>
+        <input type="number" id="printFrom" min="1" value="1" style="width: 48px; font-size: 16px; border-radius: 6px; border: 1px solid #ccc; margin-right: 2px;" />
+        <span style="font-size: 16px;">to</span>
+        <input type="number" id="printTo" min="1" value="1" style="width: 48px; font-size: 16px; border-radius: 6px; border: 1px solid #ccc; margin-right: 8px;" />
         <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
         <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
     </div>
@@ -59,16 +64,33 @@
         }
     }
     function printPage() {
-        // Show all pages before printing
+        // Get page range from input
+        const fromInput = document.getElementById('printFrom');
+        const toInput = document.getElementById('printTo');
+        let from = parseInt(fromInput.value);
+        let to = parseInt(toInput.value);
         const pages = document.querySelectorAll('.record-page');
+        const total = pages.length;
+        if (isNaN(from) || from < 1) from = 1;
+        if (isNaN(to) || to > total) to = total;
+        if (from > to) { let tmp = from; from = to; to = tmp; }
+
+        // Save previous display states
         const prevStates = Array.from(pages).map(el => el.style.display);
-        pages.forEach(el => el.style.display = '');
+        // Show only selected pages
+        pages.forEach((el, idx) => {
+            if (idx + 1 >= from && idx + 1 <= to) {
+                el.style.display = '';
+            } else {
+                el.style.display = 'none';
+            }
+        });
         // Print, then restore previous state
         setTimeout(() => {
             window.print();
             setTimeout(() => {
                 pages.forEach((el, idx) => {
-                    el.style.display = (idx + 1 === currentPage) ? '' : 'none';
+                    el.style.display = prevStates[idx];
                 });
             }, 100);
         }, 50);
@@ -95,6 +117,17 @@
     window.onload = function() {
         updateZoom();
         showPage(1);
+        // Set printTo max value and update on page load
+        const pages = document.querySelectorAll('.record-page');
+        const total = pages.length;
+        const printFrom = document.getElementById('printFrom');
+        const printTo = document.getElementById('printTo');
+        if (printFrom && printTo) {
+            printFrom.max = total;
+            printTo.max = total;
+            printTo.value = total;
+            printFrom.value = 1;
+        }
     };
 </script>
 <div id="mainContent">

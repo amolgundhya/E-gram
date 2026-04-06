@@ -55,6 +55,10 @@
             <button title="Zoom In" onclick="zoomIn()" style="background: none; border: none; font-size: 18px; cursor: pointer;">➕</button>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="fromPage" style="font-size:16px;">From Page:</label>
+            <input type="number" id="fromPage" name="fromPage" min="1" style="width:60px; font-size:16px; padding:2px 8px; border-radius:4px; border:1px solid #ccc;">
+            <label for="toPage" style="font-size:16px;">To Page:</label>
+            <input type="number" id="toPage" name="toPage" min="1" style="width:60px; font-size:16px; padding:2px 8px; border-radius:4px; border:1px solid #ccc;">
             <button onclick="printPage()" style="background: #4CAF50; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">Print</button>
             <button onclick="exitPage()" style="background: #b71c1c; color: #fff; font-weight: bold; font-size: 20px; border: none; border-radius: 20px; padding: 2px 24px; cursor: pointer;">EXIT</button>
         </div>
@@ -102,6 +106,13 @@
 
             document.getElementById('pageInput').value = currentPage;
             document.getElementById('pageTotal').innerText = '/ ' + totalPages;
+            // Set default From/To Page values
+            const fromPageInput = document.getElementById('fromPage');
+            const toPageInput = document.getElementById('toPage');
+            if (fromPageInput && toPageInput) {
+                fromPageInput.value = 1;
+                toPageInput.value = totalPages;
+            }
         }
 
         function goToPage(pageNumber) {
@@ -116,9 +127,21 @@
         function lastPage() { showPage(totalPages); }
         
         function printPage() {
+            // Get page range from input
+            const fromPage = parseInt(document.getElementById('fromPage').value) || 1;
+            const toPage = parseInt(document.getElementById('toPage').value) || totalPages;
             const originalDisplay = allRecords.map(el => el.style.display);
-            allRecords.forEach(el => el.style.display = '');
+            // Show only records in the selected page range
+            allRecords.forEach((el, idx) => {
+                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
+                if (pageIdx >= fromPage && pageIdx <= toPage) {
+                    el.style.display = '';
+                } else {
+                    el.style.display = 'none';
+                }
+            });
             window.print();
+            // Restore previous display states
             allRecords.forEach((el, idx) => el.style.display = originalDisplay[idx]);
         }
 
@@ -133,6 +156,15 @@
             document.querySelector('button[title="Previous Page"]').onclick = prevPage;
             document.querySelector('button[title="Next Page"]').onclick = nextPage;
             document.querySelector('button[title="Last Page"]').onclick = lastPage;
+            // Set default From/To Page values on load
+            setTimeout(() => {
+                const fromPageInput = document.getElementById('fromPage');
+                const toPageInput = document.getElementById('toPage');
+                if (fromPageInput && toPageInput) {
+                    fromPageInput.value = 1;
+                    toPageInput.value = totalPages;
+                }
+            }, 0);
         };
     </script>
     {% for record in data %}
