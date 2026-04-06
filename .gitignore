@@ -2,6 +2,9 @@
 __pycache__/
 *.pyc
 *.pyo
+.venv37
+.venv38
+venv38
 venv/   # If you use a virtual environment, typically named 'venv' or 'env'
 env/    # Another common virtual environment name
 myenv/

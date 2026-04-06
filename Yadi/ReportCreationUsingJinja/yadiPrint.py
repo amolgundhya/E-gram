@@ -32,7 +32,7 @@ async def verticalreport(request : Request):
         # Call API
         async with httpx.AsyncClient() as client:
             response = await client.get(f'{localhost}/namuna8/recordresponses/property_records_by_village/{villageId}',
-            params={"district_id" : district_id , "taluka_id" : taluka_id , "gram_panchayat_id" : gram_panchayat_id})
+            params={"district_id" : district_id , "taluka_id" : taluka_id , "gram_panchayat_id" : gram_panchayat_id},timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
@@ -94,7 +94,7 @@ async def verticalreport(request : Request):
         # Call API
         async with httpx.AsyncClient() as client:
             response = await client.get(f'{localhost}/namuna8/recordresponses/property_records_by_village/{villageId}',
-            params={"district_id" : district_id , "taluka_id" : taluka_id , "gram_panchayat_id" : gram_panchayat_id})
+            params={"district_id" : district_id , "taluka_id" : taluka_id , "gram_panchayat_id" : gram_panchayat_id},timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
@@ -155,7 +155,7 @@ async def verticalreport(request : Request):
         # Call API
         async with httpx.AsyncClient() as client:
             response = await client.get(f'{localhost}/namuna8/recordresponses/property_records_by_village/{villageId}',
-        params={"district_id" : district_id , "taluka_id" : taluka_id , "gram_panchayat_id" : gram_panchayat_id})
+        params={"district_id" : district_id , "taluka_id" : taluka_id , "gram_panchayat_id" : gram_panchayat_id},timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
@@ -216,7 +216,7 @@ async def verticalreport(request : Request):
         # Call API
         async with httpx.AsyncClient() as client:
             response = await client.get(f'{localhost}/namuna8/recordresponses/property_records_by_village/{villageId}',
-        params={"district_id" : district_id , "taluka_id" : taluka_id , "gram_panchayat_id" : gram_panchayat_id})
+        params={"district_id" : district_id , "taluka_id" : taluka_id , "gram_panchayat_id" : gram_panchayat_id},timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
