@@ -209,7 +209,7 @@ async def prakar1(request : Request):
         "district_id": district_id,
         "taluka_id": taluka_id,
         "gram_panchayat_id": gram_panchayat_id
-    },timeout=30.0
+    },timeout=300.0
 )
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -371,7 +371,7 @@ async def prakar1(request : Request):
         "district_id": district_id,
         "taluka_id": taluka_id,
         "gram_panchayat_id": gram_panchayat_id
-    },timeout=30.0
+    },timeout=300.0
 )
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -533,7 +533,7 @@ async def prakar1(request : Request):
         "district_id": district_id,
         "taluka_id": taluka_id,
         "gram_panchayat_id": gram_panchayat_id
-    },timeout= 30.0
+    },timeout= 300.0
 )
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -1477,7 +1477,7 @@ async def prakar1(request : Request):
         "district_id": district_id,
         "taluka_id": taluka_id,
         "gram_panchayat_id": gram_panchayat_id
-    }
+    },timeout=300.0
 )
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
