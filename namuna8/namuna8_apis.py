@@ -37,6 +37,14 @@ router = APIRouter(
     tags=["namuna8"]
 )
 
+def _safe_qr_payload(value):
+    if isinstance(value, dict):
+        return {k: _safe_qr_payload(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_safe_qr_payload(v) for v in value]
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
 
 
 @router.post("/", response_model=schemas.PropertyRead, status_code=status.HTTP_201_CREATED)
@@ -376,7 +384,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id),str(db_property.anuKramank))
                 os.makedirs(qr_dir, exist_ok=True)
                 qr_path = os.path.join(qr_dir, "qrcode.png") 
-                QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)  
+                QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data), qr_path)  
                 db_property.qrcode = qr_path.replace(os.sep, "/")
                 db.flush()
                 logging.info("QR code generated successfully")
@@ -415,7 +423,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     if wife_name:
                         qr_data_template["पत्नीचे नाव"] = wife_name
                     qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
-                    QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
+                    QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data_template), qr_path_template)
                     #get template
                     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))    
                     template_dir = os.path.join(base_dir, 'templates')  
@@ -968,7 +976,7 @@ def update_namuna8_entry(
     try:
         # Use get_property_record to get accurate total tax
         record_response = get_property_record(db_property.anuKramank,village_id, district_id, taluka_id, gram_panchayat_id, db)
-       
+
         vpanikar_qr = record_response.get('vpanikar',0)
         totalTax_qr = record_response.get('totaltax',0)
         # electricityTax = record_response.get('electricityTax', 0)
@@ -1022,10 +1030,10 @@ def update_namuna8_entry(
         qr_path = os.path.join(qr_dir, "qrcode.png")
         # print(f"DEBUG UPDATE: QR path: {qr_path}")
         # print(f"DEBUG UPDATE: QR data: {qr_data}")
-        QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)
+        QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data), qr_path)
         
-        print('in update ',os.path.abspath(qr_path))
-        print('in update ',os.path.exists(qr_path))
+        # print('in update ',os.path.abspath(qr_path))
+        # print('in update ',os.path.exists(qr_path))
         # print(f"DEBUG UPDATE: QR code generated successfully")
         db_property.qrcode = qr_path.replace(os.sep, "/")
         db.commit()
@@ -1086,7 +1094,7 @@ def update_namuna8_entry(
             if wife_name:
                 qr_data_template["पत्नीचे नाव"] = wife_name
             qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
-            QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
+            QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data_template), qr_path_template)
             #get template
             base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
             template_dir = os.path.join(base_dir, 'templates')
@@ -1141,11 +1149,58 @@ def update_namuna8_entry(
 
 
             
-        except Exception as e:
-            logging.error("Error in generating the qr template : %s", e)
+        except Exception:
+            _log_qr_failure(
+                "update_namuna8_entry.qr_template",
+                {
+                    "property_id": getattr(db_property, "id", None),
+                    "anuKramank": getattr(db_property, "anuKramank", None),
+                    "village_id": getattr(db_property, "village_id", None),
+                    "district_id": getattr(db_property, "district_id", None),
+                    "taluka_id": getattr(db_property, "taluka_id", None),
+                    "gram_panchayat_id": getattr(db_property, "gram_panchayat_id", None),
+                    "qr_path": locals().get("qr_path"),
+                    "traceback": traceback.format_exc(),
+                },
+            )
+            logging.exception(
+                "QR template generation failed in update_namuna8_entry",
+                extra={
+                    "property_id": getattr(db_property, "id", None),
+                    "anuKramank": getattr(db_property, "anuKramank", None),
+                    "village_id": getattr(db_property, "village_id", None),
+                    "district_id": getattr(db_property, "district_id", None),
+                    "taluka_id": getattr(db_property, "taluka_id", None),
+                    "gram_panchayat_id": getattr(db_property, "gram_panchayat_id", None),
+                },
+            )
        
-    except Exception as e:
-        logging.error(f"QR code update failed: {e}")
+    except Exception:
+        _log_qr_failure(
+            "update_namuna8_entry.qr_main",
+            {
+                "property_id": getattr(db_property, "id", None) if "db_property" in locals() else None,
+                "anuKramank": getattr(db_property, "anuKramank", None) if "db_property" in locals() else None,
+                "village_id": getattr(db_property, "village_id", None) if "db_property" in locals() else village_id,
+                "district_id": district_id,
+                "taluka_id": taluka_id,
+                "gram_panchayat_id": gram_panchayat_id,
+                "qr_path": locals().get("qr_path"),
+                "traceback": traceback.format_exc(),
+            },
+        )
+        logging.exception(
+            "QR code update failed in update_namuna8_entry",
+            extra={
+                "property_id": getattr(db_property, "id", None) if "db_property" in locals() else None,
+                "anuKramank": getattr(db_property, "anuKramank", None) if "db_property" in locals() else None,
+                "village_id": getattr(db_property, "village_id", None) if "db_property" in locals() else village_id,
+                "district_id": district_id,
+                "taluka_id": taluka_id,
+                "gram_panchayat_id": gram_panchayat_id,
+                "qr_path": locals().get("qr_path"),
+            },
+        )
     return response
 
 @router.get("/bulk_edit_list/", response_model=list[schemas.BulkEditPropertyRow])
@@ -1373,36 +1428,47 @@ def bulk_update_properties(update: schemas.BulkEditUpdateRequest, db: Session = 
     ]
     updated_count = 0
     for prop_id in update.property_ids:
-        prop = db.query(models.Property).filter(models.Property.id == prop_id).first()
-        if not prop:
-            continue
-        # Only update fields that are not None
-        if update.waterFacility1 is not None:
-            if update.waterFacility1 in valid_water_facilities:
-                prop.waterFacility1 = update.waterFacility1
-            else:
-                continue  # skip invalid value
-        if update.waterFacility2 is not None:
-            if update.waterFacility2 in valid_water_facilities:
-                prop.waterFacility2 = update.waterFacility2
-            else:
-                continue  # skip invalid value
-        if update.toilet is not None:
-            prop.toilet = update.toilet
-        if update.roofType is not None:
-            prop.roofType = update.roofType
-        if update.house is not None:
-            prop.house = update.house
-        if update.divaArogyaKar is not None:
-            prop.divaArogyaKar = update.divaArogyaKar
-        if update.safaiKar is not None:
-            prop.safaiKar = update.safaiKar
-        if update.shauchalayKar is not None:
-            prop.shauchalayKar = update.shauchalayKar
-        if update.karLaguNahi is not None:
-            prop.karLaguNahi = update.karLaguNahi
-        updated_count += 1
-    db.commit()
+        try:
+            prop = db.query(models.Property).filter(models.Property.id == prop_id).first()
+            if not prop:
+                logging.warning("bulk_update skipped missing property_id=%s", prop_id)
+                continue
+            # Only update fields that are not None
+            if update.waterFacility1 is not None:
+                if update.waterFacility1 in valid_water_facilities:
+                    prop.waterFacility1 = update.waterFacility1
+                else:
+                    logging.warning("bulk_update skipped property_id=%s due to invalid waterFacility1=%s", prop_id, update.waterFacility1)
+                    continue  # skip invalid value
+            if update.waterFacility2 is not None:
+                if update.waterFacility2 in valid_water_facilities:
+                    prop.waterFacility2 = update.waterFacility2
+                else:
+                    logging.warning("bulk_update skipped property_id=%s due to invalid waterFacility2=%s", prop_id, update.waterFacility2)
+                    continue  # skip invalid value
+            if update.toilet is not None:
+                prop.toilet = update.toilet
+            if update.roofType is not None:
+                prop.roofType = update.roofType
+            if update.house is not None:
+                prop.house = update.house
+            if update.divaArogyaKar is not None:
+                prop.divaArogyaKar = update.divaArogyaKar
+            if update.safaiKar is not None:
+                prop.safaiKar = update.safaiKar
+            if update.shauchalayKar is not None:
+                prop.shauchalayKar = update.shauchalayKar
+            if update.karLaguNahi is not None:
+                prop.karLaguNahi = update.karLaguNahi
+            updated_count += 1
+        except Exception:
+            logging.exception("bulk_update failed for property_id=%s", prop_id)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        logging.exception("bulk_update commit failed for property_ids=%s", update.property_ids)
+        raise HTTPException(status_code=500, detail="Bulk update failed while committing changes")
     return {"message": f"Updated {updated_count} properties successfully."}
 
 # @router.get("/property_report_list/")
@@ -2461,6 +2527,7 @@ def serialize_properties(
                 return {"success": True, "message": "No properties found for this village", "updated_count": 0}
             
             updated_count = 0
+            village_property_ids = {p.id for p in properties}
             
             for index, db_property in enumerate(properties):
                 old_anuKramank = db_property.anuKramank
@@ -2475,7 +2542,9 @@ def serialize_properties(
                     models.Property.village_id == village_id,
                     models.Property.anuKramank == new_anuKramank
                 ).first()
-                if existing and existing.id != db_property.id:
+                # Allow collisions with properties from the same serialization batch,
+                # because they will also be renumbered in this run.
+                if existing and existing.id != db_property.id and existing.id not in village_property_ids:
                     logging.warning(f"Skipping property {db_property.id}: anuKramank {new_anuKramank} already exists")
                     continue
                 
@@ -2667,7 +2736,7 @@ def serialize_properties(
                     )
                     os.makedirs(qr_dir, exist_ok=True)
                     qr_path = os.path.join(qr_dir, "qrcode.png")
-                    QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)
+                    QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data), qr_path)
                     db_property.qrcode = qr_path.replace(os.sep, "/")
                     db.flush()
                     
@@ -2699,7 +2768,7 @@ def serialize_properties(
                             qr_data_template["पत्नीचे नाव"] = wife_name
                         
                         qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
-                        QRCodeGeneration.createQRcodeTemp(qr_data_template, qr_path_template)
+                        QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data_template), qr_path_template)
                         
                         # Generate QR template HTML file (same as in create method)
                         try:
@@ -2758,8 +2827,34 @@ def serialize_properties(
                     updated_count += 1
                     logging.info(f"Updated property {db_property.id}: anuKramank {old_anuKramank} -> {new_anuKramank}")
                     
-                except Exception as e:
-                    logging.error(f"Error generating QR code for property {db_property.id}: {e}")
+                except Exception:
+                    _log_qr_failure(
+                        "serialize_properties.qr_main",
+                        {
+                            "property_id": getattr(db_property, "id", None),
+                            "old_anuKramank": old_anuKramank if "old_anuKramank" in locals() else None,
+                            "new_anuKramank": new_anuKramank if "new_anuKramank" in locals() else None,
+                            "village_id": getattr(db_property, "village_id", None),
+                            "district_id": getattr(db_property, "district_id", None),
+                            "taluka_id": getattr(db_property, "taluka_id", None),
+                            "gram_panchayat_id": getattr(db_property, "gram_panchayat_id", None),
+                            "qr_path": locals().get("qr_path"),
+                            "traceback": traceback.format_exc(),
+                        },
+                    )
+                    logging.exception(
+                        "Error generating QR code during serialize_properties",
+                        extra={
+                            "property_id": getattr(db_property, "id", None),
+                            "old_anuKramank": old_anuKramank if "old_anuKramank" in locals() else None,
+                            "new_anuKramank": new_anuKramank if "new_anuKramank" in locals() else None,
+                            "village_id": getattr(db_property, "village_id", None),
+                            "district_id": getattr(db_property, "district_id", None),
+                            "taluka_id": getattr(db_property, "taluka_id", None),
+                            "gram_panchayat_id": getattr(db_property, "gram_panchayat_id", None),
+                            "qr_path": locals().get("qr_path"),
+                        },
+                    )
                     # Continue with next property even if QR generation fails
             
             return {
@@ -3095,8 +3190,8 @@ def get_property_qrcode(
     
     # Use location-based QR path
     qr_path = os.path.join("uploaded_images", "qrcode", str(district_id), str(taluka_id), str(gram_panchayat_id),str(village_id), str(anu_kramank), "qrcode.png")
-    print('in fetch ',os.path.abspath(qr_path))
-    print('in fetch ',os.path.exists(qr_path))
+    # print('in fetch ',os.path.abspath(qr_path))
+    # print('in fetch ',os.path.exists(qr_path))
     if not os.path.exists(qr_path):
         raise HTTPException(status_code=404, detail="QR code not found")
     return FileResponse(

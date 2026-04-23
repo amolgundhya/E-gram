@@ -164,7 +164,6 @@ def get_property_record(
         if khali_area > 0:
             # Get construction type for khali jaga
             khali_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == prop.vacantLandType).first()
-            print("prop.vacantLandType -------------------->", prop.vacantLandType)
             
             if khali_construction_type:
                 # Get user formula preference - same as Namuna8
@@ -180,8 +179,6 @@ def get_property_record(
                 # Calculate area in meters - same as Namuna8
                 AreaInMeter = round(khali_area * 1 * 0.092903, 2)  # length * width * 0.092903
                 AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                print("AnnualLandValueRate -------------------->", AnnualLandValueRate)
-                print("khali_construction_type -------------------->", khali_construction_type)
                 ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
                 depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
                 
