@@ -17,6 +17,16 @@ backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 
 router = APIRouter()
 
+def _build_qrcode_url(prop, qr_path: str) -> str:
+    """Build QR URL with version token to avoid stale cached images."""
+    version = int(os.path.getmtime(qr_path))
+    return (
+        f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}"
+        f"?district_id={prop.district_id}&taluka_id={prop.taluka_id}"
+        f"&gram_panchayat_id={prop.gram_panchayat_id}&village_id={prop.village_id}"
+        f"&v={version}"
+    )
+
 # Helper to calculate house tax
 def calc_house_tax(rate):
     try:
@@ -388,7 +398,7 @@ def get_property_record(
     # Use location-based QR path
     qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.village_id),str(prop.anuKramank), "qrcode.png")
     if os.path.exists(qr_path):
-        response["QRcodeURL"] = f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}?district_id={prop.district_id}&taluka_id={prop.taluka_id}&gram_panchayat_id={prop.gram_panchayat_id}&village_id={prop.village_id}"
+        response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)
     else:
         response["QRcodeURL"] = None
     
@@ -708,7 +718,7 @@ def get_property_records_by_village(
         # Use location-based QR path
         qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id),str(prop.village_id), str(prop.anuKramank), "qrcode.png")
         if os.path.exists(qr_path):
-            response["QRcodeURL"] = f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}?district_id={prop.district_id}&taluka_id={prop.taluka_id}&gram_panchayat_id={prop.gram_panchayat_id}&village_id={prop.village_id}"
+            response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)
         else:
             response["QRcodeURL"] = None
         
@@ -1019,7 +1029,7 @@ def get_property_records_by_gram_panchayat(
 
             qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id),str(prop.village_id), str(prop.anuKramank), "qrcode.png")
             if os.path.exists(qr_path):
-                response["QRcodeURL"] = f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}?district_id={prop.district_id}&taluka_id={prop.taluka_id}&gram_panchayat_id={prop.gram_panchayat_id}&village_id={prop.village_id}"
+                response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)
             else:
                 response["QRcodeURL"] = None
 
