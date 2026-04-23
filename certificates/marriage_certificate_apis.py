@@ -17,6 +17,17 @@ router = APIRouter(prefix="/certificates", tags=["certificates"])
 UPLOAD_DIR = "uploaded_images"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+def _build_marriage_qrcode_url(request: Request, cert: MarriageCertificate, qr_path: str) -> str:
+    version = int(os.path.getmtime(qr_path))
+    if cert.district_id and cert.taluka_id and cert.gram_panchayat_id:
+        return (
+            str(request.base_url)[:-1]
+            + f"/certificates/marriage_qrcode/{cert.id}"
+            + f"?district_id={cert.district_id}&taluka_id={cert.taluka_id}"
+            + f"&gram_panchayat_id={cert.gram_panchayat_id}&v={version}"
+        )
+    return str(request.base_url)[:-1] + f"/certificates/marriage_qrcode/{cert.id}?v={version}"
+
 @router.post("/marriage", response_model=MarriageCertificateRead, status_code=status.HTTP_201_CREATED)
 def create_marriage_certificate(
     id: int = Form(...),
@@ -211,10 +222,7 @@ def list_marriage_certificates(
                 cert_data.qrcode = qrcode_val
             else:
                 # Construct QR code URL with location query parameters if available
-                if cert.district_id and cert.taluka_id and cert.gram_panchayat_id:
-                    cert_data.qrcode = str(request.base_url)[:-1] + f"/certificates/marriage_qrcode/{cert.id}?district_id={cert.district_id}&taluka_id={cert.taluka_id}&gram_panchayat_id={cert.gram_panchayat_id}"
-                else:
-                    cert_data.qrcode = str(request.base_url)[:-1] + f"/certificates/marriage_qrcode/{cert.id}"
+                cert_data.qrcode = _build_marriage_qrcode_url(request, cert, qrcode_val) if os.path.exists(qrcode_val) else None
         else:
             cert_data.qrcode = None
         
@@ -310,10 +318,7 @@ def get_marriage_certificate(
             cert_data.qrcode = qrcode_val
         else:
             # Construct QR code URL with location query parameters if available
-            if cert.district_id and cert.taluka_id and cert.gram_panchayat_id:
-                cert_data.qrcode = str(request.base_url)[:-1] + f"/certificates/marriage_qrcode/{cert.id}?district_id={cert.district_id}&taluka_id={cert.taluka_id}&gram_panchayat_id={cert.gram_panchayat_id}"
-            else:
-                cert_data.qrcode = str(request.base_url)[:-1] + f"/certificates/marriage_qrcode/{cert.id}"
+            cert_data.qrcode = _build_marriage_qrcode_url(request, cert, qrcode_val) if os.path.exists(qrcode_val) else None
     else:
         cert_data.qrcode = None
     
@@ -402,7 +407,15 @@ def get_marriage_certificate_qrcode(
     if not qrcode_path or not os.path.exists(qrcode_path):
         raise HTTPException(status_code=404, detail="QR code file not found")
     
-    return FileResponse(qrcode_path, media_type="image/png")
+    return FileResponse(
+        qrcode_path,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 @router.put("/marriage/{id}/fix-location")
 def fix_marriage_certificate_location(
@@ -642,10 +655,7 @@ def update_marriage_certificate(
             cert_data.qrcode = qrcode_val
         else:
             # Construct QR code URL with location query parameters if available
-            if cert.district_id and cert.taluka_id and cert.gram_panchayat_id:
-                cert_data.qrcode = str(request.base_url)[:-1] + f"/certificates/marriage_qrcode/{cert.id}?district_id={cert.district_id}&taluka_id={cert.taluka_id}&gram_panchayat_id={cert.gram_panchayat_id}"
-            else:
-                cert_data.qrcode = str(request.base_url)[:-1] + f"/certificates/marriage_qrcode/{cert.id}"
+            cert_data.qrcode = _build_marriage_qrcode_url(request, cert, qrcode_val) if os.path.exists(qrcode_val) else None
     else:
         cert_data.qrcode = None
     

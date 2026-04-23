@@ -1023,6 +1023,9 @@ def update_namuna8_entry(
         # print(f"DEBUG UPDATE: QR path: {qr_path}")
         # print(f"DEBUG UPDATE: QR data: {qr_data}")
         QRCodeGeneration.createQRcodeTemp(qr_data, qr_path)
+        
+        print('in update ',os.path.abspath(qr_path))
+        print('in update ',os.path.exists(qr_path))
         # print(f"DEBUG UPDATE: QR code generated successfully")
         db_property.qrcode = qr_path.replace(os.sep, "/")
         db.commit()
@@ -3092,9 +3095,19 @@ def get_property_qrcode(
     
     # Use location-based QR path
     qr_path = os.path.join("uploaded_images", "qrcode", str(district_id), str(taluka_id), str(gram_panchayat_id),str(village_id), str(anu_kramank), "qrcode.png")
+    print('in fetch ',os.path.abspath(qr_path))
+    print('in fetch ',os.path.exists(qr_path))
     if not os.path.exists(qr_path):
         raise HTTPException(status_code=404, detail="QR code not found")
-    return FileResponse(qr_path, media_type="image/png")
+    return FileResponse(
+        qr_path,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 @router.get("/settings/building_usage_weightage/get")
 def get_building_usage_weightage(

@@ -12,6 +12,15 @@ from location_management import models as location_models
 
 router = APIRouter(prefix="/certificates", tags=["certificates"])
 
+def _build_death_qrcode_url(request: Request, cert: DeathCertificate, qr_path: str) -> str:
+    version = int(os.path.getmtime(qr_path))
+    return (
+        str(request.base_url)[:-1]
+        + f"/certificates/death_qrcode/{cert.id}"
+        + f"?district_id={cert.district_id}&taluka_id={cert.taluka_id}"
+        + f"&gram_panchayat_id={cert.gram_panchayat_id}&v={version}"
+    )
+
 @router.post("/death", response_model=DeathCertificateRead, status_code=status.HTTP_201_CREATED)
 def create_death_certificate(data: DeathCertificateCreate, db: Session = Depends(get_db)):
     existing = db.query(DeathCertificate).filter_by(id=data.id).first()
@@ -182,8 +191,8 @@ def get_death_certificate(
     if not cert:
         raise HTTPException(status_code=404, detail="Death certificate not found")
     cert_data = DeathCertificateRead.from_orm(cert)
-    if getattr(cert, "qrcode", None):
-        cert_data.qrcode = str(request.base_url)[:-1] + f"/certificates/death_qrcode/{cert.id}?district_id={cert.district_id}&taluka_id={cert.taluka_id}&gram_panchayat_id={cert.gram_panchayat_id}"
+    if getattr(cert, "qrcode", None) and os.path.exists(cert.qrcode):
+        cert_data.qrcode = _build_death_qrcode_url(request, cert, cert.qrcode)
     else:
         cert_data.qrcode = None
     # Add barcode_url
@@ -339,7 +348,15 @@ def get_death_certificate_qrcode(
         else:
             raise HTTPException(status_code=404, detail="QR code not found")
     
-    return FileResponse(qr_path, media_type="image/png")
+    return FileResponse(
+        qr_path,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 @router.get("/death_barcode/{id}")
 def get_death_certificate_barcode(
