@@ -147,3 +147,11 @@ class Namuna9Receipt(Base):
     vasuliWarrantFee = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
+
+    # सॉफ्ट-डिलीट: पावती कधीच पूर्णपणे काढायची नाही (client requirement) - फक्त
+    # is_deleted=True करून लपवायची. is_deleted=False वाल्याच सगळीकडे (बॅलन्स,
+    # ९क/९क2, एक्सपोर्ट, पावती यादी) मोजायच्या.
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_by = Column(String, nullable=True)
+    delete_reason = Column(Text, nullable=True)

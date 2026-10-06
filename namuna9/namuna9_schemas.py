@@ -249,6 +249,20 @@ class Namuna9ReceiptRead(BaseModel):
     village: Optional[str] = None
     occupant: Optional[str] = None
     yearslap: Optional[str] = None
+    anuKramank: Optional[int] = None
+    citySurveyOrGatNumber: Optional[str] = None
+    # शिल्लक थकबाकी - अजून किती बाकी आहे ते (namuna9_id/property_id च्या तक्त्यातील
+    # सध्याचे shakti* आकडे, म्हणजे ही पावती दिल्यानंतर उरलेली रक्कम).
+    remainingGhar: Optional[float] = None
+    remainingDiva: Optional[float] = None
+    remainingAarogyaKar: Optional[float] = None
+    remainingSapanikar: Optional[float] = None
+    remainingVpanikar: Optional[float] = None
+    remainingCleaningTax: Optional[float] = None
+    houseTaxQrUrl: Optional[str] = None
+    waterTaxQrUrl: Optional[str] = None
+    remainingTotal: Optional[float] = None
+    exServicemanTip: Optional[bool] = None
     model_config = {
         "from_attributes": True
     }

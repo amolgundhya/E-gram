@@ -1,4 +1,3 @@
-import math
 from fastapi import APIRouter, Depends, HTTPException, status, Body, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 import database
@@ -20,10 +19,13 @@ import shutil
 import time
 import re
 from Utility.QRcodeGeneration import QRCodeGeneration
-from namuna8.recordresponses.property_record_response import get_property_record
+from Utility.qr_text import build_property_qr_text, build_area_lines
+from Utility.tax_rounding import round_tax_amount
+from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no
 from namuna8.mastertab.mastertabmodels import GeneralSetting, BuildingUsageWeightage
 from location_management import models as location_models
 from namuna8.PropertyDocuments.property_document_model import PropertyDocument
+from natural_sort import malmatta_kramank_sort_key
 import logging
 
 logging.basicConfig(
@@ -45,6 +47,51 @@ def _safe_qr_payload(value):
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     return str(value)
+
+
+# मालमत्ता यादीत नवीन मालमत्तेला कुठे दाखवायचं ते ठरवणारा sort_order मोजतो:
+# - insert_after_anu_kramank दिलेला असेल ("Insert" बटण): त्या मालमत्तेच्या लगेच नंतर -
+#   नवीन मालमत्तेचा मालमत्ता क्रमांक काहीही टाईप केला (आकडा, मराठी शब्द, "1 भाग" सारखा
+#   मोकळा मजकूर...) तरी हीच जागा कायम राहते, कारण जागा फक्त निवडलेल्या मालमत्तेवरून
+#   ठरते, नवीन टाईप केलेल्या मजकुरावरून नाही.
+# - नसेल ("New"): सध्याप्रमाणेच, मालमत्ता क्रमांकाच्या नैसर्गिक क्रमवारीत जिथे बसेल तिथे.
+# दोन्ही बाबतीत, शेजाऱ्यांचे sort_order न बदलता (10,20,30... मधली मोकळी जागा/दोघांची
+# सरासरी वापरून) फक्त नवीन मालमत्तेचाच sort_order ठरवतो.
+def compute_property_sort_order(db: Session, village_id: int, malmatta_kramank: str, insert_after_anu_kramank: Optional[int] = None) -> float:
+    GAP = 10.0
+    siblings = (
+        db.query(models.Property)
+        .filter(models.Property.village_id == village_id)
+        .order_by(models.Property.sort_order)
+        .all()
+    )
+
+    if insert_after_anu_kramank is not None:
+        idx = next((i for i, p in enumerate(siblings) if p.anuKramank == insert_after_anu_kramank), None)
+        if idx is None:
+            # निवडलेली मालमत्ता सापडली नाही (उदा. दरम्यान डिलीट झाली) - शेवटी जोडतो.
+            left = siblings[-1].sort_order if siblings else None
+            right = None
+        else:
+            left = siblings[idx].sort_order
+            right = siblings[idx + 1].sort_order if idx + 1 < len(siblings) else None
+    else:
+        pos = 0
+        for p in siblings:
+            if malmatta_kramank_sort_key(p.malmattaKramank) < malmatta_kramank_sort_key(malmatta_kramank):
+                pos += 1
+            else:
+                break
+        left = siblings[pos - 1].sort_order if pos > 0 else None
+        right = siblings[pos].sort_order if pos < len(siblings) else None
+
+    if left is None and right is None:
+        return GAP
+    if left is None:
+        return right - GAP
+    if right is None:
+        return left + GAP
+    return (left + right) / 2.0
 
 
 @router.post("/", response_model=schemas.PropertyRead, status_code=status.HTTP_201_CREATED)
@@ -139,12 +186,14 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                    
                 # capital_value = 0
                 AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
-                # for capital_value calculation: respect frontend area unit
-                unit = getattr(property_data, 'areaUnit', 'sqft')
+                # for capital_value calculation: respect the बांधकाम table's OWN unit
+                # (constructionAreaUnit) - it can differ from एकूण जागा's areaUnit, e.g.
+                # plot size entered in मीटर while construction लांबी/रुंदी stay in फूट.
+                unit = getattr(property_data, 'constructionAreaUnit', None) or getattr(property_data, 'areaUnit', 'sqft')
                 if unit == 'sqm':
                     AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0)
                 else:
-                    AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092903
+                    AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092937
                 ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
                 depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
                 # Before using usageBasedBuildingWeightageFactor, build the mapping
@@ -160,17 +209,17 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     house_tax = 0
                 else:
                     if formula1:
-                        # capital_value = (( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * AnnualLandValueRate ) + ( ((construction_data.length * 0.092903) * (construction_data.width * 0.092903)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
+                        # capital_value = (( ((construction_data.length * 0.092937) * (construction_data.width * 0.092937)) * AnnualLandValueRate ) + ( ((construction_data.length * 0.092937) * (construction_data.width * 0.092937)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                         capital_value = (( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                         # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                        capital_value = math.ceil(capital_value)
+                        capital_value = round_tax_amount(capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
                         # print("capital_value_from_formula1" , capital_value)
                     else:
                         capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
-                        capital_value = math.ceil(capital_value)
+                        capital_value = round_tax_amount(capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
                         # print("capital_value_from_formula2" , capital_value)
-                    
-                    house_tax = math.ceil((getattr(construction_type, 'rate', 0) / 1000) * capital_value)
+
+                    house_tax = round_tax_amount((getattr(construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
                 
                 # Debug logging for construction creation
                 construction_district_id = getattr(property_data, 'district_id', None)
@@ -233,6 +282,9 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 remaining_area = total_area - used_area
               
             property_dict = property_data.dict(exclude={"owners", "constructions"})
+            # insertAfterAnuKramank Property मॉडेलचं फील्ड नाही (फक्त sort_order ठरवण्यासाठी
+            # वापरायचं) - काढून वेगळं ठेवतो, sort_order खाली आपणच मोजून सेट करतो.
+            insert_after_anu_kramank = property_dict.pop("insertAfterAnuKramank", None)
             # Normalize totalAreaSqFt based on areaUnit to avoid double-conversion later
             if "totalArea" in property_dict and property_dict["totalArea"] is not None:
                 try:
@@ -241,7 +293,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     area_val = 0.0
                 area_unit = property_dict.get("areaUnit", "sqft") or "sqft"
                 if area_unit == "sqm":
-                    property_dict["totalAreaSqFt"] = round(area_val * 10.7639, 2)
+                    property_dict["totalAreaSqFt"] = round(area_val * 10.76, 2)
                 else:
                     property_dict["totalAreaSqFt"] = round(area_val, 2)
             
@@ -270,7 +322,9 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
             try:
                 db_property = models.Property(**property_dict, owners=owners, constructions=constructions)
                 db_property.created_at = datetime.now()
-                
+                db_property.sort_order = compute_property_sort_order(
+                    db, db_property.village_id, db_property.malmattaKramank, insert_after_anu_kramank
+                )
                 db.add(db_property)
             except Exception as e:
                 raise e
@@ -285,21 +339,27 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     # All lengths empty, use totalArea from payload with unit awareness
                     base_area = float(property_data.totalArea or 0)
                     if area_unit == 'sqm':
-                        db_property.totalAreaSqFt = round(base_area * 10.7639, 2)
+                        db_property.totalAreaSqFt = round(base_area * 10.76, 2)
                     else:
                         db_property.totalAreaSqFt = round(base_area, 2)
                 else:
                     avg_length = (east + west) / 2
                     avg_width = (north + south) / 2
                     computed_area = (avg_length * avg_width) if (avg_length and avg_width) else 0
+                    # बाजू सध्याच्या area_unit मध्येच असतात (sqm निवडलं असेल तर मीटरमध्ये) - सqft
+                    # मध्ये रूपांतरित करूनच totalAreaSqFt (टॅक्स स्लॅबसाठी वापरलं जातं) साठवायचं.
                     if area_unit == 'sqm':
-                        db_property.totalAreaSqFt = round(computed_area * 10.7639, 2)
+                        db_property.totalAreaSqFt = round(computed_area * 10.76, 2)
                     else:
                         db_property.totalAreaSqFt = round(computed_area, 2)
             # Only set boolean fields and toilet (not calculated tax fields)
             db_property.divaArogyaKar = bool(property_data.divaArogyaKar)
             db_property.safaiKar = bool(property_data.safaiKar)
             db_property.shauchalayKar = bool(property_data.shauchalayKar)
+            db_property.dwarPurv = bool(property_data.dwarPurv)
+            db_property.dwarPashchim = bool(property_data.dwarPashchim)
+            db_property.dwarUttar = bool(property_data.dwarUttar)
+            db_property.dwarDakshin = bool(property_data.dwarDakshin)
             db_property.toilet = property_data.toilet if property_data.toilet is not None else ''
             try:
                 db.flush()
@@ -373,18 +433,14 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 taluka_name = safe_name(taluka.name if taluka else str(db_property.taluka_id))
                 gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
 
-                qr_data = {
-                    # Marathi labels for QR display
-                    "मा. धा. ना.": owner_name,
-                    "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
-                    "T. A.": totalArea,
-                    "T. T.": totalTax
-                }
                 # Create location-based QR directory structure
                 qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id),str(db_property.anuKramank))
                 os.makedirs(qr_dir, exist_ok=True)
-                qr_path = os.path.join(qr_dir, "qrcode.png") 
-                QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data), qr_path)  
+                qr_path = os.path.join(qr_dir, "qrcode.png")
+                parent_gp_name_qr = getattr(gram_panchayat, 'parent_gram_panchayat_name', None) if gram_panchayat else None
+                year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
+                qr_text = build_property_qr_text(record_response, parent_gp_name_qr, year_label_qr)
+                QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
                 db_property.qrcode = qr_path.replace(os.sep, "/")
                 db.flush()
                 logging.info("QR code generated successfully")
@@ -394,36 +450,19 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     ###Creating new QRcode for template
                     # Ensure area values are strictly in square feet for the QR template
                     area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
+                    # बांधकाम स्वतःच्या constructionAreaUnit प्रमाणे मोजतो, areaUnit (एकूण जागेचा
+                    # एकक) पेक्षा वेगळं असू शकतं - QR sticker वर चुकीचं रूपांतर होऊ नये म्हणून.
+                    construction_unit_for_template = getattr(db_property, 'constructionAreaUnit', None) or area_unit_for_template
                     total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
-                    construction_area_sqft = round((constructionArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
-                    open_area_sqft = round((openArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
+                    construction_area_sqft = round((constructionArea * 10.76), 2) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+                    open_area_sqft = round((openArea * 10.76), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
                     year_from = datetime.now().year
                     year_to = year_from + 3
                     # Display like 2025-26 (two-digit end year)
                     fer_akarnani_year = f"{str(year_from)}-{str(year_to)}"
 
-                    qr_data_template = {
-                        # Marathi labels for QR display
-                        "ग्रा. पं.": gp_name,
-                        "ता.": taluka_name,
-                        "जि.": district_name,
-                        "मा क्र": getattr(db_property, 'malmattaKramank', None),
-                        "मा. धा. नाव": owner_name,
-                        "भो. नाव": occupant_name,
-                        "पू.": boundary_east,
-                        "प.": boundary_west,
-                        "उ.": boundary_north,
-                        "द.": boundary_south,
-                        "मो नं": mobile_number,
-                        "ए क्षे. चौ. फू": total_area_sqft,
-                        "ए बां. चौ. फू": construction_area_sqft,
-                        "ए खा .जागा चौ.फू": open_area_sqft,
-                        "ए कर": totalTax,
-                    }
-                    if wife_name:
-                        qr_data_template["पत्नीचे नाव"] = wife_name
                     qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
-                    QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data_template), qr_path_template)
+                    QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path_template)
                     #get template
                     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))    
                     template_dir = os.path.join(base_dir, 'templates')  
@@ -473,6 +512,11 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     qr_code_abs_path = os.path.abspath(qr_path_template)
                     rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
 
+                    construction_types = ', '.join(sorted({
+                        c.get('constructionType', '').strip()
+                        for c in response.get('constructions', [])
+                        if c.get('constructionType') and not c.get('constructionType', '').strip().startswith('खाली जागा')
+                    }))
                     context = {
                         # IDs
                         "district_id": str(db_property.district_id),
@@ -483,11 +527,18 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                         "district_name": district.name if district else "",
                         "taluka_name": taluka.name if taluka else "",
                         "gram_panchayat_name": gram_panchayat.name if gram_panchayat else "",
+                        "parent_gram_panchayat_name": getattr(gram_panchayat, 'parent_gram_panchayat_name', None) if gram_panchayat else None,
                         "village_name": village.name if village else "",
                         "owner_name": owner_name,
                         # Others
+                        "anu_kramank": compute_display_sr_no(db, db_property.village_id, db_property.anuKramank),
                         "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
                         "occupant_name": occupant_name,
+                        "total_area_sqft": total_area_sqft,
+                        "construction_area_sqft": construction_area_sqft,
+                        "open_area_sqft": open_area_sqft,
+                        "construction_types": construction_types,
+                        "area_lines": build_area_lines(record_response),
                         "report_images": rel_report_images,
                         "reports": rel_reports,
                         "qrcode": rel_qrcode,
@@ -617,7 +668,7 @@ def update_namuna8_entry(
             area_val = 0.0
         area_unit = property_update_data.get("areaUnit", "sqft") or "sqft"
         if area_unit == "sqm":
-            property_update_data["totalAreaSqFt"] = round(area_val * 10.7639, 2)
+            property_update_data["totalAreaSqFt"] = round(area_val * 10.76, 2)
         else:
             property_update_data["totalAreaSqFt"] = round(area_val, 2)
     # Validate location hierarchy
@@ -694,15 +745,17 @@ def update_namuna8_entry(
             # Fallback to totalArea when no side lengths are available
             base_area = float(db_property.totalArea or 0)
             if area_unit == 'sqm':
-                db_property.totalAreaSqFt = round(base_area * 10.7639, 2)
+                db_property.totalAreaSqFt = round(base_area * 10.76, 2)
             else:
                 db_property.totalAreaSqFt = round(base_area, 2)
         else:
             avg_length = (east + west) / 2 if (east or west) else 0
             avg_width = (north + south) / 2 if (north or south) else 0
             computed_area = (avg_length * avg_width) if (avg_length and avg_width) else 0
+            # बाजू सध्याच्या area_unit मध्येच असतात (sqm निवडलं असेल तर मीटरमध्ये) - सqft
+            # मध्ये रूपांतरित करूनच totalAreaSqFt (टॅक्स स्लॅबसाठी वापरलं जातं) साठवायचं.
             if area_unit == 'sqm':
-                db_property.totalAreaSqFt = round(computed_area * 10.7639, 2)
+                db_property.totalAreaSqFt = round(computed_area * 10.76, 2)
             else:
                 db_property.totalAreaSqFt = round(computed_area, 2)
 
@@ -859,12 +912,13 @@ def update_namuna8_entry(
                 
             # capital_value = 0
             AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
-            # for capital_value calculation: respect frontend area unit
-            unit = getattr(property_data, 'areaUnit', 'sqft')
+            # for capital_value calculation: respect the बांधकाम table's OWN unit
+            # (constructionAreaUnit) - it can differ from एकूण जागा's areaUnit.
+            unit = getattr(property_data, 'constructionAreaUnit', None) or getattr(property_data, 'areaUnit', 'sqft')
             if unit == 'sqm':
                 AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0)
             else:
-                AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092903
+                AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092937
             ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
             depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
             # Before using usageBasedBuildingWeightageFactor, build the mapping
@@ -873,13 +927,13 @@ def update_namuna8_entry(
             if formula1:
                 capital_value =(( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                 # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                capital_value = math.ceil(capital_value)
+                capital_value = round_tax_amount(capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
                 # print("capital_value_from_formula1" , capital_value)
             else:
                 capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
-                capital_value = math.ceil(capital_value)
-                    
-            house_tax = math.ceil((getattr(construction_type, 'rate', 0) / 1000) * capital_value)
+                capital_value = round_tax_amount(capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
+
+            house_tax = round_tax_amount((getattr(construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
             new_construction = models.Construction(
                 construction_type_id=construction_type.id,
                 length=construction_data.length,
@@ -938,7 +992,7 @@ def update_namuna8_entry(
             #             bharank = new_constructions[-1].bharank
             #         else:
             #             bharank = None
-            #         AreaInMeter = length * width * 0.092903
+            #         AreaInMeter = length * width * 0.092937
             #         AnnualLandValueRate = 1000
             #         ConstructionRateAsPerConstruction = vacant_type_obj.bandhmastache_dar
             #         depreciationRate = calculate_depreciation_rate(constructionYear, vacant_type_obj.name)
@@ -966,6 +1020,10 @@ def update_namuna8_entry(
     db_property.divaArogyaKar = bool(property_data.divaArogyaKar)
     db_property.safaiKar = bool(property_data.safaiKar)
     db_property.shauchalayKar = bool(property_data.shauchalayKar)
+    db_property.dwarPurv = bool(property_data.dwarPurv)
+    db_property.dwarPashchim = bool(property_data.dwarPashchim)
+    db_property.dwarUttar = bool(property_data.dwarUttar)
+    db_property.dwarDakshin = bool(property_data.dwarDakshin)
     db_property.toilet = property_data.toilet if property_data.toilet is not None else ''
 
     db.commit()
@@ -1015,26 +1073,15 @@ def update_namuna8_entry(
         boundary_north = record_response.get('boundaryNorth') or getattr(db_property, 'northBoundary', None)
         boundary_south = record_response.get('boundarySouth') or getattr(db_property, 'southBoundary', None)
 
-        qr_data = {
-                    # Marathi labels for QR display
-                    "मा. धा. ना.": owner_name,
-                    "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
-                    "T. A.": totalArea,
-                    "T. T.": totalTax
-                }
-        
         # Create location-based QR directory structure
         qr_dir = os.path.join("uploaded_images", "qrcode", str(db_property.district_id), str(db_property.taluka_id), str(db_property.gram_panchayat_id),str(db_property.village_id), str(db_property.anuKramank))
-        # print(f"DEBUG UPDATE: Creating QR directory: {qr_dir}")
         os.makedirs(qr_dir, exist_ok=True)
         qr_path = os.path.join(qr_dir, "qrcode.png")
-        # print(f"DEBUG UPDATE: QR path: {qr_path}")
-        # print(f"DEBUG UPDATE: QR data: {qr_data}")
-        QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data), qr_path)
-        
-        # print('in update ',os.path.abspath(qr_path))
-        # print('in update ',os.path.exists(qr_path))
-        # print(f"DEBUG UPDATE: QR code generated successfully")
+        gram_panchayat_qr = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
+        parent_gp_name_qr = getattr(gram_panchayat_qr, 'parent_gram_panchayat_name', None) if gram_panchayat_qr else None
+        year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
+        qr_text = build_property_qr_text(record_response, parent_gp_name_qr, year_label_qr)
+        QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
         db_property.qrcode = qr_path.replace(os.sep, "/")
         db.commit()
         
@@ -1043,9 +1090,12 @@ def update_namuna8_entry(
             ###Creating new QRcode for template
             # Ensure area values are strictly in square feet for the QR template
             area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
+            # बांधकाम स्वतःच्या constructionAreaUnit प्रमाणे मोजतो, areaUnit (एकूण जागेचा
+            # एकक) पेक्षा वेगळं असू शकतं - QR sticker वर चुकीचं रूपांतर होऊ नये म्हणून.
+            construction_unit_for_template = getattr(db_property, 'constructionAreaUnit', None) or area_unit_for_template
             total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
-            construction_area_sqft = round((constructionArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
-            open_area_sqft = round((openArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
+            construction_area_sqft = round((constructionArea * 10.76), 2) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+            open_area_sqft = round((openArea * 10.76), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
             year_from = datetime.now().year
             year_to = year_from + 3
             # Display like 2025-26 (two-digit end year)
@@ -1073,28 +1123,8 @@ def update_namuna8_entry(
             gp_name = safe_name(gram_panchayat.name if gram_panchayat else str(db_property.gram_panchayat_id))
             village_name = safe_name(village.name if village else str(db_property.village_id))
 
-            qr_data_template = {
-                # Marathi labels for QR display
-                "ग्रा. पं.": gp_name,
-                "ता.": taluka_name,
-                "जि.": district_name,
-                "मा क्र": getattr(db_property, 'malmattaKramank', None),
-                "मा. धा. नाव": owner_name,
-                "भो. नाव": occupant_name,
-                "पू.": boundary_east,
-                "प.": boundary_west,
-                "उ.": boundary_north,
-                "द.": boundary_south,
-                "मो नं": mobile_number,
-                "ए क्षे. चौ. फू": total_area_sqft,
-                "ए बां. चौ. फू": construction_area_sqft,
-                "ए खा .जागा चौ.फू": open_area_sqft,
-                "ए कर": totalTax,
-            }
-            if wife_name:
-                qr_data_template["पत्नीचे नाव"] = wife_name
             qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
-            QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data_template), qr_path_template)
+            QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path_template)
             #get template
             base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
             template_dir = os.path.join(base_dir, 'templates')
@@ -1118,11 +1148,16 @@ def update_namuna8_entry(
             reports_dir = os.path.join(base_dir, 'reports')
             rel_report_images = os.path.relpath(report_images_dir, start=qr_template_dir)
             rel_reports = os.path.relpath(reports_dir, start=qr_template_dir)
-            
+
             # Convert NEW template QR code path to relative path (use qrcode_template.png)
             qr_code_abs_path = os.path.abspath(qr_path_template)
             rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
 
+            construction_types = ', '.join(sorted({
+                c.get('constructionType', '').strip()
+                for c in response.get('constructions', [])
+                if c.get('constructionType') and not c.get('constructionType', '').strip().startswith('खाली जागा')
+            }))
             context = {
                 # IDs
                 "district_id": str(db_property.district_id),
@@ -1133,11 +1168,18 @@ def update_namuna8_entry(
                 "district_name": district.name if district else "",
                 "taluka_name": taluka.name if taluka else "",
                 "gram_panchayat_name": gram_panchayat.name if gram_panchayat else "",
+                "parent_gram_panchayat_name": getattr(gram_panchayat, 'parent_gram_panchayat_name', None) if gram_panchayat else None,
                 "village_name": village.name if village else "",
                 "owner_name": owner_name,
                 # Others
+                "anu_kramank": compute_display_sr_no(db, db_property.village_id, db_property.anuKramank),
                 "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
                 "occupant_name": occupant_name,
+                "total_area_sqft": total_area_sqft,
+                "construction_area_sqft": construction_area_sqft,
+                "open_area_sqft": open_area_sqft,
+                "construction_types": construction_types,
+                "area_lines": build_area_lines(record_response),
                 "report_images": rel_report_images,
                 "reports": rel_reports,
                 "qrcode": rel_qrcode,
@@ -1148,7 +1190,7 @@ def update_namuna8_entry(
                 f.write(rendered_html)
 
 
-            
+
         except Exception:
             _log_qr_failure(
                 "update_namuna8_entry.qr_template",
@@ -1232,7 +1274,7 @@ def get_bulk_edit_property_list(
     village_obj = db.query(models.Village).filter(models.Village.name == village).first()
     if not village_obj:
         return []
-    properties = db.query(models.Property).filter(models.Property.village_id == village_obj.id).order_by(models.Property.malmattaKramank).all()
+    properties = db.query(models.Property).filter(models.Property.village_id == village_obj.id).order_by(models.Property.sort_order).all()
     # Prepare settings for tax and water calculations - filter by gram_panchayat_id
     settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
     water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
@@ -1280,20 +1322,20 @@ def get_bulk_edit_property_list(
         # ---------- Khali Jaga calculation (same logic as in get_property_record) ----------
         khaliJaga = []
         if getattr(p, 'vacantLandType', None) not in [None, '', 'null']:
-            # Compute khali area in both sqm and sqft based on stored unit
+            # बांधकाम लांबी/रुंदी constructionAreaUnit मध्ये असू शकतात, जे areaUnit
+            # पेक्षा वेगळं असू शकतं - त्यामुळे used_area साठी वेगळं एकक वापरतो.
             unit = getattr(p, 'areaUnit', 'sqft') or 'sqft'
+            construction_unit = getattr(p, 'constructionAreaUnit', None) or unit
+            construction_sum = sum((c.length or 0) * (c.width or 0)
+                                    for c in p.constructions
+                                    if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला"))
+            used_area_m = round(construction_sum if construction_unit == 'sqm' else construction_sum * 0.092937, 2)
             if unit == 'sqm':
                 total_area_m = round(p.totalArea or 0, 2)
-                used_area_m = round(sum((c.length or 0) * (c.width or 0)
-                                        for c in p.constructions
-                                        if getattr(c, "floor", None) == "तळमजला"), 2)
             else:
-                total_area_m = round((p.totalAreaSqFt or 0) * 0.092903, 2)
-                used_area_m = round(sum((c.length or 0) * (c.width or 0)
-                                        for c in p.constructions
-                                        if getattr(c, "floor", None) == "तळमजला") * 0.092903, 2)
+                total_area_m = round((p.totalAreaSqFt or 0) * 0.092937, 2)
             khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
-            khali_area = round(khali_area_m / 0.092903, 2)
+            khali_area = round(khali_area_m / 0.092937, 2)
 
             # Find the bandhmastache_dar for vacantLandType construction type
             khali_jaga_rate = 0
@@ -1330,7 +1372,7 @@ def get_bulk_edit_property_list(
                         formula1 = None
                         formula2 = None
 
-                    AreaInMeter = round(khali_area * 1 * 0.092903, 2)
+                    AreaInMeter = round(khali_area * 1 * 0.092937, 2)
                     AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
                     ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
                     depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
@@ -1342,12 +1384,12 @@ def get_bulk_edit_property_list(
                     usageBasedBuildingWeightageFactor = weightage_map.get(p.vacantLandType, 1)
 
                     if formula1:
-                        capital_value = math.ceil(khali_area_m * AnnualLandValueRate)
+                        capital_value = round_tax_amount(khali_area_m * AnnualLandValueRate, db, getattr(p, 'gram_panchayat_id', None))
                     else:
-                        capital_value = math.ceil(AreaInMeter * AnnualLandValueRate)
+                        capital_value = round_tax_amount(AreaInMeter * AnnualLandValueRate, db, getattr(p, 'gram_panchayat_id', None))
                     capital_value = round(capital_value, 2)
 
-                    house_tax = math.ceil((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+                    house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(p, 'gram_panchayat_id', None))
                 else:
                     capital_value = 0
                     house_tax = 0
@@ -1366,8 +1408,8 @@ def get_bulk_edit_property_list(
                     "taxRates": 0 if p.karLaguNahi else (
                         getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0
                     ),
-                    "totalkhalijagaareainfoot": round(khali_area),
-                    "totalkhalijagaareainmeters": round(khali_area * 0.092903)
+                    "totalkhalijagaareainfoot": round(khali_area, 2),
+                    "totalkhalijagaareainmeters": round(khali_area * 0.092937, 2)
                 }]
 
         # ---------- House tax total (same approach as property_record_response) ----------
@@ -1410,7 +1452,8 @@ def get_bulk_edit_property_list(
             toiletTax=toilet_tax,
             sapanikar=sapanikar_val,
             vpanikar=vpanikar_val,
-            totaltax=round(totaltax_val, 2)
+            totaltax=round(totaltax_val, 2),
+            sort_order=getattr(p, 'sort_order', None)
         ))
     return result
 
@@ -1448,10 +1491,18 @@ def bulk_update_properties(update: schemas.BulkEditUpdateRequest, db: Session = 
                     continue  # skip invalid value
             if update.toilet is not None:
                 prop.toilet = update.toilet
+            if update.toiletBenefitYear is not None:
+                prop.toiletBenefitYear = update.toiletBenefitYear
             if update.roofType is not None:
                 prop.roofType = update.roofType
             if update.house is not None:
                 prop.house = update.house
+            if update.gharkul is not None:
+                prop.gharkul = update.gharkul
+            if update.gharkulYojana is not None:
+                prop.gharkulYojana = update.gharkulYojana
+            if update.gharkulBenefitYear is not None:
+                prop.gharkulBenefitYear = update.gharkulBenefitYear
             if update.divaArogyaKar is not None:
                 prop.divaArogyaKar = update.divaArogyaKar
             if update.safaiKar is not None:
@@ -1460,6 +1511,8 @@ def bulk_update_properties(update: schemas.BulkEditUpdateRequest, db: Session = 
                 prop.shauchalayKar = update.shauchalayKar
             if update.karLaguNahi is not None:
                 prop.karLaguNahi = update.karLaguNahi
+            if update.exServiceman is not None:
+                prop.exServiceman = update.exServiceman
             updated_count += 1
         except Exception:
             logging.exception("bulk_update failed for property_id=%s", prop_id)
@@ -1693,6 +1746,24 @@ def upload_owner_photo(owner_id: int = Form(...), file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Error uploading photo: {str(e)}")
 
 
+@router.delete("/owners/{owner_id}/photo")
+def delete_owner_photo(owner_id: int, db: Session = Depends(database.get_db)):
+    owner = db.query(models.Owner).filter(models.Owner.id == owner_id).first()
+    if not owner:
+        raise HTTPException(status_code=404, detail="Owner not found")
+
+    if owner.ownerPhoto:
+        if os.path.exists(owner.ownerPhoto):
+            try:
+                os.remove(owner.ownerPhoto)
+            except Exception:
+                pass
+        owner.ownerPhoto = None
+        db.commit()
+
+    return {"message": "Photo removed successfully"}
+
+
 def build_property_response(db_property, db, gram_panchayat_id: int):
     # Build constructions with constructionType name
     constructions = []
@@ -1770,6 +1841,7 @@ def build_property_response(db_property, db, gram_panchayat_id: int):
         **{k: getattr(db_property, k) for k in schemas.PropertyBase.__fields__.keys()},
         "owners": owners,
         "constructions": constructions,
+        "sort_order": getattr(db_property, "sort_order", None),
         "divaKar": 0 if karLaguNahi else (get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0),
         "aarogyaKar": 0 if karLaguNahi else (get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0),
         "cleaningTax": 0 if karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if safaiKar else 0),
@@ -2328,7 +2400,7 @@ def get_all_villages(
         query = query.filter(models.Village.taluka_id == taluka_id)
     if gram_panchayat_id is not None:
         query = query.filter(models.Village.gram_panchayat_id == gram_panchayat_id)
-    return query.all()
+    return query.order_by(models.Village.id).all()
 
 @router.get("/village/{village_id}", response_model=schemas.VillageRead)
 def get_village(village_id: int, db: Session = Depends(database.get_db)):
@@ -2373,8 +2445,9 @@ def delete_village(village_id: int, db: Session = Depends(database.get_db)):
     # Check if village has associated properties or owners
     if village.properties or village.owners:
         raise HTTPException(
-            status_code=400, 
-            detail="Cannot delete village that has associated properties or owners. Please delete all properties and owners first."
+            status_code=400,
+            detail="या गावात अजून मालमत्ता किंवा मालक आहेत. आधी त्या डिलीट करा. "
+                   "(Cannot delete village that has associated properties or owners. Please delete all properties and owners first.)"
         )
     
     db.delete(village)
@@ -2478,7 +2551,12 @@ def get_properties_by_village(
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
     
-    properties = db.query(models.Property).filter(models.Property.village_id == village_id).all()
+    properties = (
+        db.query(models.Property)
+        .filter(models.Property.village_id == village_id)
+        .order_by(models.Property.sort_order)
+        .all()
+    )
 
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 
@@ -2518,36 +2596,55 @@ def serialize_properties(
             if not gram_panchayat:
                 raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
             
-            # Get all properties for the village, sorted by current anuKramank
-            properties = db.query(models.Property).filter(
-                models.Property.village_id == village_id
-            ).order_by(models.Property.anuKramank).all()
-            
+            # गावातल्या सर्व मालमत्ता - जुन्या (साठवलेल्या) अ.क्र. नुसार नव्हे, तर मालमत्ता
+            # क्रमांकाच्या नैसर्गिक क्रमवारीनुसार (नमुना-8 search list मध्ये जशा दिसतात तशाच,
+            # उदा. 15, 23, 100, 175, 500, 500/1) - जेणेकरून सिरीयलाईज केल्यावर साठवलेला अ.क्र.
+            # हाच डिस्प्ले अ.क्र. (sort_order वरून ठरणारा) असेल, जुन्या नोंदणी-क्रमाशी बांधलेला नसेल.
+            properties = sorted(
+                db.query(models.Property).filter(
+                    models.Property.village_id == village_id
+                ).all(),
+                key=lambda p: malmatta_kramank_sort_key(p.malmattaKramank)
+            )
+
             if not properties:
                 return {"success": True, "message": "No properties found for this village", "updated_count": 0}
-            
+
             updated_count = 0
             village_property_ids = {p.id for p in properties}
-            
+
             for index, db_property in enumerate(properties):
                 old_anuKramank = db_property.anuKramank
-                new_anuKramank = start_number + index + 1
-                
-                # Skip if anuKramank is already correct
-                if old_anuKramank == new_anuKramank:
+                # सुरुवात क्रमांक हाच पहिल्या मालमत्तेचा नवा अ.क्र. असायला हवा (उदा.
+                # सुरुवात क्रमांक = 1 दिल्यास मालमत्ता 1,2,3... व्हायला हव्यात) - आधी इथे
+                # "+1" जास्त होत होतं, त्यामुळे 1 दिल्यावर प्रत्यक्षात 2 पासून सुरू होत असे.
+                new_anuKramank = start_number + index
+                # sort_order हाच "डिस्प्ले अ.क्र." (compute_display_sr_no) ठरवतो - इथेही
+                # त्याच नैसर्गिक-क्रमवारीने (10,20,30... मोकळी जागा ठेवून, backfill
+                # फंक्शनप्रमाणेच) अपडेट करतो, जेणेकरून साठवलेला अ.क्र. = डिस्प्ले अ.क्र.
+                # ही अट पुढेही (नवी मालमत्ता "Insert" होईपर्यंत) टिकून राहील.
+                db_property.sort_order = (index + 1) * 10.0
+                anu_needs_change = old_anuKramank != new_anuKramank
+                # मालमत्ता क्रमांक (e.g. "500/1") must also be serialized even when
+                # अ.क्र. is already in the right position - these are independent fields.
+                malmatta_needs_change = change_malmatta and str(db_property.malmattaKramank) != str(new_anuKramank)
+
+                # Skip only if neither field actually needs to change
+                if not anu_needs_change and not malmatta_needs_change:
                     continue
-                
-                # Check if new anuKramank already exists in this village
-                existing = db.query(models.Property).filter(
-                    models.Property.village_id == village_id,
-                    models.Property.anuKramank == new_anuKramank
-                ).first()
-                # Allow collisions with properties from the same serialization batch,
-                # because they will also be renumbered in this run.
-                if existing and existing.id != db_property.id and existing.id not in village_property_ids:
-                    logging.warning(f"Skipping property {db_property.id}: anuKramank {new_anuKramank} already exists")
-                    continue
-                
+
+                if anu_needs_change:
+                    # Check if new anuKramank already exists in this village
+                    existing = db.query(models.Property).filter(
+                        models.Property.village_id == village_id,
+                        models.Property.anuKramank == new_anuKramank
+                    ).first()
+                    # Allow collisions with properties from the same serialization batch,
+                    # because they will also be renumbered in this run.
+                    if existing and existing.id != db_property.id and existing.id not in village_property_ids:
+                        logging.warning(f"Skipping property {db_property.id}: anuKramank {new_anuKramank} already exists")
+                        continue
+
                 # Delete old QR code files
                 if db_property.qrcode:
                     old_qr_path = db_property.qrcode
@@ -2717,14 +2814,6 @@ def serialize_properties(
                     taluka_name = safe_name(taluka_obj.name if taluka_obj else str(db_property.taluka_id))
                     gp_name = safe_name(gram_panchayat_obj.name if gram_panchayat_obj else str(db_property.gram_panchayat_id))
                     
-                    qr_data = {
-                    # Marathi labels for QR display
-                    "मा. धा. ना.": owner_name,
-                    "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
-                    "T. A.": totalArea,
-                    "T. T.": totalTax
-                }
-                    
                     # Create location-based QR directory structure
                     qr_dir = os.path.join(
                         "uploaded_images", "qrcode",
@@ -2736,39 +2825,25 @@ def serialize_properties(
                     )
                     os.makedirs(qr_dir, exist_ok=True)
                     qr_path = os.path.join(qr_dir, "qrcode.png")
-                    QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data), qr_path)
+                    parent_gp_name_qr = getattr(gram_panchayat_obj, 'parent_gram_panchayat_name', None) if gram_panchayat_obj else None
+                    year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
+                    qr_text = build_property_qr_text(record_response, parent_gp_name_qr, year_label_qr)
+                    QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
                     db_property.qrcode = qr_path.replace(os.sep, "/")
                     db.flush()
                     
                     # Generate QR template
                     try:
                         area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
+                        # बांधकाम स्वतःच्या constructionAreaUnit प्रमाणे मोजतो, areaUnit (एकूण जागेचा
+                        # एकक) पेक्षा वेगळं असू शकतं - QR sticker वर चुकीचं रूपांतर होऊ नये म्हणून.
+                        construction_unit_for_template = getattr(db_property, 'constructionAreaUnit', None) or area_unit_for_template
                         total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
-                        construction_area_sqft = round((constructionArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
-                        open_area_sqft = round((openArea * 10.7639), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
-                        
-                        qr_data_template = {
-                            "ग्रा. पं.": gp_name,
-                            "ता.": taluka_name,
-                            "जि.": district_name,
-                            "मा क्र": getattr(db_property, 'malmattaKramank', None),
-                            "मा. धा. नाव": owner_name,
-                            "भो. नाव": occupant_name,
-                            "पू.": boundary_east,
-                            "प.": boundary_west,
-                            "उ.": boundary_north,
-                            "द.": boundary_south,
-                            "मो नं": mobile_number,
-                            "ए क्षे. चौ. फू": total_area_sqft,
-                            "ए बां. चौ. फू": construction_area_sqft,
-                            "ए खा .जागा चौ.फू": open_area_sqft,
-                            "ए कर": totalTax,
-                        }
-                        if wife_name:
-                            qr_data_template["पत्नीचे नाव"] = wife_name
+                        construction_area_sqft = round((constructionArea * 10.76), 2) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+                        open_area_sqft = round((openArea * 10.76), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
                         
                         qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
-                        QRCodeGeneration.createQRcodeTemp(_safe_qr_payload(qr_data_template), qr_path_template)
+                        QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path_template)
                         
                         # Generate QR template HTML file (same as in create method)
                         try:
@@ -2798,6 +2873,11 @@ def serialize_properties(
                             qr_code_abs_path = os.path.abspath(qr_path_template)
                             rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
                             
+                            construction_types = ', '.join(sorted({
+                                c.construction_type.name.strip()
+                                for c in db_property.constructions
+                                if c.construction_type and not c.construction_type.name.strip().startswith('खाली जागा')
+                            }))
                             context = {
                                 "district_id": str(db_property.district_id),
                                 "taluka_id": str(db_property.taluka_id),
@@ -2806,10 +2886,17 @@ def serialize_properties(
                                 "district_name": district_obj.name if district_obj else "",
                                 "taluka_name": taluka_obj.name if taluka_obj else "",
                                 "gram_panchayat_name": gram_panchayat_obj.name if gram_panchayat_obj else "",
+                                "parent_gram_panchayat_name": getattr(gram_panchayat_obj, 'parent_gram_panchayat_name', None) if gram_panchayat_obj else None,
                                 "village_name": village_obj.name if village_obj else "",
                                 "owner_name": owner_name,
                                 "occupant_name": occupant_name,
+                                "anu_kramank": compute_display_sr_no(db, db_property.village_id, db_property.anuKramank),
                                 "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
+                                "total_area_sqft": total_area_sqft,
+                                "construction_area_sqft": construction_area_sqft,
+                                "open_area_sqft": open_area_sqft,
+                                "construction_types": construction_types,
+                                "area_lines": build_area_lines(record_response),
                                 "report_images": rel_report_images,
                                 "reports": rel_reports,
                                 "qrcode": rel_qrcode,
@@ -3124,7 +3211,17 @@ def delete_property(anu_kramank: int,village_id:int, db: Session = Depends(datab
             pass
 
     # Remove associations with owners (many-to-many)
+    owners_to_check = list(prop.owners)
     prop.owners = []
+    db.commit()
+    # मालमत्ता डिलीट झाल्यावर ज्या मालकांची आता कुठलीही मालमत्ता उरली नाही, ते
+    # orphan होतात (owner रो तसाच राहतो, कुठल्याही गावाच्या property/owner यादीत
+    # दिसत नाही, पण "गाव डिलीट करा" ला अडवतो). ज्यांची दुसरी मालमत्ता अजून आहे
+    # त्यांना हात न लावता, फक्त खरे orphan झालेले मालक इथेच काढून टाकतो.
+    for owner in owners_to_check:
+        db.refresh(owner)
+        if not owner.properties:
+            db.delete(owner)
     db.commit()
     # Explicitly delete all constructions associated with this property
     for construction in list(prop.constructions):

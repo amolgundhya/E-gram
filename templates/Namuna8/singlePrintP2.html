@@ -6,11 +6,31 @@
     <style>
         @media print {
           @page {
+            /* portrait A4 was too narrow for this table + the column-30 map/boundary
+               box (300px fixed width) - both got cut off on the right. */
             size: A4 landscape;
+            margin: 5mm;
           }
           #toolbar {
             display: none !important;
         }
+          table {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          /* Browsers put a default ~8px margin on <body> that isn't part of
+             #mainContent's own measured size, so it was pushing the fitted
+             content just past the page box and creating a blank 2nd page.
+             Also forbid a break after the content so nothing trailing can
+             start a new page. */
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          #mainContent {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
         }
     </style>
 </head>
@@ -64,6 +84,34 @@
     }
     // Initialize zoom display
     window.onload = updateZoom;
+
+    // Print-time auto-fit: scale #mainContent so the whole form (table + column-30
+    // map box + footer) always lands on a single A4-landscape page, regardless of
+    // the on-screen zoom level the user had set. Restored after printing.
+    let preZoomLevel = zoomLevel;
+    function fitToPagePrint() {
+        try {
+            preZoomLevel = zoomLevel;
+            const mc = document.getElementById('mainContent');
+            if (!mc) return;
+            mc.style.zoom = 1;
+            const naturalWidth = mc.scrollWidth;
+            const naturalHeight = mc.scrollHeight;
+            const pxPerMm = 96 / 25.4;
+            const safetyMm = 2;
+            const availW = (297 - 5 * 2 - safetyMm) * pxPerMm;
+            const availH = (210 - 5 * 2 - safetyMm) * pxPerMm;
+            let scale = Math.min(availW / naturalWidth, availH / naturalHeight, 1);
+            if (!isFinite(scale) || scale <= 0) scale = 1;
+            mc.style.zoom = scale;
+        } catch (e) { /* if measuring fails, print at natural size */ }
+    }
+    function restoreZoomAfterPrint() {
+        const mc = document.getElementById('mainContent');
+        if (mc) mc.style.zoom = preZoomLevel;
+    }
+    window.addEventListener('beforeprint', fitToPagePrint);
+    window.addEventListener('afterprint', restoreZoomAfterPrint);
 </script>
 <div id="mainContent">
 <!-- Header Notice -->
@@ -71,6 +119,9 @@
 <div style="font-size: 12px; text-align: center; border: 1px solid #000; border-bottom: none; border-radius: 0; margin-bottom: -1px;">
     (टीप: सदरचा उत्तारा हा मालकी हक्काचा नसून कर आकारणी साठी आहे. सदरच्या उताऱ्यावरून खरेदी विक्रीचा व्यवहार झाल्यास  त्यास ग्रामपंचायत जबाबदार राहणार नाही. शासन परिपत्रक क्र.पं.रा.स.2016 पं.क्र.17 पं.रा-4 तारीख 18 जुलै 2016.) <br>
     (*टीप:* शासन परिपत्रक क. VTM२६०३/प्र.क्र.२०६८/पं.रा.४ दि २० नोव्हेंबर २००३ नुसार ग्रामीण भागातील घरांची नोंदणी पती-पत्नी यांच्या संयुक्त नावे करण्यात आलेले आहे.)
+    {% if exServicemanTip %}<br>
+    (टीप: आजी / माजी सैनिकांना ग्रामपंचायत मालमत्ता करातून सुट देण्याबाबत शासन परिपत्रक व्हीपीएम-2020/प्र.क्र.93/पंरा-4, दि. 18 ऑगस्ट 2020 नुसार.)
+    {% endif %}
 </div>
 {% else %}
 <div style="font-size: 12px; text-align: center; border: 1px solid #000; border-bottom: none; border-radius: 0; margin-bottom: -1px; height: 22px;">&nbsp;</div>
@@ -111,34 +162,49 @@
         <td style="width: 22%; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
-                    <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-
+                    <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
                         <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             {% if QRcodeURL %}
-                                <img src={{QRcodeURL | default('')}}  style="width: 78px; height: 78px; object-fit: contain;" />
+                                <img src={{QRcodeURL | default('')}}  style="width: 78px; height: 78px; object-fit: contain; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;" />
                             {% else %}
                                 <div></div>
                             {% endif %}
-                        </td>
-                        <td style="width: 50%; border-right: 1px solid #000; border-bottom: none; border-top: none; border-left: none; text-align: center; vertical-align: top;">
-
-                            <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                                {% if photoURL %}
-                                    <img src="{{ photoURL }}" style="width:78px; height:78px; object-fit: contain;" />
-                                {% else %}
-                                    <div></div>
-                                {% endif %}
-                            </div>
-                        </td>
-                    <td style="width: 50%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-
-                        <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            {% if bank_qr_code %}
-                                <img src="{{ bank_qr_code }}" style="width: 78px; height: 78px; object-fit: contain;" />
-                            {% else %}
-                                <div></div>
-                            {% endif %}
+                        </div>
+                        <div style="font-size:7px; line-height:1; margin-top:0;">मालमत्ता QR</div>
                     </td>
+                    <td style="width: 25%; border-right: 1px solid #000; border-bottom: none; border-top: none; border-left: none; text-align: center; vertical-align: top;">
+                        <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                            {% if photoURL %}
+                                <img src="{{ photoURL }}" style="width:78px; height:78px; object-fit: contain;" />
+                            {% else %}
+                                <div></div>
+                            {% endif %}
+                        </div>
+                        <div style="font-size:7px; line-height:1; margin-top:0;">फोटो</div>
+                    </td>
+                    {% if houseTaxQrUrl or waterTaxQrUrl %}
+                    {% if houseTaxQrUrl %}
+                    <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
+                        <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                            <img src="{{ houseTaxQrUrl }}" style="width:78px; height:78px; object-fit:contain;" />
+                        </div>
+                        <div style="font-size:9px; margin-top:2px;">घर कर</div>
+                    </td>
+                    {% endif %}
+                    {% if waterTaxQrUrl %}
+                    <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
+                        <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                            <img src="{{ waterTaxQrUrl }}" style="width:78px; height:78px; object-fit:contain;" />
+                        </div>
+                        <div style="font-size:9px; margin-top:2px;">पाणी कर</div>
+                    </td>
+                    {% endif %}
+                    {% else %}
+                    <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
+                        <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;"></div>
+                    </td>
+                    {% endif %}
+                </tr>
             </table>
         </td>
     </tr>
@@ -212,57 +278,72 @@
         <td></td>
         <td> {{remarks|default('')}} </td>
         <td>
-            <div style="width: 300px; height: 220px; border: 2px solid #333; background-color: white;">
-                
+            <div style="width: 300px; height: 280px; border: 2px solid #333; background-color: white;">
+
                 <!-- Header -->
-                <div style="height: 40px; border-bottom: 1px solid #666; display: flex; align-items: center; justify-content: center;">
-                    द.: {{boundarySouth|default('')}} <br>
-                    एकूण क्षेत्रफळ : 
-                    {{areaEast|default('')}} x {{areaNorth|default('')}}
+                <div style="height: 58px; border-bottom: 1px solid #666; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
+                    दक्षिण : {{boundarySouth|default('')}} <br>
+                    एकूण क्षेत्रफळ :
+                    {% if housingUnit == 'sqm' %}
+                        {{areaEast|default('')}} x {{areaNorth|default('')}} मी. = {{totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{total_arearinfoot|default('')|round_sqft}} चौ.फु.)</span>
+                    {% else %}
+                        {{areaEast|default('')}} x {{areaNorth|default('')}} फु. = {{total_arearinfoot|default('')|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{totalareainmeters|default('')}} चौ.मी.)</span>
+                    {% endif %}
 
                 </div>
-                
+
                 <!-- Main Content -->
-                <div style="height: 160px; display: flex;">
-                    
+                <div style="height: 202px; display: flex;">
+
                     <!-- Left Section -->
-                    <div style="width: 30px; border-right: 1px solid #666;">
-                        
-                        <div style="height: 190px; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl;">
-                            पू.: {{boundaryEast|default('')}}
+                    <div style="width: 38px; border-right: 1px solid #666;">
+
+                        <div style="height: 100%; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; font-size: 11px; word-break: break-all; overflow: visible; padding: 2px 0;">
+                            पूर्व : {{boundaryEast|default('')}}
                         </div>
                     </div>
-                    
+
                     <!-- Center Section -->
                     <div style="flex: 1;">
-                        <div style="height: 80px; border-bottom: 1px solid #666; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
+                        <div style="height: 120px; border-bottom: 1px solid #666; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 5px;">
                                 बांधकाम <br>
 
                                 {% for item in constructionType %}
-                                    {% if item.length and item.width %}
-                                        {{ item.length }} x {{ item.width }}<br>
+                                    {% if item.length and item.width and not (item.type or '').strip().startswith('खाली जागा') %}
+                                        {% if constructionAreaUnit == 'sqm' %}
+                                            {{ item.length }} x {{ item.width }} मी. = {{ item.areaSqm }} चौ.मी. <span style="font-size: 11px;">({{ item.areaSqft|round_sqft }} चौ.फु.)</span><br>
+                                        {% else %}
+                                            {{ item.length }} x {{ item.width }} फु. = {{ item.areaSqft|round_sqft }} चौ.फु. <span style="font-size: 11px;">({{ item.areaSqm }} चौ.मी.)</span><br>
+                                        {% endif %}
                                     {% endif %}
                                 {% endfor %}
                             </div>
-                        <div style="height: 10px; display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;">
+                        <div style="height: 32px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 5px;">
                             खुली जागा <br>
-                            {{khaliJaga[0].totalkhalijagaareainfoot if khaliJaga and khaliJaga|length > 0 else ''}}
+                            {% if khaliJaga and khaliJaga|length > 0 %}
+                                {% if housingUnit == 'sqm' %}
+                                    {{khaliJaga[0].totalkhalijagaareainmeters}} चौ.मी. <span style="font-size: 11px;">({{khaliJaga[0].totalkhalijagaareainfoot|round_sqft}} चौ.फु.)</span>
+                                {% else %}
+                                    {{khaliJaga[0].totalkhalijagaareainfoot|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{khaliJaga[0].totalkhalijagaareainmeters}} चौ.मी.)</span>
+                                {% endif %}
+                            {% endif %}
                         </div>
                     </div>
-                    
+
                     <!-- Right Section -->
-                    <div style="width: 30px; border-left: 1px solid #666; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl;">
-                        प.: {{boundaryWest|default('')}}
+                    <div style="width: 38px; border-left: 1px solid #666; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; font-size: 11px; word-break: break-all; overflow: visible; padding: 2px 0;">
+                        पश्चिम : {{boundaryWest|default('')}}
                     </div>
-                    
+
                 </div>
-                
+
                 <!-- Footer -->
-                <div style="height: 15px; border-top: 1px solid #666; display: flex; align-items: center; justify-content: center;">
-                    उ. : {{boundaryNorth|default('')}}
+                <div style="height: 20px; border-top: 1px solid #666; display: flex; align-items: center; justify-content: center;">
+                    उत्तर : {{boundaryNorth|default('')}}
                 </div>
-                
-            </div></td> 
+
+            </div>
+            </td>
     </tr>
     <tr>
         <td > {{totalCapitalValue|default('')}} </td>
@@ -286,14 +367,13 @@
 <!-- Footer/Signature/Logo area -->
 <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
     <tr>
-        <td style="text-align: left; border-right: 1px solid #000;">शौचालय : {{toilet|default('')}} </td>
-        <td style="text-align: left; border-right: 1px solid #000;">
-            {% if boundaryMarking %}
-            <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
-            {% else %}
-            <td style="text-align: left; border-right: 1px solid #000; height:30px;"></td>
-            {% endif %}
-        </td>
+        <td style="text-align: left; border-right: 1px solid #000;">{% if toilet == 'आहे' %}शौचालय : {% if toiletBenefitYear %}सन {{ toiletBenefitYear|financial_year_short }} शौचालयाचा लाभ मिळालेला आहे.{% else %}शौचालयाचा लाभ मिळालेला आहे.{% endif %}{% else %}शौचालय : {{toilet|default('')}}{% if toiletBenefitYear %} ({{toiletBenefitYear}}){% endif %}{% endif %} </td>
+        <td style="text-align: left; border-right: 1px solid #000;">व्दार : {{dwarNaav|default('')}}</td>
+        {% if boundaryMarking %}
+        <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
+        {% else %}
+        <td style="text-align: left; border-right: 1px solid #000; height:30px;"></td>
+        {% endif %}
         {% if boundaryMarking %}
         <td style="text-align: left; border-right: 1px solid #000;">पूर्व : {{boundaryEast|default('')}} </td>
         <td style="text-align: left; border-right: 1px solid #000;">पश्चिम : {{boundaryWest|default('')}} </td>
@@ -307,7 +387,7 @@
         {% endif %}
     </tr>
     <tr>
-        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">घरकुल : {{house|default('')}}
+        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">{% if gharkul == 'आहे' and gharkulYojana %}घरकुल : {{ gharkulYojana }} {% if gharkulBenefitYear %}सन {{ gharkulBenefitYear|financial_year_short }} {% endif %}योजनेचा लाभ मिळाला आहे.{% else %}घरकुल : {{gharkul|default('')}}{% if gharkulYojana %} - {{gharkulYojana}}{% endif %}{% if gharkulBenefitYear %} ({{gharkulBenefitYear}}){% endif %}{% endif %}
             {% if date %}
             <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
                 दिनांक : {{todays_date|default('')}} <br>
@@ -327,6 +407,9 @@
         </td>
         {% if sachivSarpanch %}
         <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
+            {% if signature_image %}
+            <img src="{{ signature_image }}" style="height: 35px; object-fit: contain; display: block; margin-bottom: 2px;" alt="स्वाक्षरी" />
+            {% endif %}
             ग्रामपंचायत अधिकारी <br>
             ग्रामपंचायत कार्यालय {{gramPanchayat|default('')}} <br>
             ता. {{taluka|default('')}} जि. {{jilha|default('')}}

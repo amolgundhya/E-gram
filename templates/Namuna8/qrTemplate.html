@@ -86,13 +86,12 @@
 
     /* Bottom row layout and wrapping middle label */
     .row-bottom {
-      margin-left: -45px;
-      margin-right: -40px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 30px;
+      gap: 10px;
+      padding: 0 4mm;
       font-weight: 900;
       font-size: 30px;
       color: red;
@@ -103,14 +102,25 @@
     .mid-label {
       flex: 1 1 0;
       min-width: 0;
-      overflow-wrap: anywhere;
-      word-break: break-word;
+      overflow-wrap: break-word;
+      word-break: normal;
       white-space: normal;
       text-align: center;
       font-weight: 900;
-      font-size: 30px;
+      font-size: 22px;
       color: red;
     }
+
+    .mid-label .sr-line { white-space: nowrap; display: block; }
+    .mid-label .occupant-line { display: block; }
+    .mid-label .area-lines {
+      font-weight: 700;
+      font-size: 13px;
+      color: #000;
+      text-align: left;
+      margin-top: 2mm;
+    }
+    .mid-label .area-lines div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .top-label {
       margin: 0;
@@ -122,6 +132,22 @@
       overflow-wrap: anywhere;
       word-break: break-word;
       white-space: normal;
+    }
+
+    .slogan-label {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: darkblue;
+    }
+
+    .detail-label {
+      text-align: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: #000;
     }
 
     @media print {
@@ -146,7 +172,14 @@
 
     <!-- Center QR -->
     <div class="center">
-      <div class="top-label">ग्रा.पं. {{gram_panchayat_name}}, ता. {{taluka_name}}, जि. {{district_name}}</div>
+      <div class="top-label">
+        {% if parent_gram_panchayat_name %}
+          ग्रामपंचायत {{parent_gram_panchayat_name}}, गट ग्रा.पं. {{gram_panchayat_name}}, ता. {{taluka_name}}, जि. {{district_name}}
+        {% else %}
+          ग्रा.पं. {{gram_panchayat_name}}, ता. {{taluka_name}}, जि. {{district_name}}
+        {% endif %}
+      </div>
+      <div class="slogan-label">वेळेत कर भरा आणि गावाचा विकास साधा</div>
       <div class="center-qr">
         <div class="qr-wrap">
             <img class="qr" src="{{ qrcode }}" alt="QR" />
@@ -154,7 +187,14 @@
       </div>
       <div class="row-bottom">
         <div class="print-bg" style=" border-radius: 10px;background-color: green;width:160px;;height: 55px;font-weight: 900; font-size: 30px; color: white; display: inline-block;text-align: center;">ओला कचरा</div>
-        <div class="mid-label">{{owner_name}} <br> मालमत्ता क्र. {{malmatta_kramank}}</br> ‍‍‍‍भोगवटदाराचे नाव  {{occupant_name}} </div>
+        <div class="mid-label">
+          <span class="occupant-line">{{owner_name}}</span>
+          <span class="sr-line">अ.क्र. {{anu_kramank}} / मालमत्ता क्र. {{malmatta_kramank}}</span>
+          <span class="occupant-line">भोगवटदार : {{occupant_name or 'स्वतः'}}</span>
+          <div class="area-lines">
+            {% for line in area_lines %}<div>{{line}}</div>{% endfor %}
+          </div>
+        </div>
         <div class="print-bg" style=" border-radius: 10px;background-color: darkblue;width:155px;;height: 55px;font-weight: 900; font-size: 30px; color: white; display: inline-block;text-align: center;">सुखा कचरा</div>
       </div>
     

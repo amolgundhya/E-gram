@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Digital Name Plates</title>
+  <style>
+    :root {
+      --plate-width: {{ plate_width_in|default(6) }}in;
+      --plate-height: {{ plate_height_in|default(5) }}in;
+      --safe-margin: 0.2in;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0.2in;
+      font-family: 'Mangal', Arial, sans-serif;
+      background: #f4f4f4;
+    }
+    .sheet {
+    display: grid;
+    grid-template-columns: repeat({{ plates_per_row|default(2) }}, var(--plate-width));
+    gap: 0.1in;
+    justify-content: start;
+}
+    /* Uniform plate size across the whole batch - fixed width/height, never
+       resized by content, so a cutting machine can rely on a single measurement.
+       padding = the 0.2in safe margin, applied once here so every direct child
+       (top row / middle row / bottom row) automatically stays inside it. */
+    .plate {
+      width: var(--plate-width);
+      height: var(--plate-height);
+      background: #fff;
+      border: 1.5px solid #000;
+      padding: var(--safe-margin);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* ROW 1 - अ.क्र. (left, small) + heading (center, ~14pt). A normal flex row,
+       not absolute positioning, so the two can never overlap. */
+    .top-row {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: baseline;
+      gap: 0.12in;
+      padding-bottom: 0.04in;
+    }
+    .sr-badge {
+      flex: 0 0 auto;
+      font-weight: 900;
+      font-size: 10pt;
+      color: #000;
+      white-space: nowrap;
+    }
+    .heading {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: center;
+      font-weight: 900;
+      color: red;
+      font-size: 14pt;
+      line-height: 1.15;
+      overflow-wrap: break-word;
+    }
+    .tagline {
+      flex: 0 0 auto;
+      text-align: center;
+      font-weight: 700;
+      color: darkblue;
+      font-size: 8pt;
+      line-height: 1.15;
+      padding-bottom: 0.03in;
+    }
+
+    /* ROW 2 - 3 columns: left rail (logo/bin/chip) | QR (fixed 2.5in) | right rail. */
+    .middle-row {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.1in;
+      padding: 0.04in 0;
+    }
+    .side-col {
+      flex: 0 0 auto;
+      width: 1in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.07in;
+    }
+    .side-col img.logo {
+      width: 0.65in;
+      height: auto;
+      object-fit: contain;
+    }
+    .side-col img.bin {
+      height: 0.9in;
+      width: auto;
+      object-fit: contain;
+    }
+    .waste-chip {
+      flex: 0 0 auto;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 900;
+      font-size: 9pt;
+      padding: 3px 9px;
+      text-align: center;
+      white-space: nowrap;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .waste-chip.wet { background-color: green; }
+    .waste-chip.dry { background-color: darkblue; }
+
+    .qr-col {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* QR quiet zone - बाजूच्या लोगो/डबीपासून किमान 0.15in पांढरी जागा, स्कॅनिंगसाठी. */
+      padding: 0 0.15in;
+    }
+    .qr-wrap {
+      /* स्थिर 2.5in x 2.5in - प्लेटच्या रुंदीवर अवलंबून नाही, त्यामुळे प्लेट साईज बदलली
+         तरी QR चा आकार/जागा बदलत नाही. */
+      width: 2.5in;
+      height: 2.5in;
+      display: grid;
+      place-items: center;
+      background: #fff;
+    }
+    .qr {
+      width: 100%; height: 100%; object-fit: contain;
+      image-rendering: pixelated; print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+
+    /* ROW 3 - पूर्ण रुंदीत, बटणांच्या मध्ये न अडकता खालच्या भागात 3 ओळी. मोठ्या QR
+       मुळे उरलेली जागा कमी झालीच आहे; उरलेल्या जागेत मजकूर वरतीच (flex-start) ठेवतो,
+       जेणेकरून मधल्या रांगेखालची पोकळी वाढणार नाही. */
+    .bottom-row {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+      overflow: hidden;
+      gap: 0.04in;
+      padding-top: 0.06in;
+    }
+    .owner-name {
+      width: 100%;
+      font-weight: 900;
+      color: red;
+      font-size: 14pt;
+      line-height: 1.2;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .id-occ-line {
+      width: 100%;
+      font-weight: 700;
+      color: #000;
+      font-size: 11pt;
+      line-height: 1.2;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+    }
+    .id-occ-line .nowrap-group { white-space: nowrap; }
+    .area-lines {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .area-line {
+      width: 100%;
+      font-weight: 600;
+      color: #000;
+      font-size: 10pt;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media print {
+      @page { size: 12in 18in; margin: 0.2in; }
+      body { background: #fff; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    {% for p in plates %}
+    <div class="plate">
+      <div class="top-row">
+        <div class="sr-badge">अ.क्र. {{p.sr_no}}</div>
+        <div class="heading">{{p.heading}}</div>
+      </div>
+
+      <div class="middle-row">
+        <div class="side-col">
+          <img class="logo" src="{{ report_images }}/swatch bharat_client.jpeg" alt="Swachh Bharat" />
+          <img class="bin" src="{{ report_images }}/green dustin_client.jpeg" alt="Green Bin" />
+          <div class="waste-chip wet">ओला कचरा</div>
+        </div>
+        <div class="qr-col">
+          <div class="qr-wrap">
+            <img class="qr" src="{{ p.qrcode }}" alt="QR" />
+          </div>
+        </div>
+        <div class="side-col">
+          <img class="logo" src="{{ report_images }}/betibachaobetipadhia1.png" alt="Beti Bachao Beti Padhia" />
+          <img class="bin" src="{{ report_images }}/blue dustin_client.jpeg" alt="Blue Bin" />
+          <div class="waste-chip dry">सुखा कचरा</div>
+        </div>
+      </div>
+
+      <div class="bottom-row">
+        <div class="owner-name">{{p.owner_name}}</div>
+        <div class="id-occ-line">
+          अ.क्र. {{p.sr_no}} / <span class="nowrap-group">मालमत्ता क्र. {{p.malmatta_kramank}}</span> | भोगवटदार: {{p.occupant_name}}
+        </div>
+        <div class="tagline">{{p.tagline}}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <script>
+    // प्रत्येक प्लेटवरचा तळातील मजकूर (owner-name / id-occ-line) दिलेल्या किमान-कमाल
+    // फॉन्ट रेंजमध्ये बसवतो. QR किंवा मधल्या रांगेला (middle-row) अजिबात हात लावत नाही.
+    (function () {
+      function ptToPx(pt) { return pt * 96 / 72; }
+
+      function fitBlock(el, opts) {
+        var max = opts.max, min = opts.min, step = opts.step || 0.5;
+        var maxLines = opts.maxLines || 1;
+        var lineHeight = opts.lineHeight || 1.2;
+        var budgetPx = Math.ceil(ptToPx(min) * lineHeight * maxLines) + 2;
+        el.style.maxHeight = budgetPx + 'px';
+        el.style.lineHeight = String(lineHeight);
+        var size = max;
+        el.style.fontSize = size + 'pt';
+        while (size > min && el.scrollHeight > budgetPx) {
+          size = Math.round((size - step) * 100) / 100;
+          el.style.fontSize = size + 'pt';
+        }
+        return size;
+      }
+
+      function fitPlate(plate) {
+        var ownerEl = plate.querySelector('.owner-name');
+        var idEl = plate.querySelector('.id-occ-line');
+        var areaEls = Array.prototype.slice.call(plate.querySelectorAll('.area-line'));
+        var bottomRow = plate.querySelector('.bottom-row');
+        if (!bottomRow) return;
+
+        var sizes = {};
+        if (ownerEl) sizes.owner = fitBlock(ownerEl, { max: 14, min: 10, maxLines: 2 });
+        if (idEl) sizes.id = fitBlock(idEl, { max: 11, min: 8, maxLines: 2 });
+        if (areaEls.length) {
+          // बांधकाम/खाली जागा ओळी 1 ते 4+ असू शकतात - क्षेत्रफळ ओळींसाठी उरलेली रिकामी
+          // जागा जास्तीत जास्त वापरायला 10pt पासून सुरू करतो (आधीच्या 9pt ऐवजी).
+          sizes.area = 10;
+          areaEls.forEach(function (el) {
+            el.style.fontSize = '10pt';
+            el.style.lineHeight = '1.2';
+          });
+        }
+
+        // तिन्ही ओळी स्वतःच्या मर्यादेत बसूनही एकूण bottom-row (उपलब्ध जागा) मध्ये
+        // सगळं मिळून बसत नसेल, तरच नाव आणि दुसरी ओळ आणखी थोडी लहान करतो (किमान
+        // फॉन्ट साईजच्या खाली नाही), आणि शेवटी क्षेत्रफळ ओळींचा गट (किमान 8pt पर्यंत,
+        // सगळ्या ओळींना एकत्र) - QR किंवा मधल्या रांगेला स्पर्श होत नाही.
+        var guard = 0;
+        while (bottomRow.scrollHeight > bottomRow.clientHeight + 1 && guard < 30) {
+          var shrunkAny = false;
+          [[ownerEl, 'owner', 10], [idEl, 'id', 8]].forEach(function (entry) {
+            var el = entry[0], key = entry[1], floor = entry[2];
+            if (!el || sizes[key] === undefined) return;
+            if (sizes[key] > floor) {
+              sizes[key] = Math.max(floor, Math.round((sizes[key] - 0.3) * 100) / 100);
+              el.style.fontSize = sizes[key] + 'pt';
+              shrunkAny = true;
+            }
+          });
+          if (!shrunkAny && areaEls.length && sizes.area > 8) {
+            sizes.area = Math.max(8, Math.round((sizes.area - 0.3) * 100) / 100);
+            areaEls.forEach(function (el) { el.style.fontSize = sizes.area + 'pt'; });
+            shrunkAny = true;
+          }
+          if (!shrunkAny) break;
+          guard++;
+        }
+      }
+
+      function fitAll() {
+        document.querySelectorAll('.plate').forEach(fitPlate);
+      }
+
+      if (document.readyState === 'complete') {
+        fitAll();
+      } else {
+        window.addEventListener('load', fitAll);
+      }
+      window.addEventListener('beforeprint', fitAll);
+    })();
+  </script>
+</body>
+</html>
