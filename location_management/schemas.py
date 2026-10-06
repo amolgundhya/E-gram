@@ -59,6 +59,11 @@ class GramPanchayatCreate(GramPanchayatBase):
 class GramPanchayatRead(GramPanchayatBase):
     id: int
     image_url: Optional[str] = None
+    house_tax_qr_url: Optional[str] = None
+    water_tax_qr_url: Optional[str] = None
+    signature_url: Optional[str] = None
+    parent_gram_panchayat_name: Optional[str] = None
+    show_bank_scanner_in_reports: Optional[bool] = False
     from_yearslap: Optional[str] = None
     to_yearslap: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -67,6 +72,18 @@ class GramPanchayatRead(GramPanchayatBase):
     class Config:
         from_attributes = True
 
+# --- Bank Scanner पासवर्ड Schemas ---
+class BankScannerPasswordStatus(BaseModel):
+    has_password: bool
+
+class BankScannerPasswordCreate(BaseModel):
+    new_password: str
+
+class BankScannerPasswordChange(BaseModel):
+    old_password: str
+    new_password: str
+
+
 class GramPanchayatUpdate(BaseModel):
     name: Optional[str] = None
     code: Optional[str] = None
@@ -74,6 +91,7 @@ class GramPanchayatUpdate(BaseModel):
     image_url: Optional[str] = None
     from_yearslap: Optional[str] = None
     to_yearslap: Optional[str] = None
+    parent_gram_panchayat_name: Optional[str] = None
 
 
 # --- Response Schemas with Relationships ---

@@ -1,4 +1,3 @@
-import math
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from namuna8 import namuna8_model as models
@@ -12,10 +11,34 @@ from namuna8.mastertab.mastertabmodels import BuildingUsageWeightage
 from namuna8.mastertab import mastertabmodels as settingModels
 from location_management import models as location_models
 from datetime import datetime,date
+from natural_sort import malmatta_kramank_sort_key
+from Utility.tax_rounding import round_tax_amount
 
 backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 
 router = APIRouter()
+
+def compute_display_sr_no(db, village_id, anu_kramank) -> int:
+    """मालकाला/यूजरला दिसणारा अ.क्र. - जतन केलेला anuKramank नव्हे. गावातल्या सर्व
+    मालमत्तांना sort_order नुसार क्रमवारीत लावून चालू क्रमांक (1,2,3...) काढतो - अगदी
+    तसाच नियम जो get_property_records_by_village/get_property_records_by_gram_panchayat
+    आधीपासून वापरतात (sort_order नसलेल्या रो सगळ्यात शेवटी). एकट्या मालमत्तेसाठी
+    (get_property_record) हाच क्रमांक वापरायचा - तिथे आधी चुकून prop.anuKramank थेट
+    srNo म्हणून दाखवला जात होता."""
+    rows = (
+        db.query(models.Property.anuKramank, models.Property.sort_order)
+        .filter(models.Property.village_id == village_id)
+        .all()
+    )
+    rows_sorted = sorted(
+        rows,
+        key=lambda r: (r.sort_order if r.sort_order is not None else float("inf")),
+    )
+    for idx, r in enumerate(rows_sorted, start=1):
+        if r.anuKramank == anu_kramank:
+            return idx
+    return anu_kramank
+
 
 def _build_qrcode_url(prop, qr_path: str) -> str:
     """Build QR URL with version token to avoid stale cached images."""
@@ -27,6 +50,19 @@ def _build_qrcode_url(prop, qr_path: str) -> str:
         f"&v={version}"
     )
 
+# Helper to build a printable "व्दार नांव" string from the four gate-direction flags
+def format_dwar_naav(prop) -> str:
+    parts = []
+    if getattr(prop, 'dwarPurv', False):
+        parts.append("पूर्व")
+    if getattr(prop, 'dwarPashchim', False):
+        parts.append("पश्चिम")
+    if getattr(prop, 'dwarUttar', False):
+        parts.append("उत्तर")
+    if getattr(prop, 'dwarDakshin', False):
+        parts.append("दक्षिण")
+    return ", ".join(parts)
+
 # Helper to calculate house tax
 def calc_house_tax(rate):
     try:
@@ -36,6 +72,15 @@ def calc_house_tax(rate):
         return round((float(rate) / 1000) * capital_value)
     except Exception:
         return 0
+
+# बांधकाम-रो चे क्षेत्रफळ दोन्ही एककांत (चौ.मी./चौ.फु.) दाखवण्यासाठी - नकाशा column मध्ये,
+# "एकूण चौरस फुट/मीटर" रो प्रमाणेच same 10.76 / 0.092937 conversion वापरतो.
+def _construction_item_dual_unit_area(length, width, construction_unit):
+    area_native = round((length or 0) * (width or 0), 2)
+    if construction_unit == 'sqm':
+        return {"areaSqm": area_native, "areaSqft": round(area_native * 10.76, 2)}
+    else:
+        return {"areaSqft": area_native, "areaSqm": round(area_native * 0.092937, 2)}
 
 # Deep rounding for all numeric fields (excluding booleans) using HALF_UP,
 # but preserve decimals for specific keys like 'length', 'width' and raw side lengths.
@@ -48,7 +93,7 @@ EXEMPT_FLOAT_KEYS = {
     "areaWest",
     "areaNorth",
     "areaSouth",
-    "taxRates"
+    "taxRates",
 }
 
 def _deep_round_numbers(obj):
@@ -134,18 +179,49 @@ def get_property_record(
     # khaliJaga logic
     khaliJaga = []
     if getattr(prop, 'vacantLandType', None) not in [None, '', 'null']:
-        # Compute khali area in both sqm and sqft based on stored unit
+        # खाली जागा नेहमी प्लॉटच्या स्वतःच्या एककातच (unit) थेट वजाबाकी करून काढतो - आधी
+        # गोल केलेल्या मूल्यांमधून मीटरमध्ये वजाबाकी करून मग परत फुटात रूपांतरित केलं की
+        # घोळ होतो (उदा. sqft plot: 2500-1075.84=1424.16 थेट ऐवजी 232.34-99.99=132.35,
+        # नंतर *10.76=1424.09 अशी चुकीची किंमत येते). बांधकाम लांबी/रुंदी constructionAreaUnit
+        # मध्ये असू शकतात, जे areaUnit पेक्षा वेगळं असू शकतं - तेव्हाच एकदा रूपांतर करतो.
         unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-        if unit == 'sqm':
-            total_area_m = round(prop.totalArea or 0, 2)
-            used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
-                                    if getattr(c, "floor", None) == "तळमजला"), 2)
+        construction_unit = getattr(prop, 'constructionAreaUnit', None) or unit
+        construction_sum = sum((c.length or 0) * (c.width or 0) for c in prop.constructions
+                                if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला"))
+        total_area_native = (prop.totalArea or 0) if unit == 'sqm' else (prop.totalAreaSqFt or 0)
+        if construction_unit == unit:
+            used_area_native = construction_sum
         else:
-            total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
-            used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
-                                    if getattr(c, "floor", None) == "तळमजला") * 0.092903, 2)
-        khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
-        khali_area = round(khali_area_m / 0.092903, 2)
+            used_area_native = construction_sum * 10.76 if unit == 'sqft' else construction_sum / 10.76
+        khali_area_native = max(total_area_native - used_area_native, 0)
+        if unit == 'sqm':
+            khali_area_m = round(khali_area_native, 2)
+            khali_area = round(khali_area_native * 10.76, 2)
+        else:
+            khali_area = round(khali_area_native, 2)
+            khali_area_m = round(khali_area_native / 10.76, 2)
+        # बांधकामाचे प्रकार तक्त्यात स्वतः "खाली जागा" प्रकाराची रो टाकली असेल (उदा. एकूण
+        # जागा कधीच भरली नाही, फक्त खाली जागाच नोंदवली) तर ती रो वरच्या वजाबाकीत
+        # "वापरलेली जागा" म्हणून आधीच धरलेली आहे (टॅक्स दुप्पट होऊ नये म्हणून capital_value/
+        # house_tax खालीच वरच्या khali_area/khali_area_m वरूनच काढतो, बदलत नाही) - पण
+        # प्रदर्शनासाठी (एकूण चौ.फु./मी., डायग्राम, entry screen) ती रो स्वतःच खुली जागा आहे,
+        # म्हणून वेगळ्या display-only मूल्यात तिचं क्षेत्रफळ मोजून जोडतो.
+        khali_type_sum_construction_unit = sum(
+            (c.length or 0) * (c.width or 0) for c in prop.constructions
+            if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला")
+            and (getattr(c.construction_type, 'name', None) or "").strip().startswith("खाली जागा")
+        )
+        if construction_unit == unit:
+            khali_type_sum_native = khali_type_sum_construction_unit
+        else:
+            khali_type_sum_native = khali_type_sum_construction_unit * 10.76 if unit == 'sqft' else khali_type_sum_construction_unit / 10.76
+        khali_area_display_native = khali_area_native + khali_type_sum_native
+        if unit == 'sqm':
+            khali_area_m_display = round(khali_area_display_native, 2)
+            khali_area_display = round(khali_area_display_native * 10.76, 2)
+        else:
+            khali_area_display = round(khali_area_display_native, 2)
+            khali_area_m_display = round(khali_area_display_native / 10.76, 2)
         # Find the bandhmastache_dar for vacantLandType construction type
         khali_jaga_rate = 0
         vacant_construction_type = None
@@ -161,63 +237,64 @@ def get_property_record(
                 if similar_construction:
                     khali_jaga_rate = getattr(similar_construction, 'bandhmastache_dar', 0)
         # Calculate capital value and house tax for khali jaga using same logic as Namuna8
-        if khali_area > 0:
-            # Get construction type for khali jaga
-            khali_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == prop.vacantLandType).first()
-            
-            if khali_construction_type:
-                # Get user formula preference - same as Namuna8
-                userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-                
-                if userFormulaPreference:
-                    formula1 = userFormulaPreference.capitalFormula1
-                    formula2 = userFormulaPreference.capitalFormula2
-                else:
-                    formula1 = None
-                    formula2 = None
-                
-                # Calculate area in meters - same as Namuna8
-                AreaInMeter = round(khali_area * 1 * 0.092903, 2)  # length * width * 0.092903
-                AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
-                depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
-                
-                # Get usage weightage factor - same as Namuna8
-                weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
-                usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
-                
-                # Calculate capital value - exact same logic as Namuna8
-                if formula1:
-                    capital_value = (khali_area_m * AnnualLandValueRate)
-                else:
-                    capital_value = AreaInMeter * AnnualLandValueRate
-                capital_value = math.ceil(capital_value)
-                
-                # Calculate house tax - exact same logic as Namuna8
-                house_tax = math.ceil((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+        # Get construction type for khali jaga
+        khali_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == prop.vacantLandType).first()
+        weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+        capital_value = 0
+        house_tax = 0
+        if khali_area > 0 and khali_construction_type:
+            # Get user formula preference - same as Namuna8
+            userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
+
+            if userFormulaPreference:
+                formula1 = userFormulaPreference.capitalFormula1
+                formula2 = userFormulaPreference.capitalFormula2
             else:
-                capital_value = 0
-                house_tax = 0
-            
-                
-            khaliJaga = [{
-                "constructiontype": prop.vacantLandType,
-                "length": (khali_area),
-                "width": 1,
-                "year": datetime.now().year,
-                "rate": khali_jaga_rate,
-                "floor": "तळमजला",
-                "usage": prop.vacantLandType,
-                "capitalValue": 0 if prop.karLaguNahi else math.ceil(capital_value),
-                "houseTax": 0 if prop.karLaguNahi else math.ceil(house_tax),
-                "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
-                "taxRates": 0 if prop.karLaguNahi else (getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0),
-                "totalkhalijagaareainfoot": round(khali_area),
-                "totalkhalijagaareainmeters": round(khali_area * 0.092903)
-            }]
+                formula1 = None
+                formula2 = None
+
+            # Calculate area in meters - same as Namuna8 (khali_area_m आधीच एकदाच बरोबर
+            # रूपांतरित केलेलं आहे, इथे khali_area मधून परत रूपांतर करायचं नाही)
+            AreaInMeter = khali_area_m
+            AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
+            ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
+            depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
+
+            # Get usage weightage factor - same as Namuna8
+            usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
+
+            # Calculate capital value - exact same logic as Namuna8
+            if formula1:
+                capital_value = (khali_area_m * AnnualLandValueRate)
+            else:
+                capital_value = AreaInMeter * AnnualLandValueRate
+            capital_value = round_tax_amount(capital_value, db, getattr(prop, 'gram_panchayat_id', None))
+
+            # Calculate house tax - exact same logic as Namuna8
+            house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(prop, 'gram_panchayat_id', None))
+
+        # Always emit a khaliJaga entry when vacantLandType is set, even if the
+        # computed area is exactly 0 (e.g. construction covers the whole plot),
+        # so reports show "0" instead of silently omitting the row.
+        khaliJaga = [{
+            "constructiontype": prop.vacantLandType,
+            "length": (khali_area_display),
+            "width": 1,
+            "year": datetime.now().year,
+            "rate": khali_jaga_rate,
+            "floor": "तळमजला",
+            "usage": prop.vacantLandType,
+            "capitalValue": 0 if prop.karLaguNahi else round_tax_amount(capital_value, db, getattr(prop, 'gram_panchayat_id', None)),
+            "houseTax": 0 if prop.karLaguNahi else round_tax_amount(house_tax, db, getattr(prop, 'gram_panchayat_id', None)),
+            "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
+            "taxRates": 0 if prop.karLaguNahi else (getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0),
+            "totalkhalijagaareainfoot": round(khali_area_display, 2),
+            "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
+        }]
     # else: khaliJaga remains []
     # Fetch weightage mapping for usage
     weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+    construction_unit_disp_early = getattr(prop, 'constructionAreaUnit', None) or getattr(prop, 'areaUnit', 'sqft') or 'sqft'
     constructionType = [
         {
             "type": c.construction_type.name,
@@ -232,6 +309,7 @@ def get_property_record(
             "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name),
             "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
             "taxRates": getattr(c.construction_type, 'rate', 0),
+            **_construction_item_dual_unit_area(c.length, c.width, construction_unit_disp_early),
         }
         for c in prop.constructions
     ]
@@ -284,7 +362,17 @@ def get_property_record(
         elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
             return getattr(water_slab_settings, 'generalWaterAbove700', 0)
         return 0
-    total_area = round(prop.totalAreaSqFt or 0, 2)
+    # Calculate total construction area in foot and meter (excluding khali jagas)
+    # Respect property unit: if inputs are in meters, compute meters first; if in feet, compute feet first
+    unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
+    # Normalize total area based on property unit (mirrors the by-village/by-gram-panchayat builders)
+    if unit == 'sqm':
+        total_area_m = round(prop.totalArea or 0, 2)
+        total_area_sqft = round((prop.totalArea or 0) * 10.76, 2)
+    else:
+        total_area_sqft = round(prop.totalAreaSqFt or 0, 2)
+        total_area_m = round((prop.totalAreaSqFt or 0) * 0.092937, 2)
+    total_area = total_area_sqft
     # Calculate totalHouseTax as the sum of all houseTax in constructions (excluding 'खाली जागा')
     total_house_tax = sum([
         c.houseTax or 0
@@ -293,21 +381,23 @@ def get_property_record(
     ])
     if khaliJaga:
         total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
-    
-    # Calculate total capital value (excluding khali jagas)
-    total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+
+    # Calculate total capital value - totalHouseTax प्रमाणेच सर्व constructions धरतो
+    # (खाली-जागा-प्रकारच्या बांधकाम रो सकट - वगळलं तर घरपट्टी>0 असूनही भांडवली मूल्य 0
+    # दिसतं, कारण त्या रो चं capitalValue कुठेच मोजलं जात नाही).
+    total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions])
     if khaliJaga:
             total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
     todays_date = date.today().strftime("%d-%m-%Y")
-    # Calculate total construction area in foot and meter (excluding khali jagas)
-    # Respect property unit: if inputs are in meters, compute meters first; if in feet, compute feet first
-    unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-    if unit == 'sqm':
-        total_construction_area_meter = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
-        total_construction_area_foot = round(total_construction_area_meter / 0.092903, 2)
+    # बांधकाम लांबी/रुंदी constructionAreaUnit मध्ये असू शकतात, जे areaUnit पेक्षा वेगळं असू शकतं.
+    construction_unit_disp = getattr(prop, 'constructionAreaUnit', None) or unit
+    construction_area_sum = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+    if construction_unit_disp == 'sqm':
+        total_construction_area_meter = round(construction_area_sum, 2)
+        total_construction_area_foot = round(total_construction_area_meter / 0.092937, 2)
     else:
-        total_construction_area_foot = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
-        total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)   
+        total_construction_area_foot = round(construction_area_sum, 2)
+        total_construction_area_meter = round(total_construction_area_foot * 0.092937, 2)
     year_from = datetime.now().year
     year_to = year_from + 3
     # Force totals to zero when tax not applicable
@@ -316,7 +406,7 @@ def get_property_record(
         total_house_tax = 0
     response = {
         "id": str(prop.anuKramank),
-        "srNo": prop.anuKramank,
+        "srNo": compute_display_sr_no(db, prop.village_id, prop.anuKramank),
         "propertyNumber": str(prop.malmattaKramank),
         "propertyDescription": property_description,
         "gramPanchayat": gram_panchayat.name if gram_panchayat else None,
@@ -329,8 +419,8 @@ def get_property_record(
         "photoURL": photo_url,
         "bank_qr_code": None,
         "QRcodeURL": None,
-        "total_arearinfoot": round(prop.totalAreaSqFt or 0),
-        "totalareainmeters": round((prop.totalAreaSqFt or 0) * 0.092903),
+        "total_arearinfoot": total_area_sqft,
+        "totalareainmeters": total_area_m,
         "occupantName": owner.occupantName if owner else None,
         "aadharNumber": owner.aadhaarNumber if owner else None,
         "ownerName": owner.name if owner else None,
@@ -342,7 +432,10 @@ def get_property_record(
         "areaWest": prop.westLength,
         "areaNorth": prop.northLength,
         "areaSouth": prop.southLength,
-        "totalArea": round(prop.totalAreaSqFt or 0),
+        "totalArea": total_area_m if unit == 'sqm' else total_area_sqft,
+        "areaUnit": unit,
+        "constructionAreaUnit": getattr(prop, 'constructionAreaUnit', None) or unit,
+        "totalAreaSqFt": total_area_sqft,
         "boundaryEast": prop.eastBoundary,
         "boundaryWest": prop.westBoundary,
         "boundaryNorth": prop.northBoundary,
@@ -351,12 +444,21 @@ def get_property_record(
         "applyCleaningTax": prop.safaiKar,
         "applyToiletTax": prop.shauchalayKar,
         "taxNotApplicable": prop.karLaguNahi,
+        "dwarPurv": prop.dwarPurv,
+        "dwarPashchim": prop.dwarPashchim,
+        "dwarUttar": prop.dwarUttar,
+        "dwarDakshin": prop.dwarDakshin,
+        "dwarNaav": format_dwar_naav(prop),
         "khaliJaga": khaliJaga,
         "constructionType": constructionType,
         "waterFacility1": prop.waterFacility1,
         "waterFacility2": prop.waterFacility2,
         "toilet": str(prop.toilet) if prop.toilet is not None else "",
+        "toiletBenefitYear": getattr(prop, 'toiletBenefitYear', None) or "",
         "house": prop.roofType,
+        "gharkul": getattr(prop, 'gharkul', None) or "",
+        "gharkulYojana": getattr(prop, 'gharkulYojana', None) or "",
+        "gharkulBenefitYear": getattr(prop, 'gharkulBenefitYear', None) or "",
         "totalCapitalValue": int(total_capital_value if not prop.karLaguNahi else 0),
         "totalHouseTax": int(total_house_tax if not prop.karLaguNahi else 0),
         "totalconstructionareainfoot": total_construction_area_foot,
@@ -396,6 +498,9 @@ def get_property_record(
         checklist_fields = {k: v for k, v in checklist_dict.items() if k not in ('id', 'createdAt', 'updatedAt', 'roundupArea', '_sa_instance_state')}
     # Add checklist fields at the end
     response.update(checklist_fields)
+    # आजी/माजी सैनिक टीप - आता MASTER मधल्या जुन्या ग्लोबल सेटिंगऐवजी प्रत्येक
+    # मालमत्तेच्या स्वतःच्या exServiceman टिकवरून ठरते.
+    response['exServicemanTip'] = bool(getattr(prop, 'exServiceman', False))
     # Set QRcodeURL if QR code exists (single property)
     # Use location-based QR path
     qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.village_id),str(prop.anuKramank), "qrcode.png")
@@ -409,10 +514,30 @@ def get_property_record(
     image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
     if image_path and os.path.exists(image_path):
         response["bank_qr_code"] = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
-    
-    # Coerce all numeric fields to integers except 'length' and 'width'
-    _deep_round_numbers(response)
-    return response 
+
+    # Set signature_image only if a digital signature has been uploaded
+    response["signature_image"] = (
+        f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/signature"
+        if gram_panchayat and gram_panchayat.signature_url else None
+    )
+
+    # घर कर / पाणी कर Bank Scanner QR - only shown if the GP has turned this on
+    # in Master settings (same toggle used by the namuna8Print prakar routes).
+    show_bank_scanner = bool(gram_panchayat and gram_panchayat.show_bank_scanner_in_reports)
+    response["houseTaxQrUrl"] = (
+        f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house"
+        if show_bank_scanner and gram_panchayat and gram_panchayat.house_tax_qr_url else None
+    )
+    response["waterTaxQrUrl"] = (
+        f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water"
+        if show_bank_scanner and gram_panchayat and gram_panchayat.water_tax_qr_url else None
+    )
+
+    # Coerce all numeric fields to integers except 'length' and 'width' -
+    # only when the gram panchayat's "Round Up All Area" checklist setting is on.
+    if checklist and checklist.roundupArea:
+        _deep_round_numbers(response)
+    return response
 
 @router.get("/property_records_by_village/{village_id}")
 def get_property_records_by_village(
@@ -464,18 +589,47 @@ def get_property_records_by_village(
         khali_jaga_types = [c for c in prop.constructions if c.construction_type.name.strip() == "खाली जागा"]
         khaliJaga = []
         if getattr(prop, 'vacantLandType', None) not in [None, '', 'null']:
-            # Compute khali area in both sqm and sqft based on stored unit
+            # खाली जागा नेहमी प्लॉटच्या स्वतःच्या एककातच (unit) थेट वजाबाकी करून काढतो - आधी
+            # गोल केलेल्या मूल्यांमधून मीटरमध्ये वजाबाकी करून मग परत फुटात रूपांतरित केलं की
+            # घोळ होतो. बांधकाम लांबी/रुंदी constructionAreaUnit मध्ये असू शकतात, जे areaUnit
+            # पेक्षा वेगळं असू शकतं - तेव्हाच एकदा रूपांतर करतो.
             unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-            if unit == 'sqm':
-                total_area_m = round(prop.totalArea or 0, 2)
-                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
-                                        if getattr(c, "floor", None) == "तळमजला"), 2)
+            construction_unit = getattr(prop, 'constructionAreaUnit', None) or unit
+            construction_sum = sum((c.length or 0) * (c.width or 0) for c in prop.constructions
+                                    if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला"))
+            total_area_native = (prop.totalArea or 0) if unit == 'sqm' else (prop.totalAreaSqFt or 0)
+            if construction_unit == unit:
+                used_area_native = construction_sum
             else:
-                total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
-                used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
-                                        if getattr(c, "floor", None) == "तळमजला") * 0.092903, 2)
-            khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
-            khali_area = round(khali_area_m / 0.092903, 2)
+                used_area_native = construction_sum * 10.76 if unit == 'sqft' else construction_sum / 10.76
+            khali_area_native = max(total_area_native - used_area_native, 0)
+            if unit == 'sqm':
+                khali_area_m = round(khali_area_native, 2)
+                khali_area = round(khali_area_native * 10.76, 2)
+            else:
+                khali_area = round(khali_area_native, 2)
+                khali_area_m = round(khali_area_native / 10.76, 2)
+            # बांधकामाचे प्रकार तक्त्यात स्वतः "खाली जागा" प्रकाराची रो टाकली असेल तर ती वरच्या
+            # वजाबाकीत आधीच "वापरलेली जागा" म्हणून धरलेली आहे (टॅक्स दुप्पट होऊ नये म्हणून
+            # capital_value/house_tax वरच्याच khali_area/khali_area_m वरून काढतो, बदलत नाही) -
+            # पण प्रदर्शनासाठी ती रो स्वतःच खुली जागा आहे, म्हणून वेगळ्या display-only
+            # मूल्यात तिचं क्षेत्रफळ मोजून जोडतो.
+            khali_type_sum_construction_unit = sum(
+                (c.length or 0) * (c.width or 0) for c in prop.constructions
+                if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला")
+                and (getattr(c.construction_type, 'name', None) or "").strip().startswith("खाली जागा")
+            )
+            if construction_unit == unit:
+                khali_type_sum_native = khali_type_sum_construction_unit
+            else:
+                khali_type_sum_native = khali_type_sum_construction_unit * 10.76 if unit == 'sqft' else khali_type_sum_construction_unit / 10.76
+            khali_area_display_native = khali_area_native + khali_type_sum_native
+            if unit == 'sqm':
+                khali_area_m_display = round(khali_area_display_native, 2)
+                khali_area_display = round(khali_area_display_native * 10.76, 2)
+            else:
+                khali_area_display = round(khali_area_display_native, 2)
+                khali_area_m_display = round(khali_area_display_native / 10.76, 2)
             # Find the bandhmastache_dar for vacantLandType construction type
             khali_jaga_rate = 0
             vacant_construction_type = None
@@ -490,67 +644,64 @@ def get_property_records_by_village(
                     if similar_construction:
                         khali_jaga_rate = getattr(similar_construction, 'bandhmastache_dar', 0)
             # Calculate capital value and house tax for khali jaga using same logic as Namuna8
-            if khali_area > 0:
-                # Ensure khali_area_m is defined in this scope
-                unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-                khali_area_m = round(khali_area, 2) if unit == 'sqm' else round(khali_area * 0.092903, 2)
-                # Get construction type for khali jaga (respect property vacantLandType)
-                khali_construction_type = db.query(models.ConstructionType).filter(
-                    models.ConstructionType.name == prop.vacantLandType
-                ).first()
-                
-                if khali_construction_type:
-                    # Get user formula preference - same as Namuna8
-                    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-                    
-                    if userFormulaPreference:
-                        formula1 = userFormulaPreference.capitalFormula1
-                        formula2 = userFormulaPreference.capitalFormula2
-                    else:
-                        formula1 = None
-                        formula2 = None
-                    
-                    # Calculate area in meters - same as Namuna8
-                    AreaInMeter = khali_area_m
-                    AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                    ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
-                    depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
-                    
-                    # Get usage weightage factor - same as Namuna8
-                    weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
-                    usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
-                    
-                    # Calculate capital value - exact same logic as Namuna8
-                    if formula1:
-                        capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                    else:
-                        capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
-                    capital_value = math.ceil(capital_value)
-                    
-                    # Calculate house tax - exact same logic as Namuna8
-                    house_tax = math.ceil((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+            # Get construction type for khali jaga (respect property vacantLandType)
+            khali_construction_type = db.query(models.ConstructionType).filter(
+                models.ConstructionType.name == prop.vacantLandType
+            ).first()
+            weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+            capital_value = 0
+            house_tax = 0
+            if khali_area > 0 and khali_construction_type:
+                # Get user formula preference - same as Namuna8
+                userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
+
+                if userFormulaPreference:
+                    formula1 = userFormulaPreference.capitalFormula1
+                    formula2 = userFormulaPreference.capitalFormula2
                 else:
-                    capital_value = 0
-                    house_tax = 0
-                
-                khaliJaga = [{
-                    "constructiontype": prop.vacantLandType or "खाली जागा",
-                    "length": (khali_area),
-                    "width": 1,
-                    "year": datetime.now().year,
-                    "rate": khali_jaga_rate,
-                    "floor": "तळमजला",
-                    "usage": prop.vacantLandType,
-                    "capitalValue": 0 if prop.karLaguNahi else math.ceil(capital_value),
-                    "houseTax": 0 if prop.karLaguNahi else math.ceil(house_tax),
-                    "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
-                    "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
-                    "totalkhalijagaareainfoot": round(khali_area),
-                    "totalkhalijagaareainmeters": round(khali_area_m)
-                }]
+                    formula1 = None
+                    formula2 = None
+
+                # Calculate area in meters - same as Namuna8
+                AreaInMeter = khali_area_m
+                AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
+                ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
+                depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
+
+                # Get usage weightage factor - same as Namuna8
+                usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
+
+                # Calculate capital value - exact same logic as Namuna8
+                if formula1:
+                    capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+                else:
+                    capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+                capital_value = round_tax_amount(capital_value, db, getattr(prop, 'gram_panchayat_id', None))
+
+                # Calculate house tax - exact same logic as Namuna8
+                house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(prop, 'gram_panchayat_id', None))
+
+            # Always emit a khaliJaga entry when vacantLandType is set, even if the
+            # computed area is exactly 0, so reports show "0" instead of omitting the row.
+            khaliJaga = [{
+                "constructiontype": prop.vacantLandType or "खाली जागा",
+                "length": (khali_area_display),
+                "width": 1,
+                "year": datetime.now().year,
+                "rate": khali_jaga_rate,
+                "floor": "तळमजला",
+                "usage": prop.vacantLandType,
+                "capitalValue": 0 if prop.karLaguNahi else round_tax_amount(capital_value, db, getattr(prop, 'gram_panchayat_id', None)),
+                "houseTax": 0 if prop.karLaguNahi else round_tax_amount(house_tax, db, getattr(prop, 'gram_panchayat_id', None)),
+                "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
+                "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
+                "totalkhalijagaareainfoot": round(khali_area_display, 2),
+                "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
+            }]
         # else: khaliJaga remains []
         # Fetch weightage mapping for usage
         weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+        construction_unit_disp_early = getattr(prop, 'constructionAreaUnit', None) or getattr(prop, 'areaUnit', 'sqft') or 'sqft'
         constructionType = [
             {
                 "type": c.construction_type.name,
@@ -565,6 +716,7 @@ def get_property_records_by_village(
                 "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name),
                 "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
                 "taxRates": 0 if prop.karLaguNahi else getattr(c.construction_type, 'rate', 0),
+                **_construction_item_dual_unit_area(c.length, c.width, construction_unit_disp_early),
             }
             for c in prop.constructions
         ]
@@ -608,10 +760,10 @@ def get_property_records_by_village(
         unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
         if unit == 'sqm':
             total_area_m = round(prop.totalArea or 0, 2)
-            total_area_sqft = round((prop.totalArea or 0) / 0.092903, 2)
+            total_area_sqft = round((prop.totalArea or 0) * 10.76, 2)
         else:
             total_area_sqft = round(prop.totalAreaSqFt or 0, 2)
-            total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
+            total_area_m = round((prop.totalAreaSqFt or 0) * 0.092937, 2)
         # Use sqft for slabbed area taxes (301-700 etc. are in sqft)
         total_area = total_area_sqft
         # Calculate totalHouseTax as the sum of all houseTax in constructions (excluding 'खाली जागा')
@@ -622,22 +774,27 @@ def get_property_records_by_village(
         ])
         if khaliJaga:
             total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
-        total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+        # totalHouseTax प्रमाणेच सर्व constructions धरतो (बघा वरची टीप, ओळ ~331).
+        total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions])
         if khaliJaga:
                  total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
-        # Construction area totals aligned with unit handling
-        if unit == 'sqm':
-            total_construction_area_meter = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
-            total_construction_area_foot = round(total_construction_area_meter / 0.092903, 2)
+        # Construction area totals aligned with unit handling. बांधकाम स्वतःच्या
+        # constructionAreaUnit प्रमाणे मोजतो, areaUnit पेक्षा वेगळं असू शकतं म्हणून.
+        construction_unit_disp = getattr(prop, 'constructionAreaUnit', None) or unit
+        construction_area_sum = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+        if construction_unit_disp == 'sqm':
+            total_construction_area_meter = round(construction_area_sum, 2)
+            total_construction_area_foot = round(total_construction_area_meter / 0.092937, 2)
         else:
-            total_construction_area_foot = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
-            total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
+            total_construction_area_foot = round(construction_area_sum, 2)
+            total_construction_area_meter = round(total_construction_area_foot * 0.092937, 2)
         year_from = datetime.now().year
         year_to = year_from + 3
         response = {
             "id": str(prop.anuKramank),
             "anuKramank": prop.anuKramank,
             "srNo": prop.anuKramank,
+            "sort_order": prop.sort_order,
             "propertyNumber": str(prop.malmattaKramank),
             "propertyDescription": property_description,
             "gramPanchayat": gram_panchayat.name if gram_panchayat else None,
@@ -654,6 +811,7 @@ def get_property_records_by_village(
             "occupantName": owner.occupantName if owner else None,
             "aadharNumber": owner.aadhaarNumber if owner else None,
             "ownerName": owner.name if owner else None,
+            "ownerWifeName": owner.wifeName if owner else None,
             "mobileNumber": owner.mobileNumber if owner else None,
             "roadName": prop.streetName,
             "cityWardGatNumber": prop.citySurveyOrGatNumber,
@@ -670,17 +828,28 @@ def get_property_records_by_village(
             "applyCleaningTax": prop.safaiKar,
             "applyToiletTax": prop.shauchalayKar,
             "taxNotApplicable": prop.karLaguNahi,
+            "dwarPurv": prop.dwarPurv,
+            "dwarPashchim": prop.dwarPashchim,
+            "dwarUttar": prop.dwarUttar,
+            "dwarDakshin": prop.dwarDakshin,
+            "dwarNaav": format_dwar_naav(prop),
             "khaliJaga": khaliJaga,
             "constructionType": constructionType,
             "waterFacility1": prop.waterFacility1,
             "waterFacility2": prop.waterFacility2,
             "toilet": str(prop.toilet) if prop.toilet is not None else "",
+            "toiletBenefitYear": getattr(prop, 'toiletBenefitYear', None) or "",
             "house": prop.roofType,
+            "gharkul": getattr(prop, 'gharkul', None) or "",
+            "gharkulYojana": getattr(prop, 'gharkulYojana', None) or "",
+            "gharkulBenefitYear": getattr(prop, 'gharkulBenefitYear', None) or "",
             "totalCapitalValue": int(0 if prop.karLaguNahi else total_capital_value),
             "totalHouseTax": int(0 if prop.karLaguNahi else total_house_tax),
             "totalconstructionareainfoot": total_construction_area_foot,
             "totalconstructionareainmeter": total_construction_area_meter,
             "housingUnit": prop.areaUnit,
+            "areaUnit": unit,
+            "constructionAreaUnit": construction_unit_disp,
             "lightingTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0),
             "healthTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'health') if not prop.divaArogyaKar else 0),
             "waterTax": 0,
@@ -729,14 +898,46 @@ def get_property_records_by_village(
         image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
         if image_path and os.path.exists(image_path):
             response["bank_qr_code"] = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
-        
+
+        # Set signature_image only if a digital signature has been uploaded
+        response["signature_image"] = (
+            f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/signature"
+            if gram_panchayat and gram_panchayat.signature_url else None
+        )
+
+        # घर कर / पाणी कर Bank Scanner QR - only shown if the GP has turned this on
+        # in Master settings (same toggle used by the namuna8Print prakar routes).
+        show_bank_scanner = bool(gram_panchayat and gram_panchayat.show_bank_scanner_in_reports)
+        response["houseTaxQrUrl"] = (
+            f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house"
+            if show_bank_scanner and gram_panchayat and gram_panchayat.house_tax_qr_url else None
+        )
+        response["waterTaxQrUrl"] = (
+            f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water"
+            if show_bank_scanner and gram_panchayat and gram_panchayat.water_tax_qr_url else None
+        )
+
         # Add checklist fields to the response
         response.update(checklist_fields)
-        # Coerce all numeric fields to integers except 'length' and 'width'
-        _deep_round_numbers(response)
+        # आजी/माजी सैनिक टीप - प्रत्येक मालमत्तेच्या स्वतःच्या exServiceman टिकवरून.
+        response['exServicemanTip'] = bool(getattr(prop, 'exServiceman', False))
+        # Coerce all numeric fields to integers except 'length' and 'width' -
+        # only when the gram panchayat's "Round Up All Area" checklist setting is on.
+        if checklist and checklist.roundupArea:
+            _deep_round_numbers(response)
         results.append(response)
-    results = sorted(results, key=lambda r: int(r["id"]))
-    return results 
+    # sort_order नुसार क्रम (32, 32/1, 32/2, 33 ...) - मालमत्ता क्रमांकाच्या मजकुरावरून
+    # काढलेल्या नैसर्गिक क्रमवारीऐवजी आता हाच वापरतो, कारण "Insert" ने घातलेल्या मालमत्तेचा
+    # मालमत्ता क्रमांक मोकळा मजकूर ("1 भाग" सारखा) असला तरी योग्य जागी (निवडलेल्या
+    # मालमत्तेनंतर) दिसायला हवा - नुसत्या मजकुरावरून ते ठरवता येत नाही. sort_order नसलेल्या
+    # (स्थलांतर अजून न झालेल्या, अत्यंत दुर्मिळ) रो शेवटी टाकतो.
+    results = sorted(results, key=lambda r: (r.get("sort_order") if r.get("sort_order") is not None else float("inf")))
+    # अ.क्र. (srNo) आता या क्रमवारीनंतरचा चालू क्रमांक (1,2,3...) दाखवतो - जतन केलेला
+    # anuKramank (आयडी, QR/लिंकसाठी) कुठेच बदलत नाही, फक्त ही यादीतली स्वतंत्र "srNo"
+    # व्हॅल्यू आता योग्य क्रमाने दिसते (आधी ती चुकून जतन केलेला anuKramank दाखवत होती).
+    for idx, r in enumerate(results, start=1):
+        r["srNo"] = idx
+    return results
 
 @router.get("/property_records_by_gram_panchayat/{gram_panchayat_id}")
 def get_property_records_by_gram_panchayat(
@@ -788,17 +989,47 @@ def get_property_records_by_gram_panchayat(
 
             khaliJaga = []
             if getattr(prop, 'vacantLandType', None) not in [None, '', 'null']:
+                # खाली जागा नेहमी प्लॉटच्या स्वतःच्या एककातच (unit) थेट वजाबाकी करून काढतो - आधी
+                # गोल केलेल्या मूल्यांमधून मीटरमध्ये वजाबाकी करून मग परत फुटात रूपांतरित केलं की
+                # घोळ होतो. बांधकाम लांबी/रुंदी constructionAreaUnit मध्ये असू शकतात, जे areaUnit
+                # पेक्षा वेगळं असू शकतं - तेव्हाच एकदा रूपांतर करतो.
                 unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-                if unit == 'sqm':
-                    total_area_m = round(prop.totalArea or 0, 2)
-                    used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
-                                            if getattr(c, "floor", None) == "तळमजला"), 2)
+                construction_unit = getattr(prop, 'constructionAreaUnit', None) or unit
+                construction_sum = sum((c.length or 0) * (c.width or 0) for c in prop.constructions
+                                        if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला"))
+                total_area_native = (prop.totalArea or 0) if unit == 'sqm' else (prop.totalAreaSqFt or 0)
+                if construction_unit == unit:
+                    used_area_native = construction_sum
                 else:
-                    total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
-                    used_area_m = round(sum((c.length or 0) * (c.width or 0) for c in prop.constructions
-                                            if getattr(c, "floor", None) == "तळमजला") * 0.092903, 2)
-                khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
-                khali_area = round(khali_area_m / 0.092903, 2)
+                    used_area_native = construction_sum * 10.76 if unit == 'sqft' else construction_sum / 10.76
+                khali_area_native = max(total_area_native - used_area_native, 0)
+                if unit == 'sqm':
+                    khali_area_m = round(khali_area_native, 2)
+                    khali_area = round(khali_area_native * 10.76, 2)
+                else:
+                    khali_area = round(khali_area_native, 2)
+                    khali_area_m = round(khali_area_native / 10.76, 2)
+                # बांधकामाचे प्रकार तक्त्यात स्वतः "खाली जागा" प्रकाराची रो टाकली असेल तर ती वरच्या
+                # वजाबाकीत आधीच "वापरलेली जागा" म्हणून धरलेली आहे (टॅक्स दुप्पट होऊ नये म्हणून
+                # capital_value/house_tax वरच्याच khali_area/khali_area_m वरून काढतो, बदलत नाही) -
+                # पण प्रदर्शनासाठी ती रो स्वतःच खुली जागा आहे, म्हणून वेगळ्या display-only
+                # मूल्यात तिचं क्षेत्रफळ मोजून जोडतो.
+                khali_type_sum_construction_unit = sum(
+                    (c.length or 0) * (c.width or 0) for c in prop.constructions
+                    if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला")
+                    and (getattr(c.construction_type, 'name', None) or "").strip().startswith("खाली जागा")
+                )
+                if construction_unit == unit:
+                    khali_type_sum_native = khali_type_sum_construction_unit
+                else:
+                    khali_type_sum_native = khali_type_sum_construction_unit * 10.76 if unit == 'sqft' else khali_type_sum_construction_unit / 10.76
+                khali_area_display_native = khali_area_native + khali_type_sum_native
+                if unit == 'sqm':
+                    khali_area_m_display = round(khali_area_display_native, 2)
+                    khali_area_display = round(khali_area_display_native * 10.76, 2)
+                else:
+                    khali_area_display = round(khali_area_display_native, 2)
+                    khali_area_m_display = round(khali_area_display_native / 10.76, 2)
                 khali_jaga_rate = 0
                 vacant_construction_type = None
 
@@ -811,54 +1042,53 @@ def get_property_records_by_gram_panchayat(
                         if similar_construction:
                             khali_jaga_rate = getattr(similar_construction, 'bandhmastache_dar', 0)
 
-                if khali_area > 0:
-                    khali_construction_type = db.query(models.ConstructionType).filter(
-                        models.ConstructionType.name == prop.vacantLandType
-                    ).first()
+                khali_construction_type = db.query(models.ConstructionType).filter(
+                    models.ConstructionType.name == prop.vacantLandType
+                ).first()
+                weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+                capital_value = 0
+                house_tax = 0
+                if khali_area > 0 and khali_construction_type:
+                    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
 
-                    if khali_construction_type:
-                        userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-
-                        if userFormulaPreference:
-                            formula1 = userFormulaPreference.capitalFormula1
-                            formula2 = userFormulaPreference.capitalFormula2
-                        else:
-                            formula1 = None
-                            formula2 = None
-
-                        AreaInMeter = khali_area_m
-                        AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                        ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
-                        depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
-
-                        weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
-                        usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
-
-                        if formula1:
-                            capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                        else:
-                            capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
-
-                        house_tax = round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+                    if userFormulaPreference:
+                        formula1 = userFormulaPreference.capitalFormula1
+                        formula2 = userFormulaPreference.capitalFormula2
                     else:
-                        capital_value = 0
-                        house_tax = 0
+                        formula1 = None
+                        formula2 = None
 
-                    khaliJaga = [{
-                        "constructiontype": prop.vacantLandType or "खाली जागा",
-                        "length": round(khali_area),
-                        "width": 1,
-                        "year": datetime.now().year,
-                        "rate": khali_jaga_rate,
-                        "floor": "तळमजला",
-                        "usage": prop.vacantLandType,
-                        "capitalValue": 0 if prop.karLaguNahi else capital_value,
-                        "houseTax": 0 if prop.karLaguNahi else house_tax,
-                        "usageBasedBuildingWeightageFactor":  weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1),
-                        "taxRates": 0 if prop.karLaguNahi else getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
-                        "totalkhalijagaareainfoot": round(khali_area),
-                        "totalkhalijagaareainmeters": round(khali_area_m)
-                    }]
+                    AreaInMeter = khali_area_m
+                    AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
+                    ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
+                    depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
+
+                    usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
+
+                    if formula1:
+                        capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
+                    else:
+                        capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+
+                    house_tax = round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+
+                # Always emit a khaliJaga entry when vacantLandType is set, even if the
+                # computed area is exactly 0, so reports show "0" instead of omitting the row.
+                khaliJaga = [{
+                    "constructiontype": prop.vacantLandType or "खाली जागा",
+                    "length": round(khali_area_display),
+                    "width": 1,
+                    "year": datetime.now().year,
+                    "rate": khali_jaga_rate,
+                    "floor": "तळमजला",
+                    "usage": prop.vacantLandType,
+                    "capitalValue": 0 if prop.karLaguNahi else capital_value,
+                    "houseTax": 0 if prop.karLaguNahi else house_tax,
+                    "usageBasedBuildingWeightageFactor":  weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
+                    "taxRates": 0 if prop.karLaguNahi else getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
+                    "totalkhalijagaareainfoot": round(khali_area_display, 2),
+                    "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
+                }]
 
             weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
             constructionType = [
@@ -921,10 +1151,10 @@ def get_property_records_by_gram_panchayat(
             unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
             if unit == 'sqm':
                 total_area_m = round(prop.totalArea or 0, 2)
-                total_area_sqft = round((prop.totalArea or 0) / 0.092903, 2)
+                total_area_sqft = round((prop.totalArea or 0) * 10.76, 2)
             else:
                 total_area_sqft = round(prop.totalAreaSqFt or 0, 2)
-                total_area_m = round((prop.totalAreaSqFt or 0) * 0.092903, 2)
+                total_area_m = round((prop.totalAreaSqFt or 0) * 0.092937, 2)
             # Use sqft for slabbed area taxes (301-700 etc. are in sqft)
             total_area = total_area_sqft
             total_house_tax = sum([
@@ -933,16 +1163,20 @@ def get_property_records_by_gram_panchayat(
             ])
             if khaliJaga:
                  total_house_tax += sum([item.get("houseTax", 0) for item in khaliJaga])
-            total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+            # totalHouseTax प्रमाणेच सर्व constructions धरतो (बघा वरची टीप, ओळ ~331).
+            total_capital_value = sum([c.capitalValue or 0 for c in prop.constructions])
             if khaliJaga:
                  total_capital_value += sum([item.get("capitalValue", 0) for item in khaliJaga])
-            # Construction area totals aligned with unit handling
-            if unit == 'sqm':
-                total_construction_area_meter = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
-                total_construction_area_foot = round(total_construction_area_meter / 0.092903, 2)
+            # Construction area totals aligned with unit handling. बांधकाम स्वतःच्या
+            # constructionAreaUnit प्रमाणे मोजतो, areaUnit पेक्षा वेगळं असू शकतं म्हणून.
+            construction_unit_disp = getattr(prop, 'constructionAreaUnit', None) or unit
+            construction_area_sum = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
+            if construction_unit_disp == 'sqm':
+                total_construction_area_meter = round(construction_area_sum, 2)
+                total_construction_area_foot = round(total_construction_area_meter / 0.092937, 2)
             else:
-                total_construction_area_foot = round(sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")]), 2)
-                total_construction_area_meter = round(total_construction_area_foot * 0.092903, 2)
+                total_construction_area_foot = round(construction_area_sum, 2)
+                total_construction_area_meter = round(total_construction_area_foot * 0.092937, 2)
             year_from = datetime.now().year
             year_to = year_from + 3
             todays_date = date.today().strftime("%d-%m-%Y")
@@ -950,6 +1184,7 @@ def get_property_records_by_gram_panchayat(
             response = {
                 "id": str(prop.anuKramank),
                 "srNo": prop.anuKramank,
+                "sort_order": prop.sort_order,
                 "propertyNumber": str(prop.malmattaKramank),
                 "propertyDescription": property_description,
                 "gramPanchayat": gram_panchayat.name if gram_panchayat else None,
@@ -984,17 +1219,28 @@ def get_property_records_by_gram_panchayat(
                 "applyCleaningTax": prop.safaiKar,
                 "applyToiletTax": prop.shauchalayKar,
                 "taxNotApplicable": prop.karLaguNahi,
+                "dwarPurv": prop.dwarPurv,
+                "dwarPashchim": prop.dwarPashchim,
+                "dwarUttar": prop.dwarUttar,
+                "dwarDakshin": prop.dwarDakshin,
+                "dwarNaav": format_dwar_naav(prop),
                 "khaliJaga": khaliJaga,
                 "constructionType": constructionType,
                 "waterFacility1": prop.waterFacility1,
                 "waterFacility2": prop.waterFacility2,
                 "toilet": str(prop.toilet) if prop.toilet is not None else "",
+                "toiletBenefitYear": getattr(prop, 'toiletBenefitYear', None) or "",
                 "house": prop.roofType,
+                "gharkul": getattr(prop, 'gharkul', None) or "",
+                "gharkulYojana": getattr(prop, 'gharkulYojana', None) or "",
+                "gharkulBenefitYear": getattr(prop, 'gharkulBenefitYear', None) or "",
                 "totalCapitalValue": int(total_capital_value),
                 "totalHouseTax": int(total_house_tax),
                 "totalconstructionareainfoot": total_construction_area_foot,
                 "totalconstructionareainmeter": total_construction_area_meter,
                 "housingUnit": prop.areaUnit,
+                "areaUnit": unit,
+                "constructionAreaUnit": construction_unit_disp,
                 "lightingTax": get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0,
                 "healthTax": get_tax_by_area(total_area, 'health') if not prop.divaArogyaKar else 0,
                 "waterTax": 0,
@@ -1040,11 +1286,43 @@ def get_property_records_by_gram_panchayat(
             if image_path and os.path.exists(image_path):
                 response["bank_qr_code"] = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
 
-            # Coerce all numeric fields to integers except 'length' and 'width'
-            _deep_round_numbers(response)
+            # Set signature_image only if a digital signature has been uploaded
+            response["signature_image"] = (
+                f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/signature"
+                if gram_panchayat and gram_panchayat.signature_url else None
+            )
+
+            # घर कर / पाणी कर Bank Scanner QR - only shown if the GP has turned this on
+            # in Master settings (same toggle used by the namuna8Print prakar routes).
+            show_bank_scanner = bool(gram_panchayat and gram_panchayat.show_bank_scanner_in_reports)
+            response["houseTaxQrUrl"] = (
+                f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house"
+                if show_bank_scanner and gram_panchayat and gram_panchayat.house_tax_qr_url else None
+            )
+            response["waterTaxQrUrl"] = (
+                f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water"
+                if show_bank_scanner and gram_panchayat and gram_panchayat.water_tax_qr_url else None
+            )
+
+            # Coerce all numeric fields to integers except 'length' and 'width' -
+            # only when the gram panchayat's "Round Up All Area" checklist setting is on.
+            if checklist and checklist.roundupArea:
+                _deep_round_numbers(response)
             response.update(checklist_fields)
+            # आजी/माजी सैनिक टीप - प्रत्येक मालमत्तेच्या स्वतःच्या exServiceman टिकवरून.
+            response['exServicemanTip'] = bool(getattr(prop, 'exServiceman', False))
             village_properties.append(response)
-            village_properties = sorted(village_properties, key=lambda r: int(r["id"]))
+            # sort_order नुसार क्रम (32, 32/1, 32/2, 33 ...) - वर get_property_records_by_village
+            # मध्ये लिहिलेलं कारण इथेही लागू: "Insert" ने घातलेल्या मालमत्तेचा मजकूर काहीही
+            # असो, sort_order नेच योग्य जागा ठरते.
+            village_properties = sorted(
+                village_properties,
+                key=lambda r: (r.get("sort_order") if r.get("sort_order") is not None else float("inf")),
+            )
+        # अ.क्र. (srNo) आता या क्रमवारीनंतरचा चालू क्रमांक (1,2,3...) दाखवतो, प्रत्येक
+        # गावासाठी स्वतंत्रपणे 1 पासून सुरू होतो - जतन केलेला anuKramank (आयडी) बदलत नाही.
+        for idx, r in enumerate(village_properties, start=1):
+            r["srNo"] = idx
         # Add village properties to response data with village name as key
         if village_properties:  # Only add villages that have properties
             response_data[f"{village.name}"] = village_properties

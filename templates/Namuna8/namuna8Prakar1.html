@@ -5,7 +5,7 @@
     <title>नमुना ८</title>
     <style>
         body { font-family: 'Mangal', Arial, sans-serif; }
-        table { border-collapse: collapse; width: 100%; font-size: 13px; }
+        table { border-collapse: collapse; table-layout: fixed; width: 100%; font-size: 13px; }
         .header-table td { border: none; padding: 2px 4px; }
         .center { text-align: center; }
         .left { text-align: left; }
@@ -45,6 +45,13 @@
         @media print {
             @page {
                 size: A4 landscape;
+                margin: 8mm;
+                {% if pageNumber %}
+                @bottom-center {
+                    content: "पृष्ठ " counter(page) " / " counter(pages);
+                    font-size: 10px;
+                }
+                {% endif %}
             }
             #toolbar {
                 display: none !important;
@@ -57,6 +64,22 @@
                 display: block !important;
                 page-break-inside: avoid;
                 break-inside: avoid;
+            }
+        }
+    </style>
+
+    <style>
+        /* नमुना-8 रजिस्टर प्रिंट - landscape मध्ये सर्व column page-width मध्ये बसावेत
+           म्हणून फॉन्ट किंचित लहान करतो आणि लांब मजकूर क्लिप न होता wrap होऊ देतो. */
+        @media print {
+            table, th, td {
+                font-size: 10px !important;
+            }
+            th, td {
+                padding: 1px 2px !important;
+                overflow-wrap: break-word !important;
+                word-break: break-word !important;
+                white-space: normal !important;
             }
         }
     </style>
@@ -182,7 +205,7 @@
         function exitPage() {
             window.close();
         }
-        window.onload = function() {
+                window.onload = function() {
             updateZoom();
             showPage(1);
             updateFooterSummary(); // <-- Add this line
@@ -199,12 +222,28 @@
         <!-- Page Header - Repeats on every page -->
         <thead class="page-header">
             <tr>
-                <td colspan="21" style="border:none; padding:0;">
+                <td colspan="24" style="border:none; padding:0;">
                     <table class="header-table" style="width:100%; margin:0;">
                         <tr>
                             <td class="left" style="width:33%">ग्रामपंचायत : {{ gramPanchayat | default('') }} <br>गाव/मोहोल्ला : {{ village | default('') }} </td>
                             <td class="center bold" style="font-size:22px; width:34%">नमुना ८<br><span style="font-size:15px; font-weight:normal;">सन {{ yearFrom | default('') }} <b>ते</b> {{ yearTo | default('') }} </span></td>
                             <td class="right" style="width:33%">नियम 32 (1)<br>तालुका : {{ taluka | default('') }} <br>जिल्हा : {{ jilha | default('') }} </td>
+                            {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+                            <td class="center" style="width:1%; white-space:nowrap;">
+                                {% if houseTaxQrUrl %}
+                                <div style="display:inline-block; text-align:center; margin:0 4px;">
+                                    <img src="{{ houseTaxQrUrl }}" style="width:60px; height:60px; object-fit:contain;" />
+                                    <div style="font-size:10px;">घर कर</div>
+                                </div>
+                                {% endif %}
+                                {% if waterTaxQrUrl %}
+                                <div style="display:inline-block; text-align:center; margin:0 4px;">
+                                    <img src="{{ waterTaxQrUrl }}" style="width:60px; height:60px; object-fit:contain;" />
+                                    <div style="font-size:10px;">पाणी कर</div>
+                                </div>
+                                {% endif %}
+                            </td>
+                            {% endif %}
                         </tr>
                     </table>
                 </td>
@@ -223,6 +262,9 @@
                 <th rowspan="2">भांडवली मुल्य (रु.)</th>
                 <th rowspan="2">कराचे दर (पैसे)</th>
                 <th colspan="7">कराची रक्कम (रु.)</th>
+                <th rowspan="2">शौचालय</th>
+                <th rowspan="2">घरकुल</th>
+                <th rowspan="2">व्दार</th>
             </tr>
             <tr>
                 <th rowspan="1" style="width: 100px;">जमीन</th>
@@ -258,13 +300,16 @@
                 <th rowspan="1"></th>
                 <th rowspan="1"></th>
                 <th rowspan="1">21</th>
+                <th rowspan="1">22</th>
+                <th rowspan="1">23</th>
+                <th rowspan="1">24</th>
             </tr>
         </thead>
         
         <!-- Page Footer - Repeats on every page -->
         <tfoot class="page-footer">
             <tr>
-                <td colspan="21" style="border:none; padding:0;">
+                <td colspan="24" style="border:none; padding:0;">
                     <!-- Footer content moved outside tfoot -->
                 </td>
             </tr>
@@ -449,6 +494,9 @@
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
+                <td>{{ row.toilet | default('') }}{% if row.toiletBenefitYear %} ({{ row.toiletBenefitYear }}){% endif %}</td>
+                <td>{{ row.gharkul | default('') }}{% if row.gharkulYojana %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear %} ({{ row.gharkulBenefitYear }}){% endif %}</td>
+                <td>{{ row.dwarNaav | default('') }}</td>
             </tr>
             {% endfor %}
         </tbody>

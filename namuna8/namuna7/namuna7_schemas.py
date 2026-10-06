@@ -13,6 +13,8 @@ class Namuna7Base(BaseModel):
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
+    malmattaKramank: Optional[str] = None
+    anuKramank: Optional[int] = None
 
 class Namuna7Create(Namuna7Base):
     pass
@@ -27,6 +29,8 @@ class Namuna7Update(BaseModel):
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
+    malmattaKramank: Optional[str] = None
+    anuKramank: Optional[int] = None
 
 class Namuna7Read(Namuna7Base):
     id: int
@@ -45,4 +49,6 @@ class Namuna7PrintResponse(BaseModel):
     occupant: str
     reason: str
     receivedMoney: int
-    currentDate: str 
+    currentDate: str
+    anuKramank: Optional[int] = None
+    malmattaKramank: Optional[str] = None 

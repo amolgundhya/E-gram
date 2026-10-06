@@ -26,7 +26,7 @@
         }
         @media print {
             @page {
-                size: A4 landscape;
+                size: A4;
             }
             #toolbar {
                 display: none !important;
@@ -215,7 +215,7 @@
 
             {% for row in data %}
             <tr class="record-row">
-                <td>{{ row.id }}</td>
+                <td>{{ row.srNo }}</td>
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
                 <td>{{ row.occupant }}</td>
@@ -240,6 +240,8 @@
             </tr>
             {% endfor  %}
         </tbody>
+        <!-- गोषवारा summary in tfoot so it repeats on every printed page -->
+        <tfoot>
         <tr>
             <td colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
             <td colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
@@ -279,6 +281,7 @@
                 {% endif %}
             </td>
         </tr>
+        </tfoot>
     </table>
 </body>
 </html>

@@ -1,8 +1,10 @@
 from jinja2 import Environment, FileSystemLoader
 import os
+import csv
+import io
 import requests
 from fastapi import APIRouter , Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import httpx
 
 router = APIRouter()
@@ -108,7 +110,7 @@ async def receipt(request : Request):
         
         context = {
             'data': data,
-            'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
+            'gramPanchayat': data[0].get('grampanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
             'jilha': data[0].get('jilha', '') if data else '',
@@ -196,6 +198,55 @@ async def receipt(request : Request):
                 "message": "Output file is created",
                 "data": {}
             }
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Error: {str(e)}",
+                "data": {}
+            }
+        )
+
+@router.post('/logbook/print_csv')
+async def logbook_print_csv(request: Request):
+    """जावक नोंदवही (Outward Register) data as a downloadable CSV."""
+    try:
+        requestDate = await request.json()
+        stateDate = requestDate.get("startDate")
+        endDate = requestDate.get("endDate")
+
+        base_url = str(request.base_url).rstrip('/')
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f'{base_url}/outward-entries/date-range/?from_date={stateDate}&to_date={endDate}')
+        if response.status_code != 200:
+            raise Exception(f"API error {response.status_code}: {response.text}")
+
+        data = response.json()
+        if not isinstance(data, list):
+            data = [data]
+
+        columns = [
+            ("srNo", "अ.क्र."),
+            ("jaKramank", "जा.क्र."),
+            ("reportType", "दस्त प्रकार"),
+            ("timeNDate", "दिनांक व वेळ"),
+            ("name", "नाव"),
+        ]
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow([label for _, label in columns])
+        for row in data:
+            writer.writerow([row.get(key, "") for key, _ in columns])
+
+        csv_bytes = io.BytesIO(buffer.getvalue().encode("utf-8-sig"))
+        return StreamingResponse(
+            csv_bytes,
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="outward_register.csv"'},
         )
 
     except Exception as e:

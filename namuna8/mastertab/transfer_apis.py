@@ -286,12 +286,13 @@ def get_owner_by_id(owner_id: int, db: Session = Depends(get_db)):
 
 @router.get('/owners/search/{search_term}')
 def search_owners(search_term: str, db: Session = Depends(get_db)):
-    """Search owners by name or Aadhaar number"""
+    """Search owners by name, occupant name (भोगवटदार), or Aadhaar number"""
     owners = db.query(models.Owner).filter(
-        (models.Owner.name.contains(search_term)) | 
+        (models.Owner.name.contains(search_term)) |
+        (models.Owner.occupantName.contains(search_term)) |
         (models.Owner.aadhaarNumber.contains(search_term))
     ).all()
-    return [TransferOwner(id=owner.id, name=owner.name, wifeName=owner.wifeName) for owner in owners] 
+    return [TransferOwner(id=owner.id, name=owner.name, wifeName=owner.wifeName, occupantName=owner.occupantName) for owner in owners]
 
 @router.get('/owners/bulk/')
 def get_owners_bulk(
@@ -310,22 +311,24 @@ def get_owners_bulk(
     # Add search filter if provided
     if search:
         query = query.filter(
-            (models.Owner.name.contains(search)) | 
+            (models.Owner.name.contains(search)) |
+            (models.Owner.occupantName.contains(search)) |
             (models.Owner.aadhaarNumber.contains(search))
         )
-    
+
     # Get total count for pagination
     total_count = query.count()
-    
+
     # Get paginated results
     owners = query.offset(offset).limit(page_size).all()
-    
+
     # Format response
     owners_data = [
         {
-            "id": owner.id, 
-            "name": owner.name, 
+            "id": owner.id,
+            "name": owner.name,
             "wifeName": owner.wifeName,
+            "occupantName": owner.occupantName,
             "aadhaarNumber": owner.aadhaarNumber,
             "mobileNumber": owner.mobileNumber
         } for owner in owners

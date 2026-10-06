@@ -372,6 +372,10 @@
       </table>
       <table style="margin-top: 2px; width: 100%">
         <tr>
+          <td class="bold" style="border: none">अनुक्रमांक : {{ record.anuKramank or '' }}</td>
+          <td class="bold" style="border: none">मालमत्ता क्रमांक : {{ record.propertyNumber or '' }}</td>
+        </tr>
+        <tr>
           <td colspan="2" class="bold" style="border: none">
             श्री {{ record.ownerName or '' }} <br />
             <span> भोगवटदार : {{ record.occupantName or '' }}</span>
@@ -401,7 +405,7 @@
           <td></td>
         </tr>
         {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर',
-        'पाणीकर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %} {% set tax_names =
+        'पाणीकर', 'विशेष पाणी कर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %} {% set tax_names =
         tax_names if tax_names is defined else default_tax_names %} {% set ns =
         namespace(deduction=0) %} {% for tax in tax_names %}
         <tr>
@@ -447,7 +451,7 @@
       </table>
       <div style="font-size: 13px; margin-top: 4px">
         वरील रक्कम मुंबई ग्रामपंचायत अधिनियम १९५८ चे कलम १२९ अन्वये येणे झालेली
-        आहे. सन 2024-2025 बद्दल वर दर्शविलेली रक्कम तुमचे कडून येणे झालेली आहे.
+        आहे. सन {{ year or '' }} बद्दल वर दर्शविलेली रक्कम तुमचे कडून येणे झालेली आहे.
         आणि जर सदरहू रक्कम नोटीस बजावण्याच्या तारखेपासून ३० दिवसांचे आंत नोटीस
         फी सहित सरपंचात भरणा न केल्यास किवा योग्य ते वाजवी कारण पंचायतीस न
         दर्शविल्यास खर्चासहित वसुलीबाबत जंगम मालमत्ता जप्त करण्याचे वारंट

@@ -142,7 +142,7 @@
             <tr>
                 <td class="center bold">ग्रामपंचायत : {{ record.grampanchayat or 'ग्रामपंचायत' }}</td>
                 <td class="center bold">जिल्हा<br>{{ record.district or '' }}</td>
-                <td class="center bold">तलुका<br>{{ record.taluka or '' }}</td>   
+                <td class="center bold">तालुका<br>{{ record.taluka or '' }}</td>
                 <td class="center bold" style="width: 34%; ">
                     कर वसुलीची पावती<br>
                     नमुना क्र. १०
@@ -152,11 +152,40 @@
                     पावती नं : {{ record.pavti_kramank or '' }}<br>
                     सन : {{ record.yearslap or record.yearslap or '' }}
                 </td>
+                {% if record.houseTaxQrUrl %}
+                <td class="center bold" style="text-align:center;">
+                    <div style="border: 1px solid #000; width: 60px; height: 60px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img src="{{ record.houseTaxQrUrl }}" style="width: 60px; height: 60px; object-fit: contain;" />
+                    </div>
+                    <div style="font-size:10px; margin-top:2px;">घर कर</div>
+                </td>
+                {% endif %}
+                {% if record.waterTaxQrUrl %}
+                <td class="center bold" style="text-align:center;">
+                    <div style="border: 1px solid #000; width: 60px; height: 60px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img src="{{ record.waterTaxQrUrl }}" style="width: 60px; height: 60px; object-fit: contain;" />
+                    </div>
+                    <div style="font-size:10px; margin-top:2px;">पाणी कर</div>
+                </td>
+                {% endif %}
             </tr>
         </table>
+        {% if record.exServicemanTip %}
+        <div style="font-size: 12px; text-align: center; border: 1px solid #000; border-top: none;">
+            (टीप: आजी / माजी सैनिकांना ग्रामपंचायत मालमत्ता करातून सुट देण्याबाबत शासन परिपत्रक व्हीपीएम-2020/प्र.क्र.93/पंरा-4, दि. 18 ऑगस्ट 2020 नुसार.)
+        </div>
+        {% endif %}
         <table style="margin-top: 2px; width:100%;">
             <tr>
                 <td style="border:none;">गाव : {{ record.village or 'गाव' }}</td>
+            </tr>
+            <tr>
+                <td colspan="2" style="border:none;">
+                    अनुक्रमांक : {{ record.anuKramank or '' }}
+                </td>
+                <td colspan="2" style="border:none;">
+                    मालमत्ता नंबर : {{ record.malmatta_kramank or '' }}
+                </td>
             </tr>
             <tr>
                 <td colspan="2" class="bold" style="border:none;">
@@ -166,39 +195,29 @@
                     भोगवटदार : {{ record.occupant or 'भोगवटदाराचे नाव' }}
                 </td>
             </tr>
-            <tr>
-                <td style="border:none;">करिता घर नं : {{ record.pavti_kramank or '' }}</td>
-                <td colspan="3" style="border:none;"></td>
-            </tr>
         </table>
         <table style="margin-top: 2px; width:100%;">
             <!-- Top heading bar -->
             <tr>
-                <td colspan="9" class="center bold" style="background:#d9d9d9; font-size:16px;">प्रमाणे खालील वसुली मिळाली</td>
+                <td colspan="6" class="center bold" style="background:#d9d9d9; font-size:16px;">प्रमाणे खालील वसुली मिळाली</td>
             </tr>
             <tr class="center bold">
                 <td rowspan="3">कराचे नाव</td>
-                <td colspan="8">मिळालेली वसुली</td>
+                <td colspan="4">मिळालेली वसुली</td>
+                <td rowspan="3">शिल्लक बाकी<br>(Balance)</td>
             </tr>
             <tr class="center bold">
-                <td colspan="2">थकित </td>
-                <td colspan="2">दंड </td>
-                <td colspan="2">चालू </td>
-                <td colspan="2">एकूण </td>
+                <td colspan="2">थकित (रुपये = पै.)</td>
+                <td>चालू (रुपये = पै.)</td>
+                <td>एकूण (रुपये = पै.)</td>
             </tr>
             <tr class="center bold">
-                <td>रुपये</td>
-                <td>पैसे</td>
-                <td>रुपये</td>
-                <td>पैसे</td>
-                <td>रुपये</td>
-                <td>पैसे</td>
-                <td>रुपये</td>
-                <td>पैसे</td>
-
+                <td>मागील</td>
+                <td>दंड</td>
+                <td></td>
+                <td></td>
             </tr>
             {% set default_tax_names = ['घर कर', 'दिवा कर', 'आरोग्य कर', 'सामान्य पाणी कर', 'विशेष पाणी कर', 'सफाई कर', 'एकूण देय रक्कम', 'सवलत / सूट असल्यास (66%)', 'सूट नंतर एकूण देय रक्कम'] %}
-            {# Column totals calculated in-template #}
             {% set thakit_total = (record.vasuliGhar or 0) + (record.vasuliDiva or 0) + (record.vasuliAarogyaKar or 0) + (record.vasuliSapanikar or 0) + (record.vasuliVpanikar or 0) + (record.vasuliCleaningTax or 0) %}
             {% set dand_total = (record.vasuliDand or 0) %}
             {% set chalu_total = (record.vasuliChaluGhar or 0) + (record.vasuliChaluDiva or 0) + (record.vasuliChaluAarogyaKar or 0) + (record.vasuliChaluSapanikar or 0) + (record.vasuliChaluVpanikar or 0) + (record.vasuliChaluCleaningTax or 0) %}
@@ -215,85 +234,58 @@
         <td class="right"></td>
         <td class="right"></td>
         <td class="right"></td>
-        <td class="right"></td>
-        <td class="right"></td>
-        <td class="right"></td>
     {% elif tax == 'एकूण देय रक्कम' %}
         <td class="right">{{ thakit_total }}</td>
-        <td class="right"></td>
         <td class="right">{{ dand_total }}</td>
-        <td class="right"></td>
         <td class="right">{{ chalu_total }}</td>
-        <td class="right"></td>
         <td class="right">{{ ekun_total }}</td>
-        <td class="right"></td>
+        <td class="right">{{ record.remainingTotal if record.remainingTotal is not none else 0 }}</td>
     {% elif tax == 'सूट नंतर एकूण देय रक्कम' %}
         <td class="right">{{ thakit_total }}</td>
-        <td class="right"></td>
         <td class="right">{{ dand_total }}</td>
-        <td class="right"></td>
         <td class="right">{{ chalu_total }}</td>
-        <td class="right"></td>
         <td class="right">{{ ekun_total }}</td>
-        <td class="right"></td>
+        <td class="right">{{ record.remainingTotal if record.remainingTotal is not none else 0 }}</td>
     {% else %}
         {% if loop.index == 1 %}
             <td class="right">{{ record.vasuliGhar or 0 }}</td>
-            <td class="right"></td>
             <td class="right">{{ record.vasuliDand or 0 }}</td>
-            <td class="right"></td>
             <td class="right">{{ record.vasuliChaluGhar or 0 }}</td>
-            <td class="right"></td>
             <td class="right">{{ (record.vasuliGhar or 0) + (record.vasuliDand or 0) + (record.vasuliChaluGhar or 0) }}</td>
-            <td class="right"></td>
+            <td class="right">{{ record.remainingGhar if record.remainingGhar is not none else 0 }}</td>
         {% elif loop.index == 2 %}
             <td class="right">{{ record.vasuliDiva or 0 }}</td>
-            <td class="right"></td>
             <td class="right">0</td>
-            <td class="right"></td> 
             <td class="right">{{ record.vasuliChaluDiva or 0 }}</td>
-            <td class="right"></td>
             <td class="right">{{ (record.vasuliDiva or 0) + (record.vasuliChaluDiva or 0) }}</td>
-            <td class="right"></td> 
+            <td class="right">{{ record.remainingDiva if record.remainingDiva is not none else 0 }}</td>
         {% elif loop.index == 3 %}
             <td class="right">{{ record.vasuliAarogyaKar or 0 }}</td>
-            <td class="right"></td>
             <td class="right">0</td>
-            <td class="right"></td>
             <td class="right">{{ record.vasuliChaluAarogyaKar or 0 }}</td>
-            <td class="right"></td>
             <td class="right">{{ (record.vasuliAarogyaKar or 0) + (record.vasuliChaluAarogyaKar or 0) }}</td>
-            <td class="right"></td>
+            <td class="right">{{ record.remainingAarogyaKar if record.remainingAarogyaKar is not none else 0 }}</td>
         {% elif loop.index == 4 %}
             <td class="right">{{ record.vasuliSapanikar or 0 }}</td>
-            <td class="right"></td>
             <td class="right">0</td>
-            <td class="right"></td> 
             <td class="right">{{ record.vasuliChaluSapanikar or 0 }}</td>
-            <td class="right"></td> 
             <td class="right">{{ (record.vasuliSapanikar or 0) + (record.vasuliChaluSapanikar or 0) }}</td>
-            <td class="right"></td> 
+            <td class="right">{{ record.remainingSapanikar if record.remainingSapanikar is not none else 0 }}</td>
         {% elif loop.index == 5 %}
             <td class="right">{{ record.vasuliVpanikar or 0 }}</td>
-            <td class="right"></td>
             <td class="right">0</td>
-            <td class="right"></td>
             <td class="right">{{ record.vasuliChaluVpanikar or 0 }}</td>
-            <td class="right"></td>
             <td class="right">{{ (record.vasuliVpanikar or 0) + (record.vasuliChaluVpanikar or 0) }}</td>
-            <td class="right"></td>
+            <td class="right">{{ record.remainingVpanikar if record.remainingVpanikar is not none else 0 }}</td>
         {% elif loop.index == 6 %}
             <td class="right">{{ record.vasuliCleaningTax or 0 }}</td>
-            <td class="right"></td>
             <td class="right">0</td>
-            <td class="right"></td>
             <td class="right">{{ record.vasuliChaluCleaningTax or 0 }}</td>
-            <td class="right"></td>
             <td class="right">{{ (record.vasuliCleaningTax or 0) + (record.vasuliChaluCleaningTax or 0) }}</td>
-            <td class="right"></td>
+            <td class="right">{{ record.remainingCleaningTax if record.remainingCleaningTax is not none else 0 }}</td>
         {% else %}
             <td class="right">0</td>
-            <td class="right"></td>
+            <td class="right">0</td>
             <td class="right">0</td>
             <td class="right">0</td>
             <td class="right">0</td>
@@ -305,6 +297,7 @@
         </table>
         <div style="font-size: 13px; margin-top: 4px; display: flex; justify-content: space-between;">
             <span>दिनांक : {{ record.pavti_date or '' }}</span>
+            <span><b>रक्कम अक्षरी : रुपये {{ ekun_total | marathi_words }} फक्त</b></span>
             <span>सही सरपंच / ग्रामपंचायत अधिकारी</span>
         </div>
         {% if copy == 1 %}
