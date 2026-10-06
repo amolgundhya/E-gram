@@ -360,13 +360,19 @@
     <div class="outer-border">
       {% for copy in [1, 2] %}
       <div>
-        <div class="bold main-title center">
-          सरपंच {{ record.gramPanchayat or '' }}
-        </div>
-        <div class="center subtitle">
-          नमुना ९ लेख<br />
-          मागणी लेख नमुना <br />
-          नमुना ३ पहा
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="bold">अनुक्रमांक : {{ record.anuKramank or '' }}</div>
+          <div>
+            <div class="bold main-title center">
+              सरपंच {{ record.gramPanchayat or '' }}
+            </div>
+            <div class="center subtitle">
+              नमुना ९ लेख<br />
+              मागणी लेख नमुना <br />
+              नमुना ३ पहा
+            </div>
+          </div>
+          <div class="bold">मालमत्ता क्रमांक : {{ record.propertyNumber or '' }}</div>
         </div>
         <table class="details-table" style="margin-top: 8px">
           <tr>
@@ -379,17 +385,17 @@
           </tr>
           <tr>
             <td>राहणार :</td>
-            <td class="bold">{{ record.gramPanchayat or '' }}</td>
+            <td class="bold">{% if record.parentGramPanchayat %}ग्रामपंचायत {{ record.parentGramPanchayat }}, गट ग्रा.पं. {{ record.gramPanchayat or '' }}, ता. {{ record.taluka or '' }}, जि. {{ record.district or '' }}{% else %}{{ record.village or '' }}, ता. {{ record.taluka or '' }}, जि. {{ record.district or '' }}{% endif %}</td>
           </tr>
         </table>
         <div class="center bold notice-box">नोटीस देण्यात येते कि</div>
         <div class="marathi-text" style="min-height: 120px">
           <div class="watermark">{{ record.gramPanchayat or '' }}</div>
-          यांज कडे घर, दिवा, आरोग्य, पाणी कर याजकडून दिनांक / / रोजी सुरु
-          होणाऱ्या आणि दिनांक / / रोजी संपणाऱ्या वर्षाच्या मुदतीसाठी येणे असलेली
+          यांज कडे घर, दिवा, आरोग्य, पाणी कर याजकडून दिनांक {{ noticeYearFrom or '' }} रोजी सुरु
+          होणाऱ्या आणि दिनांक {{ noticeYearTo or '' }} रोजी संपणाऱ्या वर्षाच्या मुदतीसाठी येणे असलेली
           एकूण रक्कम रुपये {{record.totalTax}} च्या रकमेची मागणी करीत आहे आणि
           ह्या लेखांची बजावणी केल्याच्या तारखेपासून ३० (तीस) दिवसांच्या आत उक्त
-          रक्कम व या मागणीच्या लेखाबाद्दलची फी रुपये हि येथील ग्रामपंचायतीच्या
+          रक्कम व या मागणीच्या लेखाबाद्दलची फी रुपये {{ lekhFee or '' }} हि येथील ग्रामपंचायतीच्या
           कार्यालयात भरण्यात आली नाही किवा ती न भरल्यास पंच्यायातीची खात्री होईल
           अशा रीतीने पुरेसे कारण दर्शविण्यात आले नाही तर ती रक्कम खर्चासह वसूल
           करण्यासाठी जप्तीचे अधिपत्र काढण्यात येईल

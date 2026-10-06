@@ -124,7 +124,7 @@
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">बाळाचे नाव : {{ child_name | default('') }} <br>Name of Child : {{ child_name_en | default('') }} </td>
-    <td style="text-align:right; padding:4px;">लिंग : {{ gender | default('') }} <br>Sex : {{ gender_en | default('') }} </td>
+    <td style="text-align:right; padding:4px;">लिंग : {% if gender %}{{ gender }}{% elif gender_en == 'Male' %}पुरुष{% elif gender_en == 'Female' %}स्त्री{% elif gender_en == 'Other' %}इतर{% endif %} <br>Sex : {{ gender_en | default('') }} </td>
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">जन्म तारीख : {{ birth_date | default('') }}<br>Date of Birth : {{ birth_date | default('') }}</td>
@@ -163,9 +163,8 @@
       शिक्का / seal
     </td>
     <td style="width:33%; text-align:right; vertical-align:top; padding:8px;">
-      निबंधक, जन्म मृत्यू नोंदणी <br>
-      अधिकारी, ग्रामपंचायत {{gramPanchayat}} <br>
-      ता. {{taluka}}, जि. {{jilha}}
+      निबंधक, जन्म-मृत्यु नोंदणी अधिकारी, ग्रामपंचायत <br>
+      {{village}}, ता. {{taluka}}, जि. {{jilha}}
     </td>
     
 

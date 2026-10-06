@@ -7,6 +7,7 @@ from database import get_db
 from uuid import UUID
 from datetime import datetime, timedelta
 from ..namuna8_model import Owner, Village, Property
+from namuna8.recordresponses.property_record_response import compute_display_sr_no
 from location_management import models as location_models
 
 router = APIRouter(prefix="/namuna7", tags=["Namuna7"])
@@ -52,7 +53,7 @@ def get_all_namuna7(
         if not gram_panchayat:
             raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
     
-    query = db.query(Namuna7)
+    query = db.query(Namuna7).filter(Namuna7.is_deleted == False)
     if district_id:
         query = query.filter(Namuna7.district_id == district_id)
     if taluka_id:
@@ -103,7 +104,11 @@ def get_namuna7_custom_list(
         if not gram_panchayat:
             raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
     
-    query = db.query(Namuna7).filter(Namuna7.createdAt >= start_dt, Namuna7.createdAt < end_dt)
+    query = db.query(Namuna7).filter(
+        Namuna7.createdAt >= start_dt,
+        Namuna7.createdAt < end_dt,
+        Namuna7.is_deleted == False
+    )
     if district_id:
         query = query.filter(Namuna7.district_id == district_id)
     if taluka_id:
@@ -117,20 +122,37 @@ def get_namuna7_custom_list(
         owner = db.query(Owner).filter(Owner.id == item.userId).first()
         ownername = owner.name if owner else ""
         occupant = getattr(owner, "occupantName", "") or ""
+        property_obj = owner.properties[0] if owner and owner.properties else None
         village = db.query(Village).filter(Village.id == item.villageId).first()
-        grampanchayat = village.name if village else ""
+        gram_panchayat = None
+        if item.gram_panchayat_id:
+            gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == item.gram_panchayat_id).first()
+        elif village and village.gram_panchayat_id:
+            gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == village.gram_panchayat_id).first()
+        taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == item.taluka_id).first() if item.taluka_id else None
+        district = db.query(location_models.District).filter(location_models.District.id == item.district_id).first() if item.district_id else None
+        # e.g. "औरंगाबाद - गाव मोहल्ला राम नगर, ता. औरंगाबाद, जि. औरंगाबाद"
+        grampanchayat = "{gp} - गाव मोहल्ला {village}, ता. {taluka}, जि. {district}".format(
+            gp=gram_panchayat.name if gram_panchayat else "",
+            village=village.name if village else "",
+            taluka=taluka.name if taluka else "",
+            district=district.name if district else "",
+        )
         result.append({
             "grampanchayat": grampanchayat,
             "srNo": idx,
             "receiptDate": item.createdAt.strftime("%Y-%m-%d") if getattr(item, "createdAt", None) else None,
             "receiptNumber": item.receiptNumber,
             "receiptBookNumber": item.receiptBookNumber,
-            "village": grampanchayat,
+            "village": village.name if village else "",
             "ownername": ownername,
             "occupant":occupant,
             "reason": item.reason or "",
             "receivedMoney": item.receivedMoney,
-            "currentDate": today
+            "currentDate": today,
+            "anuKramank": property_obj.anuKramank if property_obj else None,
+            "propertySrNo": compute_display_sr_no(db, property_obj.village_id, property_obj.anuKramank) if property_obj else None,
+            "malmattaKramank": property_obj.malmattaKramank if property_obj else None
         })
     return result
 
@@ -146,6 +168,8 @@ def update_namuna7(item_id: int, update: Namuna7Update, db: Session = Depends(ge
     item = db.query(Namuna7).filter(Namuna7.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Namuna7 not found")
+    if item.is_deleted:
+        raise HTTPException(status_code=400, detail="Deleted receipt cannot be edited")
     for key, value in update.dict(exclude_unset=True).items():
         setattr(item, key, value)
     db.commit()
@@ -153,11 +177,18 @@ def update_namuna7(item_id: int, update: Namuna7Update, db: Session = Depends(ge
     return item
 
 @router.delete("/{item_id}")
-def delete_namuna7(item_id: int, db: Session = Depends(get_db)):
+def delete_namuna7(item_id: int, reason: str = "", db: Session = Depends(get_db)):
+    if not reason or not reason.strip():
+        raise HTTPException(status_code=422, detail="डिलीट करण्याचे कारण आवश्यक आहे")
     item = db.query(Namuna7).filter(Namuna7.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Namuna7 not found")
-    db.delete(item)
+    if item.is_deleted:
+        raise HTTPException(status_code=400, detail="Receipt is already deleted")
+    item.is_deleted = True
+    item.deleted_at = datetime.utcnow()
+    item.deleted_by = "ऑपरेटर"
+    item.delete_reason = reason.strip()
     db.commit()
     return {"detail": "Deleted successfully"}
 
@@ -179,7 +210,7 @@ def get_namuna7_by_date(
     query = (
         db.query(Namuna7, Owner)
         .join(Owner, Namuna7.userId == Owner.id)
-        .filter(Namuna7.createdAt >= from_dt, Namuna7.createdAt < to_dt)
+        .filter(Namuna7.createdAt >= from_dt, Namuna7.createdAt < to_dt, Namuna7.is_deleted == False)
     )
     if village_id is not None:
         query = query.filter(Namuna7.villageId == village_id)
@@ -194,7 +225,11 @@ def get_namuna7_by_date(
         {
             **{k: getattr(n7, k) for k in n7.__table__.columns.keys()},
             "date": n7.createdAt.strftime("%Y-%m-%d"),
-            "ownerName": owner.name
+            "ownerName": owner.name,
+            "occupantName": owner.occupantName or "",
+            "anuKramank": owner.properties[0].anuKramank if owner.properties else None,
+            "propertySrNo": compute_display_sr_no(db, owner.properties[0].village_id, owner.properties[0].anuKramank) if owner.properties else None,
+            "malmattaKramank": owner.properties[0].malmattaKramank if owner.properties else None
         }
         for n7, owner in results
     ]
@@ -208,14 +243,22 @@ def get_namuna7_print(item_id: int, db: Session = Depends(get_db)):
     owner = db.query(Owner).filter(Owner.id == item.userId).first()
     occupant = getattr(owner, "occupantName", "") or ""
     village = db.query(Village).filter(Village.id == item.villageId).first()
-    grampanchayat = ""
+    gram_panchayat = None
     if item.gram_panchayat_id:
         gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == item.gram_panchayat_id).first()
-        grampanchayat = gram_panchayat.name if gram_panchayat else ""
     elif village and village.gram_panchayat_id:
         gram_panchayat = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == village.gram_panchayat_id).first()
-        grampanchayat = gram_panchayat.name if gram_panchayat else ""
+    taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == item.taluka_id).first() if item.taluka_id else None
+    district = db.query(location_models.District).filter(location_models.District.id == item.district_id).first() if item.district_id else None
+    # e.g. "औरंगाबाद - गाव मोहल्ला राम नगर, ता. औरंगाबाद, जि. औरंगाबाद"
+    grampanchayat = "{gp} - गाव मोहल्ला {village}, ता. {taluka}, जि. {district}".format(
+        gp=gram_panchayat.name if gram_panchayat else "",
+        village=village.name if village else "",
+        taluka=taluka.name if taluka else "",
+        district=district.name if district else "",
+    )
     ownername = owner.name if owner else ""
+    property_obj = owner.properties[0] if owner and owner.properties else None
     currentDate = datetime.now().strftime("%d/%m/%Y")
     return Namuna7PrintResponse(
         grampanchayat=grampanchayat,
@@ -226,8 +269,10 @@ def get_namuna7_print(item_id: int, db: Session = Depends(get_db)):
         occupant=occupant,
         reason=str(item.__dict__["reason"]) if item.__dict__["reason"] is not None else "",
         receivedMoney=int(item.__dict__["receivedMoney"]),
-        currentDate=currentDate
-    ) 
+        currentDate=currentDate,
+        anuKramank=compute_display_sr_no(db, property_obj.village_id, property_obj.anuKramank) if property_obj else None,
+        malmattaKramank=property_obj.malmattaKramank if property_obj else None
+    )
 
 @router.get("/prints/by_location")
 def get_namuna7_prints_by_location(
@@ -263,7 +308,7 @@ def get_namuna7_prints_by_location(
             raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
     
     # Build query based on location filters
-    query = db.query(Namuna7)
+    query = db.query(Namuna7).filter(Namuna7.is_deleted == False)
     if district_id:
         query = query.filter(Namuna7.district_id == district_id)
     if taluka_id:

@@ -1,9 +1,10 @@
 import os
+import bcrypt
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from database import get_db
 from . import models, schemas, helpers
 
@@ -474,5 +475,179 @@ def serve_gram_panchayat_image_with_path_params(
     
     if taluka.district_id != district_id:
         raise HTTPException(status_code=400, detail="Taluka does not belong to the specified district")
-    
-    return FileResponse(image_path) 
+
+    return FileResponse(image_path)
+
+
+# ==================== घर कर / पाणी कर BANK SCANNER (QR) APIs ====================
+# Separate from the generic gram panchayat logo/image above - a GP may
+# collect house tax and water tax into different bank accounts, so each
+# gets its own scannable QR upload.
+
+def _validate_qr_type(qr_type: str):
+    if qr_type not in ("house", "water", "signature"):
+        raise HTTPException(status_code=400, detail="qr_type must be 'house', 'water', or 'signature'")
+
+
+# ---- Bank Scanner पासवर्ड (protects घर कर / पाणी कर QR + the report-visibility
+# tick from being changed without the GP's own password; डिजिटल स्वाक्षरी is a
+# separate feature and is intentionally NOT covered by this). ----
+
+def _verify_bank_scanner_password(gram_panchayat: models.GramPanchayat, password: Optional[str]):
+    """Raise if `password` doesn't match the GP's stored Bank Scanner password.
+    428 = no password has been created yet (frontend should prompt to create one first)."""
+    if not gram_panchayat.bank_scanner_password_hash:
+        raise HTTPException(status_code=428, detail="Bank Scanner पासवर्ड आधी सेट करा")
+    if not password or not bcrypt.checkpw(password.encode('utf-8'), gram_panchayat.bank_scanner_password_hash.encode('utf-8')):
+        raise HTTPException(status_code=401, detail="चुकीचा पासवर्ड")
+
+
+@router.get("/gram-panchayats/{gram_panchayat_id}/bank-scanner-password/status", response_model=schemas.BankScannerPasswordStatus)
+def get_bank_scanner_password_status(gram_panchayat_id: int, db: Session = Depends(get_db)):
+    """Whether this GP has already created a Bank Scanner password."""
+    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+    if not gram_panchayat:
+        raise HTTPException(status_code=404, detail="Gram Panchayat not found")
+    return schemas.BankScannerPasswordStatus(has_password=bool(gram_panchayat.bank_scanner_password_hash))
+
+
+@router.post("/gram-panchayats/{gram_panchayat_id}/bank-scanner-password")
+def create_bank_scanner_password(gram_panchayat_id: int, payload: schemas.BankScannerPasswordCreate, db: Session = Depends(get_db)):
+    """First-time creation of the Bank Scanner password. Refuses if one already exists (use the change endpoint instead)."""
+    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+    if not gram_panchayat:
+        raise HTTPException(status_code=404, detail="Gram Panchayat not found")
+    if gram_panchayat.bank_scanner_password_hash:
+        raise HTTPException(status_code=409, detail="पासवर्ड आधीच सेट केलेला आहे. बदलण्यासाठी जुना पासवर्ड वापरा.")
+    if not payload.new_password or len(payload.new_password) < 4:
+        raise HTTPException(status_code=400, detail="पासवर्ड किमान ४ अक्षरी असावा")
+
+    gram_panchayat.bank_scanner_password_hash = bcrypt.hashpw(payload.new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    db.commit()
+    return {"success": True, "message": "Bank Scanner पासवर्ड सेट झाला"}
+
+
+@router.put("/gram-panchayats/{gram_panchayat_id}/bank-scanner-password")
+def change_bank_scanner_password(gram_panchayat_id: int, payload: schemas.BankScannerPasswordChange, db: Session = Depends(get_db)):
+    """Change the Bank Scanner password - requires the old password."""
+    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+    if not gram_panchayat:
+        raise HTTPException(status_code=404, detail="Gram Panchayat not found")
+    _verify_bank_scanner_password(gram_panchayat, payload.old_password)
+    if not payload.new_password or len(payload.new_password) < 4:
+        raise HTTPException(status_code=400, detail="नवीन पासवर्ड किमान ४ अक्षरी असावा")
+
+    gram_panchayat.bank_scanner_password_hash = bcrypt.hashpw(payload.new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    db.commit()
+    return {"success": True, "message": "पासवर्ड बदलला"}
+
+
+@router.post("/gram-panchayats/{gram_panchayat_id}/qr/{qr_type}", response_model=schemas.GramPanchayatRead)
+def upload_gram_panchayat_qr(
+    gram_panchayat_id: int,
+    qr_type: str,
+    image: UploadFile = File(...),
+    password: Optional[str] = Form(None),
+    request: Request = None,
+    db: Session = Depends(get_db)
+):
+    """Upload the घर कर (house) or पाणी कर (water) Bank Scanner QR image.
+    Requires the Bank Scanner password for house/water; the separate
+    डिजिटल स्वाक्षरी (signature) upload is not password-protected."""
+    _validate_qr_type(qr_type)
+    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+    if not gram_panchayat:
+        raise HTTPException(status_code=404, detail="Gram Panchayat not found")
+
+    if qr_type in ("house", "water"):
+        _verify_bank_scanner_password(gram_panchayat, password)
+
+    if not image.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    try:
+        field = helpers.QR_URL_FIELD[qr_type]
+        if getattr(gram_panchayat, field):
+            helpers.remove_gram_panchayat_qr_image(db, gram_panchayat_id, qr_type)
+
+        image_path = helpers.save_gram_panchayat_qr_image(db, gram_panchayat_id, image, qr_type)
+        setattr(gram_panchayat, field, image_path)
+        db.commit()
+        db.refresh(gram_panchayat)
+
+        gram_panchayat_data = schemas.GramPanchayatRead.from_orm(gram_panchayat)
+        if request:
+            base = str(request.base_url)[:-1]
+            gram_panchayat_data.house_tax_qr_url = f"{base}/{gram_panchayat.house_tax_qr_url}" if gram_panchayat.house_tax_qr_url else None
+            gram_panchayat_data.water_tax_qr_url = f"{base}/{gram_panchayat.water_tax_qr_url}" if gram_panchayat.water_tax_qr_url else None
+            gram_panchayat_data.signature_url = f"{base}/{gram_panchayat.signature_url}" if gram_panchayat.signature_url else None
+        return gram_panchayat_data
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload QR image: {str(e)}")
+
+
+@router.delete("/gram-panchayats/{gram_panchayat_id}/qr/{qr_type}")
+def remove_gram_panchayat_qr(gram_panchayat_id: int, qr_type: str, password: Optional[str] = None, db: Session = Depends(get_db)):
+    """Remove the घर कर or पाणी कर Bank Scanner QR image. Requires the Bank
+    Scanner password for house/water; स्वाक्षरी removal is not protected."""
+    _validate_qr_type(qr_type)
+    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+    if not gram_panchayat:
+        raise HTTPException(status_code=404, detail="Gram Panchayat not found")
+
+    if qr_type in ("house", "water"):
+        _verify_bank_scanner_password(gram_panchayat, password)
+
+    field = helpers.QR_URL_FIELD[qr_type]
+    if not getattr(gram_panchayat, field):
+        raise HTTPException(status_code=404, detail="No QR image found for this gram panchayat")
+
+    if helpers.remove_gram_panchayat_qr_image(db, gram_panchayat_id, qr_type):
+        setattr(gram_panchayat, field, None)
+        db.commit()
+        return {"message": "QR image removed successfully"}
+    raise HTTPException(status_code=500, detail="Failed to remove QR image file")
+
+
+@router.get("/gram-panchayats/{gram_panchayat_id}/qr/{qr_type}")
+def serve_gram_panchayat_qr(
+    gram_panchayat_id: int,
+    qr_type: str,
+    district_id: int = None,
+    taluka_id: int = None,
+    db: Session = Depends(get_db)
+):
+    """Serve the घर कर or पाणी कर Bank Scanner QR image."""
+    _validate_qr_type(qr_type)
+    image_path = helpers.get_gram_panchayat_qr_image_path(db, gram_panchayat_id, qr_type)
+    if not image_path or not os.path.exists(image_path):
+        raise HTTPException(status_code=404, detail="QR image not found")
+
+    if district_id is not None or taluka_id is not None:
+        gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+        if not gram_panchayat:
+            raise HTTPException(status_code=404, detail="Gram Panchayat not found")
+        if taluka_id is not None and gram_panchayat.taluka_id != taluka_id:
+            raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
+        if district_id is not None:
+            taluka = db.query(models.Taluka).filter(models.Taluka.id == gram_panchayat.taluka_id).first()
+            if not taluka or taluka.district_id != district_id:
+                raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified district")
+
+    return FileResponse(image_path)
+
+
+@router.put("/gram-panchayats/{gram_panchayat_id}/bank-scanner-setting", response_model=schemas.GramPanchayatRead)
+def set_bank_scanner_setting(gram_panchayat_id: int, show: bool, password: Optional[str] = None, db: Session = Depends(get_db)):
+    """Toggle whether the Bank Scanner QR codes should appear on नमुना-8/नमुना-9 All Report prints. Requires the Bank Scanner password."""
+    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+    if not gram_panchayat:
+        raise HTTPException(status_code=404, detail="Gram Panchayat not found")
+    _verify_bank_scanner_password(gram_panchayat, password)
+    gram_panchayat.show_bank_scanner_in_reports = show
+    db.commit()
+    db.refresh(gram_panchayat)
+    return gram_panchayat
