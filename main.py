@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from namuna8 import namuna8_apis
 from namuna9 import namuna9_apis
 from namuna9 import namuna9_property_data_apis
+from namuna9 import deleted_receipts_apis
 from certificates import birth_certificate_apis, death_certificate_apis, birthdeath_unavailability_apis, resident_certificate_apis, family_certificate_apis, toilet_certificate_apis, no_objection_certificate_apis, no_benefit_certificate_apis, life_certificate_apis, good_conduct_certificate_apis, niradhar_certificate_apis, no_arrears_certificate_apis, unemployment_certificate_apis, receipt_certificate_apis, marriage_certificate_apis, widow_certificate_apis, allcertificates
 from location_management import apis as location_apis
 from namuna8.recordresponses import property_record_response
@@ -17,6 +18,7 @@ from namuna8.madhila.madhila_apis import router as madhila_router
 from namuna8.PropertyDocuments import property_document_apis
 from ferfar.ReportCreationUsingJinja import ferfarprint
 from namuna8 import ferfar_apis
+from namuna8 import staff_apis
 
 # Import database components and models
 from database import engine, Base
@@ -49,6 +51,7 @@ from namuna8.property_owner_history_model import PropertyOwnerHistory
 from namuna8.owner_history_model import OwnerHistory
 from sqlalchemy.orm import Session
 from namuna8.namuna8_model import ConstructionType
+from namuna8 import staff_model
 Base.metadata.create_all(bind=engine, checkfirst=True)
 
 # Ensure critical certificate tables are created explicitly (helps in packaged/installer runs)
@@ -175,6 +178,217 @@ def ensure_namuna9_property_data_columns():
 
 ensure_namuna9_property_data_columns()
 
+# Ensure new columns exist for properties (SQLite simple migration)
+def ensure_properties_columns():
+    try:
+        with engine.begin() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(properties)").fetchall()
+            existing = {c[1] for c in cols}
+            to_add = [
+                ("dwarPurv", "BOOLEAN"),
+                ("dwarPashchim", "BOOLEAN"),
+                ("dwarUttar", "BOOLEAN"),
+                ("dwarDakshin", "BOOLEAN"),
+                ("exServiceman", "BOOLEAN"),
+            ]
+            for col, coltype in to_add:
+                if col not in existing:
+                    conn.exec_driver_sql(f'ALTER TABLE properties ADD COLUMN "{col}" {coltype} DEFAULT 0')
+            # Text columns must NOT get a numeric DEFAULT (would backfill existing
+            # rows with the literal string "0" instead of blank/NULL).
+            text_to_add = [
+                ("toiletBenefitYear", "TEXT"),
+                ("gharkul", "TEXT"),
+                ("gharkulYojana", "TEXT"),
+                ("gharkulBenefitYear", "TEXT"),
+                ("constructionAreaUnit", "TEXT"),
+            ]
+            for col, coltype in text_to_add:
+                if col not in existing:
+                    conn.exec_driver_sql(f'ALTER TABLE properties ADD COLUMN "{col}" {coltype}')
+    except Exception as e:
+        print("[Migration] Could not ensure properties columns:", e)
+
+ensure_properties_columns()
+
+# मालमत्ता यादीतला डिस्प्ले-क्रम (sort_order) - जतन केलेला anuKramank (अ.क्र., QR/नमुना-9
+# लिंकसाठी वापरलेला) कुठेच बदलत नाही; हा फक्त "कुठल्या क्रमाने दाखवायचं" ठरवणारा वेगळा
+# आकडा आहे, कारण मालमत्ता क्रमांकाच्या मजकुरावरून (नैसर्गिक क्रमवारी) क्रम काढणं "1 भाग"
+# सारख्या टाईप केलेल्या मजकुरासाठी अविश्वसनीय ठरतं.
+def ensure_property_sort_order_column():
+    try:
+        with engine.begin() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(properties)").fetchall()
+            existing = {c[1] for c in cols}
+            if "sort_order" not in existing:
+                conn.exec_driver_sql('ALTER TABLE properties ADD COLUMN "sort_order" REAL')
+    except Exception as e:
+        print("[Migration] Could not ensure properties.sort_order column:", e)
+
+ensure_property_sort_order_column()
+
+# एकदाच चालणारा बॅकफिल - sort_order अजून सेट नसलेल्या रोंना (नवीन कॉलम जोडल्यावर सगळ्याच
+# जुन्या रोंसाठी, किंवा दुसऱ्या क्लायंटच्या डेटाबेसवर पहिल्यांदा अपडेट केल्यावर) प्रत्येक
+# गावासाठी वेगळं, सध्याच्या मालमत्ता-क्रमांक नैसर्गिक क्रमवारीनुसार 10,20,30... अशी मोकळी
+# जागा ठेवून sort_order देतो. sort_order आधीच असलेल्या रोंना अजिबात स्पर्श करत नाही आणि
+# जतन केलेला anuKramank किंवा इतर कुठलाही डेटा बदलत नाही, त्यामुळे सर्व्हर पुन्हा सुरू
+# केला तरी सुरक्षितपणे पुन्हा चालतं (idempotent) - हीच पद्धत इतर क्लायंटच्या डेटाबेसवरही
+# आपोआप एकदा चालून मालमत्ता यादीला sort_order देईल.
+def backfill_property_sort_order():
+    try:
+        from database import SessionLocal
+        from namuna8 import namuna8_model as namuna8_models
+        from natural_sort import malmatta_kramank_sort_key
+        db = SessionLocal()
+        try:
+            villages_with_gaps = (
+                db.query(namuna8_models.Property.village_id)
+                .filter(namuna8_models.Property.sort_order.is_(None))
+                .distinct()
+                .all()
+            )
+            for (village_id,) in villages_with_gaps:
+                props = (
+                    db.query(namuna8_models.Property)
+                    .filter(namuna8_models.Property.village_id == village_id)
+                    .all()
+                )
+                props_needing_order = [p for p in props if p.sort_order is None]
+                if not props_needing_order:
+                    continue
+                existing_max = max(
+                    [p.sort_order for p in props if p.sort_order is not None], default=0
+                )
+                ordered = sorted(props_needing_order, key=lambda p: malmatta_kramank_sort_key(p.malmattaKramank))
+                for i, p in enumerate(ordered, start=1):
+                    p.sort_order = existing_max + i * 10.0
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        print("[Migration] Could not backfill properties.sort_order:", e)
+
+backfill_property_sort_order()
+
+# Ensure new columns exist for the Namuna8 print settings checklist (SQLite simple migration)
+def ensure_namuna8_setting_checklist_columns():
+    try:
+        with engine.begin() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(namuna8_setting_checklist)").fetchall()
+            existing = {c[1] for c in cols}
+            to_add = [
+                ("pageNumber", "BOOLEAN"),
+                ("exServicemanTip", "BOOLEAN"),
+                ("exportPassword", "VARCHAR"),
+            ]
+            for col, coltype in to_add:
+                if col not in existing:
+                    # TEXT/VARCHAR कॉलमला numeric DEFAULT देत नाही - फक्त BOOLEAN ला 0.
+                    default_clause = " DEFAULT 0" if coltype == "BOOLEAN" else ""
+                    conn.exec_driver_sql(f'ALTER TABLE namuna8_setting_checklist ADD COLUMN "{col}" {coltype}{default_clause}')
+    except Exception as e:
+        print("[Migration] Could not ensure namuna8_setting_checklist columns:", e)
+
+ensure_namuna8_setting_checklist_columns()
+
+# Ensure new tax-rounding setting column exists on namuna8DropdownAddSettings
+# ("नमुना ८ संबंधी इतर सेटिंग") - existing rows default to "ceil" (जुनी पद्धत),
+# त्यामुळे सेटिंग स्पष्टपणे न बदलल्यास काहीही बदलत नाही.
+def ensure_namuna8_dropdown_settings_columns():
+    try:
+        with engine.begin() as conn:
+            cols = conn.exec_driver_sql('PRAGMA table_info("namuna8DropdownAddSettings")').fetchall()
+            existing = {c[1] for c in cols}
+            if "taxRoundingMode" not in existing:
+                conn.exec_driver_sql(
+                    'ALTER TABLE "namuna8DropdownAddSettings" ADD COLUMN "taxRoundingMode" VARCHAR DEFAULT \'ceil\''
+                )
+                conn.exec_driver_sql(
+                    'UPDATE "namuna8DropdownAddSettings" SET "taxRoundingMode" = \'ceil\' WHERE "taxRoundingMode" IS NULL'
+                )
+    except Exception as e:
+        print("[Migration] Could not ensure namuna8DropdownAddSettings columns:", e)
+
+ensure_namuna8_dropdown_settings_columns()
+
+# Ensure new columns exist for namuna7 (SQLite simple migration)
+def ensure_namuna7_columns():
+    try:
+        with engine.begin() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(namuna7)").fetchall()
+            existing = {c[1] for c in cols}
+            to_add = [
+                ("malmattaKramank", "TEXT"),
+                ("anuKramank", "INTEGER"),
+                # सॉफ्ट-डिलीट (client requirement: पावती डिलीट केली तरी कायम ठेवायची).
+                ("is_deleted", "BOOLEAN DEFAULT 0"),
+                ("deleted_at", "DATETIME"),
+                ("deleted_by", "TEXT"),
+                ("delete_reason", "TEXT"),
+            ]
+            for col, coltype in to_add:
+                if col not in existing:
+                    conn.exec_driver_sql(f'ALTER TABLE namuna7 ADD COLUMN "{col}" {coltype}')
+    except Exception as e:
+        print("[Migration] Could not ensure namuna7 columns:", e)
+
+ensure_namuna7_columns()
+
+# Ensure new soft-delete columns exist for namuna9_receipts (SQLite simple
+# migration, same pattern as above - existing receipts get is_deleted = 0).
+def ensure_namuna9_receipts_columns():
+    try:
+        with engine.begin() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(namuna9_receipts)").fetchall()
+            existing = {c[1] for c in cols}
+            to_add = [
+                ("is_deleted", "BOOLEAN DEFAULT 0"),
+                ("deleted_at", "DATETIME"),
+                ("deleted_by", "TEXT"),
+                ("delete_reason", "TEXT"),
+            ]
+            for col, coltype in to_add:
+                if col not in existing:
+                    conn.exec_driver_sql(f'ALTER TABLE namuna9_receipts ADD COLUMN "{col}" {coltype}')
+    except Exception as e:
+        print("[Migration] Could not ensure namuna9_receipts columns:", e)
+
+ensure_namuna9_receipts_columns()
+
+# Ensure new columns exist for gram_panchayats (SQLite simple migration)
+def ensure_gram_panchayats_columns():
+    try:
+        with engine.begin() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(gram_panchayats)").fetchall()
+            existing = {c[1] for c in cols}
+            text_cols = [("house_tax_qr_url", "TEXT"), ("water_tax_qr_url", "TEXT"), ("signature_url", "TEXT"), ("parent_gram_panchayat_name", "TEXT"), ("bank_scanner_password_hash", "TEXT")]
+            bool_cols = [("show_bank_scanner_in_reports", "BOOLEAN")]
+            for col, coltype in text_cols:
+                if col not in existing:
+                    conn.exec_driver_sql(f'ALTER TABLE gram_panchayats ADD COLUMN "{col}" {coltype}')
+            for col, coltype in bool_cols:
+                if col not in existing:
+                    conn.exec_driver_sql(f'ALTER TABLE gram_panchayats ADD COLUMN "{col}" {coltype} DEFAULT 0')
+    except Exception as e:
+        print("[Migration] Could not ensure gram_panchayats columns:", e)
+
+ensure_gram_panchayats_columns()
+
+# Ensure new columns exist for gram_panchayat_staff (SQLite simple migration)
+def ensure_gram_panchayat_staff_columns():
+    try:
+        with engine.begin() as conn:
+            cols = conn.exec_driver_sql("PRAGMA table_info(gram_panchayat_staff)").fetchall()
+            existing = {c[1] for c in cols}
+            text_cols = [("remarks", "TEXT")]
+            for col, coltype in text_cols:
+                if col not in existing:
+                    conn.exec_driver_sql(f'ALTER TABLE gram_panchayat_staff ADD COLUMN "{col}" {coltype}')
+    except Exception as e:
+        print("[Migration] Could not ensure gram_panchayat_staff columns:", e)
+
+ensure_gram_panchayat_staff_columns()
+
 # Ensure receipts table exists and has all expected columns (SQLite simple migration)
 try:
     from namuna9.namuna9_model import Namuna9Receipt
@@ -230,8 +444,10 @@ app.add_middleware(
 
 # Include routers
 app.include_router(namuna8_apis.router)
+app.include_router(staff_apis.router)
 app.include_router(namuna9_apis.router)
 app.include_router(namuna9_property_data_apis.router)
+app.include_router(deleted_receipts_apis.router)
 app.include_router(birth_certificate_apis.router)
 app.include_router(death_certificate_apis.router)
 app.include_router(marriage_certificate_apis.router)

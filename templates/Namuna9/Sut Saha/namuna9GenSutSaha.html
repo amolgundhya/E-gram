@@ -26,7 +26,7 @@
         }
         @media print {
             @page {
-                size: A4 landscape;
+                size: A4;
             }
             #toolbar {
                 display: none !important;
@@ -212,7 +212,7 @@
 
             {% for row in data %}
             <tr class="record-row">
-                <td>{{ row.id }}</td>
+                <td>{{ row.srNo }}</td>
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
                 <td>{{ row.occupant }}</td>

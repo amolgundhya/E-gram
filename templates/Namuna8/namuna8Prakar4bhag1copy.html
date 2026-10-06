@@ -5,7 +5,7 @@
     <title>नमुना ८</title>
     <style>
         body { font-family: 'Mangal', Arial, sans-serif; }
-        table { border-collapse: collapse; width: 100%; font-size: 13px; }
+        table { border-collapse: collapse; table-layout: fixed; width: 100%; font-size: 13px; }
         .header-table td { border: none; padding: 2px 4px; }
         .center { text-align: center; }
         .left { text-align: left; }
@@ -52,6 +52,7 @@
         @media print {
             @page {
                 size: A4 landscape;
+                margin: 8mm;
             }
             #toolbar {
                 display: none !important;
@@ -62,6 +63,22 @@
                 page-break-inside: avoid;
                 break-inside: avoid;
                 page-break-before: avoid;
+            }
+        }
+    </style>
+
+    <style>
+        /* नमुना-8 रजिस्टर प्रिंट - landscape मध्ये सर्व column page-width मध्ये बसावेत
+           म्हणून फॉन्ट किंचित लहान करतो आणि लांब मजकूर क्लिप न होता wrap होऊ देतो. */
+        @media print {
+            table, th, td {
+                font-size: 10px !important;
+            }
+            th, td {
+                padding: 1px 2px !important;
+                overflow-wrap: break-word !important;
+                word-break: break-word !important;
+                white-space: normal !important;
             }
         }
     </style>
@@ -188,7 +205,7 @@
             if(document.getElementById('footerTotalTax'))
               document.getElementById('footerTotalTax').innerText = `एकूण : ${total.toFixed(2)}`;
           }
-        window.onload = function() {
+                window.onload = function() {
             updateZoom();
             showPage(1);
             updateFooterSummary();
@@ -232,6 +249,16 @@
                 <span>नियम 32 ( 1 ) </span>
                 <span> तालुका: {{village.records[0].taluka|default('')}} </span>
                 <span> जिल्हा : {{village.records[0].jilha|default('')}} </span>
+                {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+                <span style="display:inline-flex; gap:6px;">
+                    {% if houseTaxQrUrl %}
+                    <span style="text-align:center;"><img src="{{ houseTaxQrUrl }}" style="width:40px; height:40px; object-fit:contain; display:block; margin:0 auto;" /><span style="font-size:9px; display:block;">घर कर</span></span>
+                    {% endif %}
+                    {% if waterTaxQrUrl %}
+                    <span style="text-align:center;"><img src="{{ waterTaxQrUrl }}" style="width:40px; height:40px; object-fit:contain; display:block; margin:0 auto;" /><span style="font-size:9px; display:block;">पाणी कर</span></span>
+                    {% endif %}
+                </span>
+                {% endif %}
             </div>
           <div class="fontSizeData " style="margin-top: 5px; font-size: 12px;text-align: center;">
             <span>सन {{village.records[0].yearFrom|default('')}} ते {{village.records[0].yearTo|default('')}} </span>
@@ -434,6 +461,12 @@
     @page {
       size: A4 landscape;
       margin: 6mm;
+      {% if pageNumber %}
+      @bottom-center {
+        content: "पृष्ठ " counter(page) " / " counter(pages);
+        font-size: 10px;
+      }
+      {% endif %}
     }
     html, body {
       width: 100%;

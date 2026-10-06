@@ -172,8 +172,8 @@
         {% for copy in [1,2] %}
         <table class="header-table" style="width:100%;">
             <tr>
-                <td class="center bold">ग्रामपंचायत<br>{{ record.gramPanchayat or '' }}</td>
-                <td class="center bold">तालुका<br>{{ record.taluka or '' }}</td>   
+                <td class="center bold">ग्रामपंचायत<br>{{ record.gramPanchayat or '' }}<br>गाव/मोहल्ला : {{ record.village or '' }}</td>
+                <td class="center bold">तालुका<br>{{ record.taluka or '' }}</td>
                 <td class="center bold">जिल्हा<br>{{ record.district or '' }}</td>
                 <td class="center bold" style="width: 34%; ">
                     नमुना ९ क<br>
@@ -202,10 +202,6 @@
                     श्री {{ record.ownerName or '' }} <br> <span> भोगवटदार : {{ record.occupantName or '' }}</span>
                 </td>
                 
-            </tr>
-            <tr>
-                <td style="border:none;">घर क्रमांक : {{ record.houseNumber or '' }}</td>
-                <td style="border:none;">यांजकडून पुढील रक्कम वसुलीयोग्य आहे</td>
             </tr>
         </table>
         <table style="margin-top: 2px; width:100%;">
@@ -260,6 +256,9 @@
             हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या आता करावा. अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये आपल्यावर मागणी बजावाण्यात येईल
         </div>
         <div style="margin-top: 10px; font-size: 13px;">
+            {% if record.signature_image %}
+            <img src="{{ record.signature_image }}" style="height: 35px; object-fit: contain; display: block; margin-left: auto;" alt="स्वाक्षरी" />
+            {% endif %}
             <span class="right">ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी</span>
         </div>
         {% if copy == 1 %}

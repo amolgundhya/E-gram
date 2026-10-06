@@ -164,7 +164,7 @@
     <td style="text-align:left; padding:4px;">It is observed that the registration of birth/death of their son /daughter {{ applicant_name_en | default('') }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">ह्याच्या / हिच्या {{ subject | default('') }} घटनेची नोंद करण्यात आलेली नाही</td>
+    <td style="text-align:left; padding:4px;">ह्याच्या / हिच्या {% if subject %}{{ subject }}{% elif subject_en == 'Birth' %}जन्म{% elif subject_en == 'Death' %}मृत्यू{% endif %} घटनेची नोंद करण्यात आलेली नाही</td>
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">Is not {{ subject_en | default('') }} mentioned in record.</td>
@@ -181,8 +181,8 @@
     <td style="width:33%; text-align:right; vertical-align:top; padding:8px;">
       सही व शिक्का<br>
       (Signature with Seal)<br>
-      निर्गमित करणारे प्राधिकारी<br>
-      Issuing Authority
+      सरपंच / ग्रामपंचायत अधिकारी<br>
+      Sarpanch / Gram Panchayat Officer
     </td>
   </tr>
 </table>

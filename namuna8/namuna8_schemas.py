@@ -90,11 +90,19 @@ class PropertyBase(BaseModel):
     safaiKar: Optional[bool] = False
     shauchalayKar: Optional[bool] = False
     karLaguNahi: Optional[bool] = False
+    dwarPurv: Optional[bool] = False
+    dwarPashchim: Optional[bool] = False
+    dwarUttar: Optional[bool] = False
+    dwarDakshin: Optional[bool] = False
     vacantLandType: Optional[str] = None
     waterFacility1: Optional[str] = None
     waterFacility2: Optional[str] = None
     toilet: Optional[str] = None
+    toiletBenefitYear: Optional[str] = None
     roofType: Optional[str] = None
+    gharkul: Optional[str] = None
+    gharkulYojana: Optional[str] = None
+    gharkulBenefitYear: Optional[str] = None
     eastBoundary2: Optional[str] = None
     westBoundary2: Optional[str] = None
     northBoundary2: Optional[str] = None
@@ -105,12 +113,19 @@ class PropertyBase(BaseModel):
     southLength: Optional[float] = None
     totalArea: Optional[float] = None
     areaUnit: Optional[str] = None
+    constructionAreaUnit: Optional[str] = None
     remarks: Optional[str] = None
+    exServiceman: Optional[bool] = False
 
 class PropertyCreate(PropertyBase):
     owners: List[OwnerCreate]
     constructions: List[ConstructionCreate]
     qrcode: Optional[str] = None
+    # "Insert" बटणासाठी - निवडलेल्या (या anuKramank असलेल्या) मालमत्तेनंतर लगेच नवी
+    # मालमत्ता दाखवायला हवी असेल तर तिचा anuKramank इथे पाठवायचा; sort_order सर्व्हरच
+    # ठरवतो (क्लायंटकडून थेट sort_order स्वीकारत नाही). रिकामं/नसलेलं असेल तर सध्याच्या
+    # "New" प्रमाणे मालमत्ता क्रमांकाच्या नैसर्गिक क्रमवारीनुसार जागा ठरते.
+    insertAfterAnuKramank: Optional[int] = None
 
 class PropertyRead(PropertyBase):
     owners: List[Owner] = []
@@ -122,6 +137,7 @@ class PropertyRead(PropertyBase):
     sapanikar: Optional[float] = None
     vpanikar: Optional[float] = None
     qrcode: Optional[str] = None
+    sort_order: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -150,6 +166,8 @@ class BulkEditPropertyRow(BaseModel):
     aarogyaKar: float
     sapanikar: float
     vpanikar: float
+    sort_order: Optional[float] = None
+    exServiceman: Optional[bool] = False
 
     class Config:
         orm_mode = True
@@ -159,12 +177,17 @@ class BulkEditUpdateRequest(BaseModel):
     waterFacility1: Optional[str] = None
     waterFacility2: Optional[str] = None
     toilet: Optional[str] = None
+    toiletBenefitYear: Optional[str] = None
     house: Optional[str] = None
     roofType: Optional[str] = None
+    gharkul: Optional[str] = None
+    gharkulYojana: Optional[str] = None
+    gharkulBenefitYear: Optional[str] = None
     divaArogyaKar: Optional[bool] = None
     safaiKar: Optional[bool] = None
     shauchalayKar: Optional[bool] = None
     karLaguNahi: Optional[bool] = None
+    exServiceman: Optional[bool] = None
     waterFacility1Price: Optional[float] = None
     waterFacility2Price: Optional[float] = None
     # Add more fields as needed
@@ -237,6 +260,8 @@ class Namuna8SettingChecklistBase(BaseModel):
     boundaryMarking: bool = False
     aadharCard: bool = False
     mobileNumberAdd: bool = False
+    pageNumber: bool = False
+    exportPassword: Optional[str] = None
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
@@ -264,6 +289,8 @@ class Namuna8SettingChecklistUpdate(BaseModel):
     boundaryMarking: Optional[bool] = None
     aadharCard: Optional[bool] = None
     mobileNumberAdd: Optional[bool] = None
+    pageNumber: Optional[bool] = None
+    exportPassword: Optional[str] = None
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
@@ -275,6 +302,7 @@ class Namuna8DropdownAddSettingsBase(BaseModel):
     reassessmentYear: int
     exemptionCount: int
     anukramank_id: Optional[str] = None
+    taxRoundingMode: Optional[str] = "ceil"
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
@@ -298,6 +326,7 @@ class Namuna8DropdownAddSettingsUpdate(BaseModel):
     reassessmentYear: Optional[int] = None
     exemptionCount: Optional[int] = None
     anukramank_id: Optional[str] = None
+    taxRoundingMode: Optional[str] = None
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
