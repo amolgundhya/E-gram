@@ -35,7 +35,8 @@ def calculate_total_house_tax(prop, constructions, db, gram_panchayat_id=None):
             capital_value = ((area_m * annual_land_value_rate) + (area_m * bandhmastache_dar * (depreciation_rate/100))) * usage_factor
         else:
             capital_value = area_m * annual_land_value_rate * depreciation_rate/100 * usage_factor
-        capital_value = round_tax_amount(capital_value, db, gp_id)
+        # भांडवली मूल्य राउंड करत नाही - फक्त 2 दशांश स्थळांपर्यंत ठेवतो; फक्त कर रक्कम राउंड होते.
+        capital_value = round(capital_value, 2)
         house_tax = round_tax_amount((getattr(construction_type, 'rate', 0) / 1000) * capital_value, db, gp_id)
         totalHouseTax += house_tax
     # Add khali jaga if needed, using the same logic. खाली जागा नेहमी प्लॉटच्याच
@@ -55,7 +56,7 @@ def calculate_total_house_tax(prop, constructions, db, gram_panchayat_id=None):
             khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == vacant_land_type).first()
             if khali_construction_type:
                 annual_land_value_rate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                capital_value_kj = round_tax_amount(area_in_meter * annual_land_value_rate, db, gp_id)
+                capital_value_kj = round(area_in_meter * annual_land_value_rate, 2)
                 totalHouseTax += round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj, db, gp_id)
     return round_tax_amount(totalHouseTax, db, gp_id)
 

@@ -299,17 +299,7 @@
     <tr>
         <td colspan="2" style="text-align: left; font-weight: bold;">आधार क्रमांक :</td>
         <td>{% if aadharCard %}{{aadharNumber|default('')}}{% endif %}</td>
-        <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस फुट </td>
-        <td> {{total_arearinfoot|default('')|round_sqft}} </td>
-        <td> {{khaliJaga[0].totalkhalijagaareainfoot|round_sqft if khaliJaga and khaliJaga|length > 0 else ''}} </td>
-        <td></td>
-        <td>{{totalconstructionareainfoot|default('')|round_sqft}}</td>
-        <td></td>
-        <td></td>
-    </tr>
-    <tr>
-        <td colspan="2" style="text-align: left; font-weight: bold;">मोबाईल क्रमांक :</td>
-        <td>{% if mobileNumberAdd %}{{mobileNumber|default('')}}{% endif %}</td>
+        {% if areaUnit == 'sqm' %}
         <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
         <td> {{totalareainmeters|default('')}} </td>
         <td> {{khaliJaga[0].totalkhalijagaareainmeters if khaliJaga and khaliJaga|length > 0 else ''}} </td>
@@ -317,6 +307,36 @@
         <td>{{totalconstructionareainmeter|default('')}}</td>
         <td></td>
         <td></td>
+        {% else %}
+        <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस फुट </td>
+        <td> {{total_arearinfoot|default('')|round_sqft}} </td>
+        <td> {{khaliJaga[0].totalkhalijagaareainfoot|round_sqft if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td></td>
+        <td>{{totalconstructionareainfoot|default('')|round_sqft}}</td>
+        <td></td>
+        <td></td>
+        {% endif %}
+    </tr>
+    <tr>
+        <td colspan="2" style="text-align: left; font-weight: bold;">मोबाईल क्रमांक :</td>
+        <td>{% if mobileNumberAdd %}{{mobileNumber|default('')}}{% endif %}</td>
+        {% if areaUnit == 'sqm' %}
+        <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस फुट </td>
+        <td> {{total_arearinfoot|default('')|round_sqft}} </td>
+        <td> {{khaliJaga[0].totalkhalijagaareainfoot|round_sqft if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td></td>
+        <td>{{totalconstructionareainfoot|default('')|round_sqft}}</td>
+        <td></td>
+        <td></td>
+        {% else %}
+        <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
+        <td> {{totalareainmeters|default('')}} </td>
+        <td> {{khaliJaga[0].totalkhalijagaareainmeters if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td>0</td>
+        <td>{{totalconstructionareainmeter|default('')}}</td>
+        <td></td>
+        <td></td>
+        {% endif %}
     </tr>
 </table>
 
@@ -513,19 +533,23 @@
             {% endif %}
         </td>
         {% if sachivSarpanch %}
-        <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
-            {% if signature_image %}
-            <img src="{{ signature_image }}" style="height: 35px; object-fit: contain; display: block; margin-bottom: 2px;" alt="स्वाक्षरी" />
-            {% endif %}
-            ग्रामपंचायत अधिकारी <br>
-            ग्रामपंचायत कार्यालय {{gramPanchayat|default('')}} <br>
-            ता. {{taluka|default('')}} जि. {{jilha|default('')}}
+        <td style="text-align: right; vertical-align: middle; border-right: 1px solid #000;">
+            <div style="display: inline-block; text-align: center; font-size: 13px;">
+                <div style="width: 220px; height: 80px; margin: 0 auto 2px auto; display: flex; align-items: center; justify-content: center; background: transparent;">
+                    {% if signature_image %}
+                    <img src="{{ signature_image }}" style="max-width: 220px; max-height: 80px; object-fit: contain; background: transparent;" onerror="this.style.display='none';" />
+                    {% endif %}
+                </div>
+                ग्रामपंचायत अधिकारी <br>
+                ग्रामपंचायत कार्यालय {{gramPanchayat|default('')}} <br>
+                ता. {{taluka|default('')}} जि. {{jilha|default('')}}
+            </div>
         </td>
         {% else %}
         <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000; height:30px ">
         </td>
         {% endif %}
     </tr>
-</table> 
+</table>
 </div>
 

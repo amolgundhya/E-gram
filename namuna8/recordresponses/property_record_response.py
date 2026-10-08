@@ -263,12 +263,13 @@ def get_property_record(
             # Get usage weightage factor - same as Namuna8
             usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
 
-            # Calculate capital value - exact same logic as Namuna8
+            # Calculate capital value - exact same logic as Namuna8. भांडवली मूल्य
+            # राउंड करत नाही - फक्त 2 दशांश स्थळांपर्यंत ठेवतो; फक्त कर रक्कम राउंड होते.
             if formula1:
                 capital_value = (khali_area_m * AnnualLandValueRate)
             else:
                 capital_value = AreaInMeter * AnnualLandValueRate
-            capital_value = round_tax_amount(capital_value, db, getattr(prop, 'gram_panchayat_id', None))
+            capital_value = round(capital_value, 2)
 
             # Calculate house tax - exact same logic as Namuna8
             house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(prop, 'gram_panchayat_id', None))
@@ -284,8 +285,8 @@ def get_property_record(
             "rate": khali_jaga_rate,
             "floor": "तळमजला",
             "usage": prop.vacantLandType,
-            "capitalValue": 0 if prop.karLaguNahi else round_tax_amount(capital_value, db, getattr(prop, 'gram_panchayat_id', None)),
-            "houseTax": 0 if prop.karLaguNahi else round_tax_amount(house_tax, db, getattr(prop, 'gram_panchayat_id', None)),
+            "capitalValue": 0 if prop.karLaguNahi else capital_value,
+            "houseTax": 0 if prop.karLaguNahi else house_tax,
             "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
             "taxRates": 0 if prop.karLaguNahi else (getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0),
             "totalkhalijagaareainfoot": round(khali_area_display, 2),
@@ -459,7 +460,7 @@ def get_property_record(
         "gharkul": getattr(prop, 'gharkul', None) or "",
         "gharkulYojana": getattr(prop, 'gharkulYojana', None) or "",
         "gharkulBenefitYear": getattr(prop, 'gharkulBenefitYear', None) or "",
-        "totalCapitalValue": int(total_capital_value if not prop.karLaguNahi else 0),
+        "totalCapitalValue": round(total_capital_value, 2) if not prop.karLaguNahi else 0,
         "totalHouseTax": int(total_house_tax if not prop.karLaguNahi else 0),
         "totalconstructionareainfoot": total_construction_area_foot,
         "totalconstructionareainmeter": total_construction_area_meter,
@@ -676,7 +677,7 @@ def get_property_records_by_village(
                     capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
                 else:
                     capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
-                capital_value = round_tax_amount(capital_value, db, getattr(prop, 'gram_panchayat_id', None))
+                capital_value = round(capital_value, 2)
 
                 # Calculate house tax - exact same logic as Namuna8
                 house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(prop, 'gram_panchayat_id', None))
@@ -691,8 +692,8 @@ def get_property_records_by_village(
                 "rate": khali_jaga_rate,
                 "floor": "तळमजला",
                 "usage": prop.vacantLandType,
-                "capitalValue": 0 if prop.karLaguNahi else round_tax_amount(capital_value, db, getattr(prop, 'gram_panchayat_id', None)),
-                "houseTax": 0 if prop.karLaguNahi else round_tax_amount(house_tax, db, getattr(prop, 'gram_panchayat_id', None)),
+                "capitalValue": 0 if prop.karLaguNahi else capital_value,
+                "houseTax": 0 if prop.karLaguNahi else house_tax,
                 "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
                 "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
                 "totalkhalijagaareainfoot": round(khali_area_display, 2),
@@ -843,7 +844,7 @@ def get_property_records_by_village(
             "gharkul": getattr(prop, 'gharkul', None) or "",
             "gharkulYojana": getattr(prop, 'gharkulYojana', None) or "",
             "gharkulBenefitYear": getattr(prop, 'gharkulBenefitYear', None) or "",
-            "totalCapitalValue": int(0 if prop.karLaguNahi else total_capital_value),
+            "totalCapitalValue": 0 if prop.karLaguNahi else round(total_capital_value, 2),
             "totalHouseTax": int(0 if prop.karLaguNahi else total_house_tax),
             "totalconstructionareainfoot": total_construction_area_foot,
             "totalconstructionareainmeter": total_construction_area_meter,
@@ -1069,8 +1070,9 @@ def get_property_records_by_gram_panchayat(
                         capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
                     else:
                         capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
+                    capital_value = round(capital_value, 2)
 
-                    house_tax = round((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+                    house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(prop, 'gram_panchayat_id', None))
 
                 # Always emit a khaliJaga entry when vacantLandType is set, even if the
                 # computed area is exactly 0, so reports show "0" instead of omitting the row.
@@ -1234,7 +1236,7 @@ def get_property_records_by_gram_panchayat(
                 "gharkul": getattr(prop, 'gharkul', None) or "",
                 "gharkulYojana": getattr(prop, 'gharkulYojana', None) or "",
                 "gharkulBenefitYear": getattr(prop, 'gharkulBenefitYear', None) or "",
-                "totalCapitalValue": int(total_capital_value),
+                "totalCapitalValue": round(total_capital_value, 2),
                 "totalHouseTax": int(total_house_tax),
                 "totalconstructionareainfoot": total_construction_area_foot,
                 "totalconstructionareainmeter": total_construction_area_meter,
