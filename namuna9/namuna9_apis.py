@@ -1055,7 +1055,7 @@ def get_namuna9_table_data_custom(
                     khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == vacant_land_type).first()
                     if khali_construction_type:
                         AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                        capital_value_kj = round_tax_amount(khali_area_m * AnnualLandValueRate, db, gram_panchayat_id)
+                        capital_value_kj = round(khali_area_m * AnnualLandValueRate, 2)
                         totalHouseTax += round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj, db, gram_panchayat_id)
         totalHouseTax = round(totalHouseTax, 2)
         # Taxes
