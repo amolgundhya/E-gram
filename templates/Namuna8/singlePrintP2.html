@@ -406,19 +406,23 @@
             {% endif %}
         </td>
         {% if sachivSarpanch %}
-        <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
-            {% if signature_image %}
-            <img src="{{ signature_image }}" style="height: 35px; object-fit: contain; display: block; margin-bottom: 2px;" alt="स्वाक्षरी" />
-            {% endif %}
-            ग्रामपंचायत अधिकारी <br>
-            ग्रामपंचायत कार्यालय {{gramPanchayat|default('')}} <br>
-            ता. {{taluka|default('')}} जि. {{jilha|default('')}}
+        <td style="text-align: right; vertical-align: middle; border-right: 1px solid #000;">
+            <div style="display: inline-block; text-align: center; font-size: 13px;">
+                <div style="width: 220px; height: 80px; margin: 0 auto 2px auto; display: flex; align-items: center; justify-content: center; background: transparent;">
+                    {% if signature_image %}
+                    <img src="{{ signature_image }}" style="max-width: 220px; max-height: 80px; object-fit: contain; background: transparent;" onerror="this.style.display='none';" />
+                    {% endif %}
+                </div>
+                ग्रामपंचायत अधिकारी <br>
+                ग्रामपंचायत कार्यालय {{gramPanchayat|default('')}} <br>
+                ता. {{taluka|default('')}} जि. {{jilha|default('')}}
+            </div>
         </td>
         {% else %}
         <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000; height:30px ">
         </td>
         {% endif %}
     </tr>
-</table> 
+</table>
 </div>
 

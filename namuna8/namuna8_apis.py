@@ -212,11 +212,13 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                         # capital_value = (( ((construction_data.length * 0.092937) * (construction_data.width * 0.092937)) * AnnualLandValueRate ) + ( ((construction_data.length * 0.092937) * (construction_data.width * 0.092937)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                         capital_value = (( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                         # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                        capital_value = round_tax_amount(capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
+                        # भांडवली मूल्य आता राउंड (ceil/half-up) करत नाही - फक्त 2 दशांश स्थळांपर्यंत
+                        # ठेवतो (साठवण्यासाठी/दाखवण्यासाठी) - फक्त कर रक्कम (house_tax) राउंड होते.
+                        capital_value = round(capital_value, 2)
                         # print("capital_value_from_formula1" , capital_value)
                     else:
                         capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
-                        capital_value = round_tax_amount(capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
+                        capital_value = round(capital_value, 2)
                         # print("capital_value_from_formula2" , capital_value)
 
                     house_tax = round_tax_amount((getattr(construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
@@ -927,11 +929,12 @@ def update_namuna8_entry(
             if formula1:
                 capital_value =(( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
                 # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                capital_value = round_tax_amount(capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
+                # भांडवली मूल्य आता राउंड करत नाही - फक्त 2 दशांश स्थळांपर्यंत ठेवतो.
+                capital_value = round(capital_value, 2)
                 # print("capital_value_from_formula1" , capital_value)
             else:
                 capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
-                capital_value = round_tax_amount(capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
+                capital_value = round(capital_value, 2)
 
             house_tax = round_tax_amount((getattr(construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
             new_construction = models.Construction(
@@ -1384,9 +1387,9 @@ def get_bulk_edit_property_list(
                     usageBasedBuildingWeightageFactor = weightage_map.get(p.vacantLandType, 1)
 
                     if formula1:
-                        capital_value = round_tax_amount(khali_area_m * AnnualLandValueRate, db, getattr(p, 'gram_panchayat_id', None))
+                        capital_value = khali_area_m * AnnualLandValueRate
                     else:
-                        capital_value = round_tax_amount(AreaInMeter * AnnualLandValueRate, db, getattr(p, 'gram_panchayat_id', None))
+                        capital_value = AreaInMeter * AnnualLandValueRate
                     capital_value = round(capital_value, 2)
 
                     house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(p, 'gram_panchayat_id', None))
@@ -1402,7 +1405,7 @@ def get_bulk_edit_property_list(
                     "rate": khali_jaga_rate,
                     "floor": "तळमजला",
                     "usage": p.vacantLandType,
-                    "capitalValue": 0 if p.karLaguNahi else round(capital_value),
+                    "capitalValue": 0 if p.karLaguNahi else capital_value,
                     "houseTax": 0 if p.karLaguNahi else house_tax,
                     "usageBasedBuildingWeightageFactor": 1,
                     "taxRates": 0 if p.karLaguNahi else (
