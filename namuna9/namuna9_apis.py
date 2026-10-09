@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func
 import database
 from namuna9 import namuna9_model, namuna9_schemas
@@ -10,7 +10,7 @@ from namuna8.mastertab import mastertabmodels as settingModels
 from sqlalchemy.exc import IntegrityError
 from namuna8.namuna8_apis import build_property_response
 from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no
-from Utility.tax_rounding import round_tax_amount
+from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode
 from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text
 from location_management import models as location_models
@@ -619,27 +619,61 @@ def get_table_data(
     # Create a map of property_id to saved data
     saved_data_map = {data.property_id: data for data in saved_property_data}
     
-    # Fetch all property details
-    properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.id.in_([int(i) for i in property_ids]),
-                                                         namuna8_model.Property.village_id == villageId).all()
+    # Fetch all property details - owners/constructions/construction_type eager-
+    # loaded in one go (previously lazy-loaded per property below, and the
+    # constructions were even re-queried a SECOND time per property via a
+    # separate db.query(Construction)... call that duplicated this relationship).
+    properties = (
+        db.query(namuna8_model.Property)
+        .options(
+            selectinload(namuna8_model.Property.owners),
+            selectinload(namuna8_model.Property.constructions).selectinload(namuna8_model.Construction.construction_type),
+        )
+        .filter(
+            namuna8_model.Property.id.in_([int(i) for i in property_ids]),
+            namuna8_model.Property.village_id == villageId,
+        )
+        .all()
+    )
     # sort_order नुसार क्रम (32, 32/1, 32/2, 33 ...) - DB query ऑर्डरने (साधारण id प्रमाणे)
     # नाही, आणि मालमत्ता क्रमांकाच्या मजकुरावरून काढलेल्या नैसर्गिक क्रमवारीऐवजीही आता
     # sort_order वापरतो, कारण "Insert" ने घातलेल्या मालमत्तेचा मजकूर मोकळा ("1 भाग" सारखा)
     # असला तरी योग्य जागीच (निवडलेल्या मालमत्तेनंतर) दिसायला हवा.
     properties = sorted(properties, key=lambda p: (p.sort_order if p.sort_order is not None else float("inf")))
+
+    # खालच्या "for idx, prop in enumerate(properties, 1)" लूपमध्ये build_property_response
+    # आणि calculate_total_house_tax दोन्ही प्रत्येक मालमत्तेसाठी tax/water सेटिंग्ज,
+    # weightage, construction type, घसारा दर पुन्हा पुन्हा क्वेरी करत होते (gram_panchayat_id
+    # एकच असल्याने निकाल नेहमी तोच) - आता एकदाच fetch करून तीच कॅशे सगळ्या मालमत्तांसाठी
+    # पुन्हा वापरतो.
+    from namuna9.tax_calculations import calculate_total_house_tax
+    tp_general_setting = db.query(settingModels.GeneralSetting).filter_by().first()
+    tp_weightage_map = {row.building_usage: row.weightage for row in db.query(settingModels.BuildingUsageWeightage).all()}
+    tp_tax_settings = db.query(namuna8_model.Namuna8SettingTax).filter(namuna8_model.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    tp_water_settings = db.query(namuna8_model.Namuna8WaterTaxSettings).filter(namuna8_model.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
+    tp_water_slab_settings = tp_tax_settings
+    tp_rounding_mode = get_tax_rounding_mode(db, gram_panchayat_id)
+    tp_construction_type_cache = {}
+    tp_depreciation_rate_cache = {}
+
     rows = []
     for idx, prop in enumerate(properties, 1):
-        prop_data = build_property_response(prop, db, gram_panchayat_id)
-        # Query constructions directly for this property
-        constructions = db.query(namuna8_model.Construction).filter(
-            namuna8_model.Construction.property_id == prop.id
-        ).all()
-        
+        prop_data = build_property_response(
+            prop, db, gram_panchayat_id,
+            tax_settings=tp_tax_settings, water_settings=tp_water_settings, water_slab_settings=tp_water_slab_settings,
+        )
+        # बांधकामं आता वरच घेतलेली (eager-loaded) आहेत - इथे पुन्हा क्वेरी करत नाही.
+        constructions = prop.constructions
+
         # Check if karLaguNahi is True - if so, set all taxes to zero
         karLaguNahi = bool(getattr(prop, 'karLaguNahi', False))
-        
-        from namuna9.tax_calculations import calculate_total_house_tax
-        totalHouseTax = calculate_total_house_tax(prop, constructions, db)
+
+        totalHouseTax = calculate_total_house_tax(
+            prop, constructions, db,
+            general_setting=tp_general_setting, weightage_map=tp_weightage_map,
+            construction_type_cache=tp_construction_type_cache, depreciation_rate_cache=tp_depreciation_rate_cache,
+            rounding_mode=tp_rounding_mode,
+        )
         # Join all owner names (combined with भोगवटदार for owners like "सरकार" - see _owner_display_name)
         owner_names = ', '.join([_owner_display_name(o) for o in prop_data.get('owners', [])])
         # lightingTax, healthTax, sapanikar, vpanikar, cleaningTax
@@ -1013,22 +1047,49 @@ def get_namuna9_table_data_custom(
                 'chaluCleaningTax': t_clean
             }
 
-    properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.id.in_([int(i) for i in property_ids]),
-                                                         namuna8_model.Property.village_id == villageId).all()
+    properties = (
+        db.query(namuna8_model.Property)
+        .options(
+            selectinload(namuna8_model.Property.owners),
+            selectinload(namuna8_model.Property.constructions).selectinload(namuna8_model.Construction.construction_type),
+        )
+        .filter(
+            namuna8_model.Property.id.in_([int(i) for i in property_ids]),
+            namuna8_model.Property.village_id == villageId,
+        )
+        .all()
+    )
     # sort_order नुसार क्रम (32, 32/1, 32/2, 33 ...) - मालमत्ता क्रमांकाच्या मजकुरावरून
     # काढलेल्या नैसर्गिक क्रमवारीऐवजी, "Insert" ने घातलेल्या मालमत्तेचा मजकूर काहीही असो
     # योग्य जागीच दिसण्यासाठी.
     properties = sorted(properties, key=lambda p: (p.sort_order if p.sort_order is not None else float("inf")))
+
+    # tax/water settings आणि खाली-जागा construction type lookup आता एकदाच/कॅशेतून -
+    # आधी प्रत्येक मालमत्तेसाठी (build_property_response च्या आतही) पुन्हा क्वेरी होत होती.
+    custom_tax_settings = db.query(namuna8_model.Namuna8SettingTax).filter(namuna8_model.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    custom_water_settings = db.query(namuna8_model.Namuna8WaterTaxSettings).filter(namuna8_model.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
+    custom_rounding_mode = get_tax_rounding_mode(db, gram_panchayat_id)
+    custom_construction_type_by_name_cache = {}
+
+    def _custom_round_tax(value):
+        if custom_rounding_mode == "ceil":
+            import math
+            return math.ceil(value)
+        from decimal import Decimal, ROUND_HALF_UP
+        return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
     rows = []
     for idx, prop in enumerate(properties, 1):
-        prop_data = build_property_response(prop, db, gram_panchayat_id)
-        constructions = db.query(namuna8_model.Construction).filter(
-            namuna8_model.Construction.property_id == prop.id
-        ).all()
-        
+        prop_data = build_property_response(
+            prop, db, gram_panchayat_id,
+            tax_settings=custom_tax_settings, water_settings=custom_water_settings, water_slab_settings=custom_tax_settings,
+        )
+        # बांधकामं आता वरच eager-loaded आहेत - इथे पुन्हा क्वेरी करत नाही.
+        constructions = prop.constructions
+
         # Check if karLaguNahi is True - if so, set all taxes to zero
         karLaguNahi = bool(getattr(prop, 'karLaguNahi', False))
-        
+
         # Base total house tax from constructions
         if karLaguNahi:
             totalHouseTax = 0
@@ -1052,11 +1113,13 @@ def get_namuna9_table_data_custom(
                 khali_area = round(max(total_area - used_area, 0), 2)
                 khali_area_m = khali_area if unit == 'sqm' else round(khali_area / 10.76, 2)
                 if khali_area > 0:
-                    khali_construction_type = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == vacant_land_type).first()
+                    if vacant_land_type not in custom_construction_type_by_name_cache:
+                        custom_construction_type_by_name_cache[vacant_land_type] = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == vacant_land_type).first()
+                    khali_construction_type = custom_construction_type_by_name_cache[vacant_land_type]
                     if khali_construction_type:
                         AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
                         capital_value_kj = round(khali_area_m * AnnualLandValueRate, 2)
-                        totalHouseTax += round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj, db, gram_panchayat_id)
+                        totalHouseTax += _custom_round_tax((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj)
         totalHouseTax = round(totalHouseTax, 2)
         # Taxes
         lightingTax = round((prop_data.get('divaKar', 0) or prop_data.get('lightingTax', 0) or 0), 2)
@@ -1292,6 +1355,67 @@ def get_property_records_by_village_regular(
         if show_bank_scanner and gram_panchayat and gram_panchayat.water_tax_qr_url else None
     )
 
+    # अ.क्र. (compute_display_sr_no) आधी प्रत्येक रो साठी गावातल्या ALL मालमत्ता पुन्हा
+    # fetch+sort करत होतं (2175 मालमत्तांवर ते 2175 वेळा - O(n^2), ९क/९क2 इतकं संथ
+    # असण्याचं मुख्य कारण). आता एकदाच sort करून {anuKramank: srNo} map बनवतो, खालच्या
+    # लूपमध्ये फक्त dict lookup (O(1)) करतो - क्रम/मूल्य आधीसारखंच, फक्त जलद.
+    village_property_rows = (
+        db.query(namuna8_model.Property.anuKramank, namuna8_model.Property.sort_order)
+        .filter(namuna8_model.Property.village_id == int(villageId))
+        .all()
+    )
+    village_property_rows_sorted = sorted(
+        village_property_rows,
+        key=lambda row: (row.sort_order if row.sort_order is not None else float("inf")),
+    )
+    display_sr_no_map = {row.anuKramank: idx for idx, row in enumerate(village_property_rows_sorted, start=1)}
+
+    # खालच्या लूपमध्ये प्रत्येक रो साठी वेगळी property/receipts/village/gram-panchayat/
+    # taluka/district क्वेरी होत होती (गावातल्या सगळ्या मालमत्तांसाठी गाव/ग्रामपंचायत एकच
+    # असूनही पुन्हा पुन्हा तीच क्वेरी!). आता सगळं एकदाच fetch/group करून dict मधून वापरतो.
+    row_property_ids = [r.get('property_id') for r in table_rows if r.get('property_id') is not None]
+    properties_by_id = {
+        p.id: p
+        for p in (
+            db.query(namuna8_model.Property)
+            .options(
+                selectinload(namuna8_model.Property.owners),
+                selectinload(namuna8_model.Property.constructions).selectinload(namuna8_model.Construction.construction_type),
+            )
+            .filter(namuna8_model.Property.id.in_(row_property_ids))
+            .all()
+        )
+    } if row_property_ids else {}
+
+    receipts_by_property = {}
+    for rcpt in db.query(namuna9_model.Namuna9Receipt).filter(
+        namuna9_model.Namuna9Receipt.namuna9_id == rec.id,
+        namuna9_model.Namuna9Receipt.is_deleted == False,
+    ).all():
+        receipts_by_property.setdefault(rcpt.property_id, []).append(rcpt)
+
+    # village/gram panchayat/taluka/district एकाच गावासाठी नेहमी तेच असतात - एकदाच
+    # काढतो. (टीप: खालच्या "mapped.append" मध्ये प्रत्यक्षात taluka_name_ic/
+    # district_name_ic - फंक्शनच्या सुरुवातीलाच काढलेले - वापरले जातात, त्यामुळे इथले
+    # taluka_name/district_name आधीपासूनच कुठेही वापरले जात नव्हते.)
+    village_name_once = None
+    gp_name_once = None
+    parent_gp_name_once = None
+    try:
+        village_obj = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == int(villageId)).first()
+        if village_obj:
+            village_name_once = getattr(village_obj, 'name', None)
+            gp_once = db.query(location_models.GramPanchayat).filter(
+                location_models.GramPanchayat.id == village_obj.gram_panchayat_id
+            ).first()
+            gp_name_once = getattr(gp_once, 'name', None)
+            parent_gp_name_once = getattr(gp_once, 'parent_gram_panchayat_name', None)
+    except Exception:
+        pass
+
+    rp_tax_settings = db.query(namuna8_model.Namuna8SettingTax).filter(namuna8_model.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    rp_water_settings = db.query(namuna8_model.Namuna8WaterTaxSettings).filter(namuna8_model.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
+
     mapped = []
     from datetime import datetime
     for r in table_rows:
@@ -1337,11 +1461,7 @@ def get_property_records_by_village_regular(
         # वापरतो (नमुना-10 पावतीत जसं "भरलेली" रक्कम दिसते तशीच इथेही दिसावी).
         paid_map = {f"paid{i}": 0 for i in range(1, 9)}
         try:
-            all_receipts = db.query(namuna9_model.Namuna9Receipt).filter(
-                namuna9_model.Namuna9Receipt.namuna9_id == rec.id,
-                namuna9_model.Namuna9Receipt.property_id == r.get('property_id'),
-                namuna9_model.Namuna9Receipt.is_deleted == False
-            ).all()
+            all_receipts = receipts_by_property.get(r.get('property_id'), [])
             paid_map["paid1"] = round(sum((rcpt.vasuliGhar or 0) + (rcpt.vasuliChaluGhar or 0) for rcpt in all_receipts), 2)
             paid_map["paid2"] = round(sum((rcpt.vasuliDiva or 0) + (rcpt.vasuliChaluDiva or 0) for rcpt in all_receipts), 2)
             paid_map["paid3"] = round(sum((rcpt.vasuliAarogyaKar or 0) + (rcpt.vasuliChaluAarogyaKar or 0) for rcpt in all_receipts), 2)
@@ -1361,28 +1481,17 @@ def get_property_records_by_village_regular(
         owner_names_plain = ""
         parent_gp_name = None
         try:
-            prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == r.get('property_id')).first()
+            prop = properties_by_id.get(r.get('property_id'))
             if prop:
-                anu_kramank = compute_display_sr_no(db, prop.village_id, prop.anuKramank)
-                # GP name from village linkage
-                v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop.village_id).first()
-                if v:
-                    village_name = getattr(v, 'name', None)
-                    gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == v.gram_panchayat_id).first()
-                    gp_name = getattr(gp, 'name', None)
-                    parent_gp_name = getattr(gp, 'parent_gram_panchayat_name', None)
-                    taluka_name = getattr(gp, 'taluka_id', None)
-                    if taluka_name:
-                        taluka = db.query(location_models.Taluka).filter(location_models.Taluka.id == taluka_name).first()
-                        if taluka:
-                            taluka_name = getattr(taluka, 'name', None)
-                    district_name = getattr(gp, 'district_id', None)
-                    if district_name:
-                        district = db.query(location_models.District).filter(location_models.District.id == district_name).first()
-                        if district:
-                            district_name = getattr(district, 'name', None)
+                anu_kramank = display_sr_no_map.get(prop.anuKramank, prop.anuKramank)
+                village_name = village_name_once
+                gp_name = gp_name_once
+                parent_gp_name = parent_gp_name_once
                 # Occupant name from owners via build_property_response
-                prop_data_full = build_property_response(prop, db, gram_panchayat_id)
+                prop_data_full = build_property_response(
+                    prop, db, gram_panchayat_id,
+                    tax_settings=rp_tax_settings, water_settings=rp_water_settings, water_slab_settings=rp_tax_settings,
+                )
                 owners = prop_data_full.get('owners', [])
                 # नमुना ९ क/क2 "श्री" ओळीत फक्त मालकाचे नाव हवे - भोगवटदार कंसात जोडायचा
                 # नाही (तो खाली स्वतंत्र भोगवटदार ओळीत आधीच दाखवला जातो, नाहीतर same

@@ -1767,7 +1767,12 @@ def delete_owner_photo(owner_id: int, db: Session = Depends(database.get_db)):
     return {"message": "Photo removed successfully"}
 
 
-def build_property_response(db_property, db, gram_panchayat_id: int):
+def build_property_response(db_property, db, gram_panchayat_id: int, tax_settings=None, water_settings=None, water_slab_settings=None):
+    # tax_settings/water_settings/water_slab_settings: पास केले नसतील (जुन्या सगळ्या
+    # कॉलर्ससाठी डिफॉल्ट None) तर आधीसारखेच इथे क्वेरी करतो. ज्या ठिकाणी हे फंक्शन
+    # शेकडो मालमत्तांसाठी लूपमध्ये वारंवार बोलावलं जातं (नमुना-9 माहिती दाखवा/All/
+    # ९क/९क2), तिथे कॉलर एकदाच fetch करून हे पास करू शकतो - समान gram_panchayat_id साठी
+    # प्रत्येक वेळी तेच रो परत मिळत असल्याने निकाल आधीसारखाच राहतो, फक्त पुन्हा क्वेरी होत नाही.
     # Build constructions with constructionType name
     constructions = []
     for c in db_property.constructions:
@@ -1800,20 +1805,23 @@ def build_property_response(db_property, db, gram_panchayat_id: int):
             "gram_panchayat_id": o.gram_panchayat_id,
         })
     # Calculate taxes and water charges on the fly - filter by gram_panchayat_id
-    settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
-    water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
-    water_slab_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    if tax_settings is None:
+        tax_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    if water_settings is None:
+        water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
+    if water_slab_settings is None:
+        water_slab_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
     def get_tax_by_area(area, field):
-        if not settings:
+        if not tax_settings:
             return 0
         if area is None:
             area = 0
         if area <= 300:
-            return getattr(settings, field + 'Upto300', 0) or 0
+            return getattr(tax_settings, field + 'Upto300', 0) or 0
         elif 301 <= area <= 700:
-            return getattr(settings, field + '301_700', 0) or 0
+            return getattr(tax_settings, field + '301_700', 0) or 0
         else:
-            return getattr(settings, field + 'Above700', 0) or 0
+            return getattr(tax_settings, field + 'Above700', 0) or 0
     def get_water_facility_price(facility):
         if not facility:
             return 0
