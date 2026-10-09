@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from namuna8 import namuna8_model as models
 from namuna8 import namuna8_schemas as schemas
 from database import get_db
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
+import math
 from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate
 import os
 from namuna8.mastertab.mastertabmodels import BuildingUsageWeightage
@@ -12,7 +13,7 @@ from namuna8.mastertab import mastertabmodels as settingModels
 from location_management import models as location_models
 from datetime import datetime,date
 from natural_sort import malmatta_kramank_sort_key
-from Utility.tax_rounding import round_tax_amount
+from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode
 
 backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 
@@ -575,7 +576,18 @@ def get_property_records_by_village(
     if village.gram_panchayat_id != gram_panchayat_id:
         raise HTTPException(status_code=400, detail=f"Village {village_id} does not belong to gram panchayat {gram_panchayat_id}")
     
-    properties = db.query(models.Property).filter(models.Property.village_id == village_id).all()
+    # owners/constructions/construction_type eager-loaded in one go instead of
+    # lazy-loading per property (was 3+ separate queries PER property - the main
+    # N+1 cost on a village with thousands of properties).
+    properties = (
+        db.query(models.Property)
+        .options(
+            selectinload(models.Property.owners),
+            selectinload(models.Property.constructions).selectinload(models.Construction.construction_type),
+        )
+        .filter(models.Property.village_id == village_id)
+        .all()
+    )
     results = []
     # Fetch Namuna8SettingChecklist row only once
     checklist = db.query(models.Namuna8SettingChecklist).filter(models.Namuna8SettingChecklist.gram_panchayat_id == gram_panchayat_id).first()
@@ -583,6 +595,87 @@ def get_property_records_by_village(
     if checklist:
         checklist_dict = checklist.__dict__
         checklist_fields = {k: v for k, v in checklist_dict.items() if k not in ('id', 'createdAt', 'updatedAt', 'roundupArea', '_sa_instance_state')}
+
+    # --- Everything below depends only on gram_panchayat_id/village_id, which
+    # are constant for this whole request - so it's fetched/built ONCE here
+    # instead of being re-queried inside the "for prop in properties" loop
+    # (previously once, sometimes twice, per property). ---
+    weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+    general_setting = db.query(settingModels.GeneralSetting).filter_by().first()
+    tax_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
+    water_slab_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    rounding_mode = get_tax_rounding_mode(db, gram_panchayat_id)
+    from location_management import helpers
+    gp_image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
+
+    def _round_tax(value):
+        # Same rule as Utility.tax_rounding.round_tax_amount, just reusing the
+        # mode fetched once above instead of re-querying it per property.
+        if rounding_mode == "ceil":
+            return math.ceil(value)
+        return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+    _construction_type_exact_cache = {}
+
+    def _construction_type_by_exact_name(name):
+        if name not in _construction_type_exact_cache:
+            _construction_type_exact_cache[name] = db.query(models.ConstructionType).filter(
+                models.ConstructionType.name == name
+            ).first()
+        return _construction_type_exact_cache[name]
+
+    _construction_type_like_cache = {}
+
+    def _construction_type_by_like_name(name):
+        if name not in _construction_type_like_cache:
+            _construction_type_like_cache[name] = db.query(models.ConstructionType).filter(
+                models.ConstructionType.name.like(f"%{name}%")
+            ).first()
+        return _construction_type_like_cache[name]
+
+    _depreciation_rate_cache = {}
+
+    def _cached_depreciation_rate(year, type_name):
+        key = (year, type_name)
+        if key not in _depreciation_rate_cache:
+            _depreciation_rate_cache[key] = calculate_depreciation_rate(year, type_name)
+        return _depreciation_rate_cache[key]
+
+    def get_tax_by_area(area, field):
+        if not tax_settings:
+            return 0
+        if area is None:
+            area = 0
+        if area <= 300:
+            return getattr(tax_settings, field + 'Upto300', 0) or 0
+        elif 301 <= area <= 700:
+            return getattr(tax_settings, field + '301_700', 0) or 0
+        else:
+            return getattr(tax_settings, field + 'Above700', 0) or 0
+
+    def get_water_facility_price(facility):
+        if not facility:
+            return 0
+        if not water_settings or not water_slab_settings:
+            return 0
+        # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
+        if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
+            return getattr(water_settings, 'generalWater', 0)
+        elif facility == 'घरगुती नळ':
+            return getattr(water_settings, 'houseTax', 0)
+        elif facility == 'व्यावसायिक नळ':
+            return getattr(water_settings, 'commercialTax', 0)
+        elif facility == 'करास पात्र नसलेली इमारत':
+            return getattr(water_settings, 'exemptRate', 0)
+        elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
+            return getattr(water_slab_settings, 'generalWaterUpto300', 0)
+        elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
+            return getattr(water_slab_settings, 'generalWater301_700', 0)
+        elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
+            return getattr(water_slab_settings, 'generalWaterAbove700', 0)
+        return 0
+
     for prop in properties:
         owner_ids = [o.id for o in prop.owners]
         property_types = [c.construction_type.name for c in prop.constructions]
@@ -636,29 +729,24 @@ def get_property_records_by_village(
             vacant_construction_type = None
             if prop.vacantLandType:
                 # Query database directly for the construction type, regardless of property constructions
-                vacant_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == prop.vacantLandType).first()
+                vacant_construction_type = _construction_type_by_exact_name(prop.vacantLandType)
                 if vacant_construction_type:
                     khali_jaga_rate = getattr(vacant_construction_type, 'bandhmastache_dar', 0)
                 else:
                     # Fallback: try to find any construction type with similar name
-                    similar_construction = db.query(models.ConstructionType).filter(models.ConstructionType.name.like(f"%{prop.vacantLandType}%")).first()
+                    similar_construction = _construction_type_by_like_name(prop.vacantLandType)
                     if similar_construction:
                         khali_jaga_rate = getattr(similar_construction, 'bandhmastache_dar', 0)
             # Calculate capital value and house tax for khali jaga using same logic as Namuna8
             # Get construction type for khali jaga (respect property vacantLandType)
-            khali_construction_type = db.query(models.ConstructionType).filter(
-                models.ConstructionType.name == prop.vacantLandType
-            ).first()
-            weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+            khali_construction_type = _construction_type_by_exact_name(prop.vacantLandType)
             capital_value = 0
             house_tax = 0
             if khali_area > 0 and khali_construction_type:
                 # Get user formula preference - same as Namuna8
-                userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-
-                if userFormulaPreference:
-                    formula1 = userFormulaPreference.capitalFormula1
-                    formula2 = userFormulaPreference.capitalFormula2
+                if general_setting:
+                    formula1 = general_setting.capitalFormula1
+                    formula2 = general_setting.capitalFormula2
                 else:
                     formula1 = None
                     formula2 = None
@@ -667,7 +755,7 @@ def get_property_records_by_village(
                 AreaInMeter = khali_area_m
                 AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
                 ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
-                depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
+                depreciationRate = _cached_depreciation_rate(datetime.now().year, khali_construction_type.name)
 
                 # Get usage weightage factor - same as Namuna8
                 usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
@@ -680,7 +768,7 @@ def get_property_records_by_village(
                 capital_value = round(capital_value, 2)
 
                 # Calculate house tax - exact same logic as Namuna8
-                house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(prop, 'gram_panchayat_id', None))
+                house_tax = _round_tax((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
 
             # Always emit a khaliJaga entry when vacantLandType is set, even if the
             # computed area is exactly 0, so reports show "0" instead of omitting the row.
@@ -700,8 +788,6 @@ def get_property_records_by_village(
                 "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
             }]
         # else: khaliJaga remains []
-        # Fetch weightage mapping for usage
-        weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
         construction_unit_disp_early = getattr(prop, 'constructionAreaUnit', None) or getattr(prop, 'areaUnit', 'sqft') or 'sqft'
         constructionType = [
             {
@@ -714,7 +800,7 @@ def get_property_records_by_village(
                 "usage": getattr(c, 'bharank', None),
                 "capitalValue": 0 if prop.karLaguNahi else c.capitalValue,
                 "houseTax": 0 if prop.karLaguNahi else c.houseTax,
-                "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name),
+                "depreciation_rate": _cached_depreciation_rate(c.constructionYear, c.construction_type.name),
                 "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
                 "taxRates": 0 if prop.karLaguNahi else getattr(c.construction_type, 'rate', 0),
                 **_construction_item_dual_unit_area(c.length, c.width, construction_unit_disp_early),
@@ -722,41 +808,6 @@ def get_property_records_by_village(
             for c in prop.constructions
         ]
         owner = prop.owners[0] if prop.owners else None
-        settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
-        water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
-        water_slab_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
-        def get_tax_by_area(area, field):
-            if not settings:
-                return 0
-            if area is None:
-                area = 0
-            if area <= 300:
-                return getattr(settings, field + 'Upto300', 0) or 0
-            elif 301 <= area <= 700:
-                return getattr(settings, field + '301_700', 0) or 0
-            else:
-                return getattr(settings, field + 'Above700', 0) or 0
-        def get_water_facility_price(facility):
-            if not facility:
-                return 0
-            if not water_settings or not water_slab_settings:
-                return 0
-            # Accept both spellings for 'सामान्य पाणीकर' and 'सामान्य पाणीकर'
-            if facility in ['सामान्य पाणीकर', 'सामान्य पाणीकर']:
-                return getattr(water_settings, 'generalWater', 0)
-            elif facility == 'घरगुती नळ':
-                return getattr(water_settings, 'houseTax', 0)
-            elif facility == 'व्यावसायिक नळ':
-                return getattr(water_settings, 'commercialTax', 0)
-            elif facility == 'करास पात्र नसलेली इमारत':
-                return getattr(water_settings, 'exemptRate', 0)
-            elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
-                return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-            elif facility == 'सामान्य पाणीकर ३०१ ते ७०० चौ. फु.':
-                return getattr(water_slab_settings, 'generalWater301_700', 0)
-            elif facility == 'सामान्य पाणीकर ७०० चौ. फु. वरील':
-                return getattr(water_slab_settings, 'generalWaterAbove700', 0)
-            return 0
         # Normalize total area based on property unit
         unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
         if unit == 'sqm':
@@ -895,9 +946,7 @@ def get_property_records_by_village(
             response["QRcodeURL"] = None
         
         # Set bank_qr_code only if gram panchayat image exists (bulk)
-        from location_management import helpers
-        image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
-        if image_path and os.path.exists(image_path):
+        if gp_image_path and os.path.exists(gp_image_path):
             response["bank_qr_code"] = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
 
         # Set signature_image only if a digital signature has been uploaded
