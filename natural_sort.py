@@ -123,27 +123,54 @@ def _segment_to_number(segment: str):
     return _english_words_to_number(trimmed)
 
 
+_DIGIT_RUN = re.compile(r"\d+")
+
+
+def _extract_segment_numbers(segment: str):
+    """एक तुकडा ("/" किंवा "-" ने विभागलेला) संख्येत बदलतो. आधी तो तुकडा जसाआहे तसाच एक
+    संख्या म्हणून वाचता येतो का बघतो (शुद्ध आकडा, मराठी/इंग्रजी शब्द, जसं आधीपासून
+    _segment_to_number करत होतं) - जेणेकरून "एक/दोन" सारखी जुनी उदाहरणं तशीच चालतील.
+    ते जमलं नाही (उदा. "1649 प्लॉट क्र. 3" सारखा शब्द+आकडा मिसळलेला मजकूर) तर, त्या
+    तुकड्यात कुठेही सापडणारे सगळे आकडे (मराठी आकडेही आधी इंग्रजीत बदलून), शब्द सोडून,
+    जसे दिसतात त्याच क्रमाने परत करतो - उदा. "1649 प्लॉट क्र. 33 ते 34" -> [1649, 33, 34].
+    आकडाच सापडला नाही तर रिकामी यादी (तो तुकडा क्रमवारीत काहीच भर घालत नाही)."""
+    whole = _segment_to_number(segment)
+    if whole is not None:
+        return [whole]
+    ascii_text = _devanagari_digits_to_ascii(segment)
+    return [int(d) for d in _DIGIT_RUN.findall(ascii_text)]
+
+
 def compare_malmatta_kramank(a, b) -> int:
     """Natural-order comparator for मालमत्ता क्रमांक values like "80", "80/1", "80/2",
-    "81" (digits, Marathi words, or English words) - compares numeric segments split
-    on "/" or "-" in order, so they sort by value, not text. Mirrors the frontend's
-    compareMalmattaKramank (Namuna8.tsx) exactly, including its tie-break fallback."""
+    "81" (digits, Marathi/English words, or free text with embedded numbers like
+    "1649 प्लॉट क्र. 3") - compares ALL numbers found (in "/"-or-"-" separated
+    segments, then within a segment if it isn't one clean number) in order, so they
+    sort by value, ignoring any surrounding words. Values with no number anywhere
+    always sort after values that have one; among two no-number values (or an exact
+    numeric tie), falls back to plain text comparison. Mirrors the frontend's
+    compareMalmattaKramank (Namuna8.tsx)."""
 
     def to_parts(v):
         s = str(v) if v is not None else ""
-        return [
-            seg_num if (seg_num := _segment_to_number(seg)) is not None else -1
-            for seg in re.split(r"[\/\-]", s)
-        ]
+        parts = []
+        for seg in re.split(r"[\/\-]", s):
+            parts.extend(_extract_segment_numbers(seg))
+        return parts
 
     pa = to_parts(a)
     pb = to_parts(b)
-    length = max(len(pa), len(pb))
-    for i in range(length):
-        na = pa[i] if i < len(pa) else -1
-        nb = pb[i] if i < len(pb) else -1
-        if na != nb:
-            return -1 if na < nb else 1
+    a_has_number = len(pa) > 0
+    b_has_number = len(pb) > 0
+    if a_has_number != b_has_number:
+        return -1 if a_has_number else 1
+    if a_has_number and b_has_number:
+        length = max(len(pa), len(pb))
+        for i in range(length):
+            na = pa[i] if i < len(pa) else -1
+            nb = pb[i] if i < len(pb) else -1
+            if na != nb:
+                return -1 if na < nb else 1
     sa = str(a) if a is not None else ""
     sb = str(b) if b is not None else ""
     if sa == sb:
