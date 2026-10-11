@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query
+from typing import Dict, Optional
 from sqlalchemy.orm import Session
 from database import get_db
 from datetime import datetime
@@ -36,9 +37,9 @@ def get_all_certificates(
     taluka_ids = set()
     gp_ids = set()
     # Simple caches to avoid repeated DB hits
-    district_cache: dict[int, str | None] = {}
-    taluka_cache: dict[int, str | None] = {}
-    gp_cache: dict[int, str | None] = {}
+    district_cache: Dict[int, Optional[str]] = {}
+    taluka_cache: Dict[int, Optional[str]] = {}
+    gp_cache: Dict[int, Optional[str]] = {}
 
     def get_district_name(district_id):
         if not district_id:

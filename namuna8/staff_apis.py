@@ -1,6 +1,7 @@
 import os
 import re
 import time
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
 from database import get_db
@@ -14,7 +15,7 @@ ALLOWED_STAFF_UPLOAD_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.pdf'}
 MAX_STAFF_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
-@router.get("/", response_model=list[schemas.StaffRead])
+@router.get("/", response_model=List[schemas.StaffRead])
 def list_staff(gram_panchayat_id: int = Query(...), db: Session = Depends(get_db)):
     return db.query(GramPanchayatStaff).filter(
         GramPanchayatStaff.gram_panchayat_id == gram_panchayat_id
