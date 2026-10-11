@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import Column, Integer, String, DateTime, Text
 from datetime import datetime, date
 from typing import List, Optional
+from Utility.sqlite_compat import query_all_in_chunks
 from namuna8 import namuna8_model as models, namuna8_schemas as schemas
 from database import get_db, Base
 from pydantic import BaseModel, validator
@@ -423,18 +424,18 @@ def get_property_history_bulk(
     property_ids = [prop.anuKramank for prop in properties]
     
     # Batch query property histories
-    property_histories = db.query(PropertyOwnerHistory).filter(
-        PropertyOwnerHistory.property_id.in_(property_ids)
-    ).all()
+    property_histories = query_all_in_chunks(
+        db.query(PropertyOwnerHistory), PropertyOwnerHistory.property_id, property_ids
+    )
     
     # Create lookup dictionary
     history_lookup = {ph.property_id: ph.id for ph in property_histories}
     
     # Batch query owner histories for all properties
     if history_lookup:
-        owner_histories = db.query(OwnerHistory).filter(
-            OwnerHistory.property_owner_history_id.in_(history_lookup.values())
-        ).all()
+        owner_histories = query_all_in_chunks(
+            db.query(OwnerHistory), OwnerHistory.property_owner_history_id, history_lookup.values()
+        )
         
         # Group owner histories by property
         owner_history_lookup = {}

@@ -15,6 +15,7 @@ from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text
 from location_management import models as location_models
 from typing import List
+from Utility.sqlite_compat import query_all_in_chunks
 from natural_sort import malmatta_kramank_sort_key
 import os
 import logging
@@ -43,17 +44,6 @@ def _owner_display_name(owner: dict) -> str:
         return f"{name} – भोगवटदार : {occupant}"
     return name
 backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
-
-# Python 3.7 bundles SQLite 3.31, which allows only 999 variables per query,
-# so a large IN (...) list is queried in chunks (sorted, to keep id order).
-SQLITE_IN_CHUNK_SIZE = 900
-
-def query_all_in_chunks(query, column, values):
-    values = sorted(set(values))
-    rows = []
-    for start in range(0, len(values), SQLITE_IN_CHUNK_SIZE):
-        rows.extend(query.filter(column.in_(values[start:start + SQLITE_IN_CHUNK_SIZE])).all())
-    return rows
 
 # दिलेल्या property साठी source_rec (मागचं वर्ष) वरून थकित मध्ये जाणारी रक्कम (शक्ती+चालू,
 # घरासाठी +दंड) काढतो - get_table_data च्या थकित लॉजिकसारखीच: आधी त्या वर्षातली साठवलेली
@@ -164,10 +154,11 @@ def copy_from_year(
     source_property_ids = set(source.property_ids or [])
     thakit_rows_updated = 0
     if source_property_ids:
-        target_saved_rows = db.query(namuna9_model.Namuna9PropertyData).filter(
-            namuna9_model.Namuna9PropertyData.namuna9_id == target.id,
-            namuna9_model.Namuna9PropertyData.property_id.in_(source_property_ids)
-        ).all()
+        target_saved_rows = query_all_in_chunks(
+            db.query(namuna9_model.Namuna9PropertyData).filter(namuna9_model.Namuna9PropertyData.namuna9_id == target.id),
+            namuna9_model.Namuna9PropertyData.property_id,
+            source_property_ids
+        )
         gp_id_for_fallback = getattr(target, 'gram_panchayat_id', None) or getattr(source, 'gram_panchayat_id', None)
 
         for row in target_saved_rows:
@@ -1387,14 +1378,14 @@ def get_property_records_by_village_regular(
     row_property_ids = [r.get('property_id') for r in table_rows if r.get('property_id') is not None]
     properties_by_id = {
         p.id: p
-        for p in (
+        for p in query_all_in_chunks(
             db.query(namuna8_model.Property)
             .options(
                 selectinload(namuna8_model.Property.owners),
                 selectinload(namuna8_model.Property.constructions).selectinload(namuna8_model.Construction.construction_type),
-            )
-            .filter(namuna8_model.Property.id.in_(row_property_ids))
-            .all()
+            ),
+            namuna8_model.Property.id,
+            row_property_ids
         )
     } if row_property_ids else {}
 
