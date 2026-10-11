@@ -121,11 +121,19 @@ def list_niradhar_certificates(
             jilha = gram_panchayat.name if gram_panchayat else None
         
         # Handle barcode URL
-        if cert.district_id and cert.taluka_id and cert.gram_panchayat_id:
-            cert_data.barcode_url = str(request.base_url)[:-1] + f"/certificates/niradhar_barcode/{cert.id}?district_id={cert.district_id}&taluka_id={cert.taluka_id}&gram_panchayat_id={cert.gram_panchayat_id}"
+        barcode_val = getattr(cert, 'barcode', None)
+        if barcode_val:
+            if str(barcode_val).startswith("http"):
+                cert_data.barcode_url = barcode_val
+            else:
+                # Construct barcode URL with location query parameters if available
+                if cert.district_id and cert.taluka_id and cert.gram_panchayat_id:
+                    cert_data.barcode_url = str(request.base_url)[:-1] + f"/certificates/niradhar_barcode/{cert.id}?district_id={cert.district_id}&taluka_id={cert.taluka_id}&gram_panchayat_id={cert.gram_panchayat_id}"
+                else:
+                    cert_data.barcode_url = str(request.base_url)[:-1] + f"/certificates/niradhar_barcode/{cert.id}"
         else:
-            cert_data.barcode_url = str(request.base_url)[:-1] + f"/certificates/niradhar_barcode/{cert.id}"
-        
+            cert_data.barcode_url = None
+
         # Attach readable names
         setattr(cert_data, 'gramPanchayat', gramPanchayat)
         setattr(cert_data, 'taluka', taluka)
