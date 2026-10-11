@@ -8,6 +8,7 @@ from namuna8 import namuna8_schemas as schemas
 from fastapi.responses import JSONResponse, FileResponse
 from namuna8.namuna8_schemas import PropertyReportDTO
 from typing import List, Optional
+from Utility.sqlite_compat import query_all_in_chunks
 from datetime import datetime
 from sqlalchemy import select
 from namuna8.namuna8_model import Namuna8SettingTax
@@ -2955,7 +2956,7 @@ def get_properties_bulk(
     
     # ids is a comma-separated string of property IDs
     id_list = [int(i) for i in ids.split(",") if i.strip().isdigit()]
-    properties = db.query(models.Property).filter(models.Property.anuKramank.in_(id_list)).all()
+    properties = query_all_in_chunks(db.query(models.Property), models.Property.anuKramank, id_list)
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 
 def get_tax_rate_by_area(db: Session, area: float, field: str, gram_panchayat_id: int):

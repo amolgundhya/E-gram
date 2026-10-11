@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+from Utility.sqlite_compat import query_all_in_chunks
 from database import get_db
 from ..namuna8_model import Owner, Property, ConstructionType
 import os
@@ -114,10 +115,11 @@ class OwnerTransferRequest(BaseModel):
 
 @router.post("/owners/transfer/")
 def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)):
-    owners = db.query(Owner).filter(
-        Owner.id.in_(request.owner_ids), 
-        Owner.village_id == request.from_village_id
-    ).all()
+    owners = query_all_in_chunks(
+        db.query(Owner).filter(Owner.village_id == request.from_village_id),
+        Owner.id,
+        request.owner_ids
+    )
     
     if not owners:
         raise HTTPException(status_code=404, detail="No owners found for transfer.")
