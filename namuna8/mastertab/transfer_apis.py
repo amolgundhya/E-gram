@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, Integer, String, DateTime, Text
-from datetime import datetime, date
+from datetime import datetime
 from typing import List, Optional
 from Utility.sqlite_compat import query_all_in_chunks
 from namuna8 import namuna8_model as models, namuna8_schemas as schemas
@@ -37,11 +37,19 @@ class TransferOwner(BaseModel):
     name: str
     wifeName: Optional[str] = None
     occupantName : Optional[str] = None
+
+def _date_only_to_datetime(value):
+    # pydantic 1 (Python 3.7) rejects a date-only "YYYY-MM-DD" for a datetime
+    # field; pydantic 2 (Windows 10) reads it as midnight - do the same here.
+    if isinstance(value, str) and len(value) == 10:
+        return datetime.strptime(value, "%Y-%m-%d")
+    return value
+
 class PropertyTransferCreate(BaseModel):
     property_id: int
-    date: date
+    date: datetime
     entry_no: str
-    transaction_date: Optional[date] = None  # Make optional
+    transaction_date: Optional[datetime] = None  # Make optional
     new_owners: List[TransferOwner]
     doc_note: Optional[str] = None
     register_note: Optional[str] = None
@@ -49,19 +57,20 @@ class PropertyTransferCreate(BaseModel):
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
 
+    _date_only = validator('date', 'transaction_date', pre=True, allow_reuse=True)(_date_only_to_datetime)
+
 class PropertyTransferLog(BaseModel):
     id: int
     property_id: int
-    date: date
+    date: datetime
     entry_no: str
-    transaction_date: date
+    transaction_date: datetime
     new_owners: List[TransferOwner]
     old_owners: List[TransferOwner]
     doc_note: Optional[str] = None
     register_note: Optional[str] = None
     created_at: datetime
-   
-    
+
 @router.post('/transfer/', response_model=PropertyTransferLog)
 def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db)):
     # Get property
@@ -71,7 +80,6 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
     
     # Get old owners for log
     old_owners = [TransferOwner(id=o.id, name=o.name, wifeName=o.wifeName, occupantName=o.occupantName) for o in prop.owners]
-
     
     # BEFORE TRANSFER: Save previous owners to PropertyOwnerHistory
     # Get or create PropertyOwnerHistory for this property
@@ -138,8 +146,8 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         else:
             db_owner = models.Owner(
                 name=owner.name, 
-                wifeName=owner.wifeName,
-                occupantName = 'स्वतः', 
+                wifeName=owner.wifeName, 
+                occupantName = 'स्वतः',
                 village_id=prop.village_id,
                 district_id=data.district_id,
                 taluka_id=data.taluka_id,
@@ -211,7 +219,6 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         totalTax_qr = rr.get('totaltax',0)
         # electricityTax = record_response.get('electricityTax', 0)
         totalTax = totalTax_qr - vpanikar_qr
-        # Construction area excluding 'खाली जागा' - mirror owner_transfer logic using build_property_response
         response = build_property_response(prop, db, prop.gram_panchayat_id)
         cons_area = sum(
             (c.get('length') or 0) * (c.get('width') or 0)
@@ -221,15 +228,25 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         cons_area = round(cons_area, 2)
         open_area = round(total_area - cons_area, 2)
 
+        # qr_data = {
+        #     "अनुक्रमांक": getattr(prop, 'anuKramank', None),
+        #     "मालकाचे नाव": owner_name,
+        #     # "mobileNumber": mobile_number,
+        #     "एकूण क्षेत्रफळ": total_area,
+        #     "बांधकाम क्षेत्रफळ": cons_area,
+        #     "खुली जागा": open_area,
+        #     "एकूण कर": totalTax,
+        # }
+        # if wife_name:
+        #     qr_data["पत्नीचे नाव"] = wife_name
+
         qr_data = {
-           # Marathi labels for QR display
-            # "मा. धा. ना.": owner_name,
+            # Marathi labels for QR display
+            "मा. धा. ना.": owner_name,
             "Mal. Kr." : getattr(prop, 'malmattaKramank', None),
             "T. A.": total_area,
             "T. T.": totalTax
         }
-        # if wife_name:
-        #     qr_data["पत्नीचे नाव"] = wife_name
 
         qr_dir = os.path.join(
             "uploaded_images", "qrcode",

@@ -1127,7 +1127,7 @@ def get_property_records_by_gram_panchayat(
                 # computed area is exactly 0, so reports show "0" instead of omitting the row.
                 khaliJaga = [{
                     "constructiontype": prop.vacantLandType or "खाली जागा",
-                    "length": round(khali_area_display, 2),
+                    "length": round(khali_area_display),
                     "width": 1,
                     "year": datetime.now().year,
                     "rate": khali_jaga_rate,

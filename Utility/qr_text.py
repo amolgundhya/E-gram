@@ -6,9 +6,8 @@ sticker QR, नाव प्लेट QR) समान, वाचनीय plain
 """
 
 
-# Windows 7/8: मालकाचे नाव QR मध्ये दाखवत नाही (commit b699d76 "removed owner name in qrcode").
-# Aditya कडून नक्की झाल्यावर True करायचं असेल तर फक्त हेच बदला.
-QR_INCLUDE_OWNER_NAME = False
+# मालकाचे नाव QR मजकुरात दाखवायचं की नाही (Windows 10 प्रमाणे: होय).
+QR_INCLUDE_OWNER_NAME = True
 
 
 def _unit_label(unit: str) -> str:

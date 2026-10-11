@@ -1,4 +1,3 @@
-import math
 from fastapi import APIRouter, Depends, HTTPException, status, Body, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 import database
@@ -1398,7 +1397,7 @@ def get_bulk_edit_property_list(
             malmattaKramank=p.malmattaKramank,
             ownerName=owner_name,
             occupant=occupant_name,  # Always 'self' for now
-            gharKar=0 if karLaguNahi else math.ceil(total_house_tax),  # Win8 rounding (pending confirmation from Aditya)
+            gharKar=0 if karLaguNahi else round(total_house_tax, 2),
             divaKar=diva_kar,
             aarogyaKar=aarogya_kar,
             cleaningTax=cleaning_tax,
