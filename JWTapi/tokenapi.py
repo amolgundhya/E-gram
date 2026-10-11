@@ -650,6 +650,27 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
                                     pass
             return row
 
+        # 4b. Safety backup: copy the current local DB file before it gets
+        # overwritten. This import is destructive and irreversible (a client
+        # once lost all their data by clicking "Start Import" without
+        # realizing it wipes the local DB) - so we keep a local recovery
+        # point before proceeding, and abort entirely if the backup fails.
+        import os
+        import shutil
+        db_file_path = os.path.join(database.database_path, "grampanchayat.db")
+        backup_dir = os.path.join(database.database_path, "backups_before_import")
+        os.makedirs(backup_dir, exist_ok=True)
+        backup_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = os.path.join(backup_dir, f"grampanchayat_before_import_{backup_timestamp}.db")
+        try:
+            db.execute(text("PRAGMA wal_checkpoint(FULL);"))
+            shutil.copy2(db_file_path, backup_path)
+        except Exception as backup_error:
+            return {
+                "success": False,
+                "message": f"Import रद्द केलं - डेटा ओव्हरराईट करण्याआधी सुरक्षा बॅकअप घेता आला नाही ({backup_error}). तुमचा सध्याचा डेटा बदललेला नाही.",
+            }
+
         # 5. Transaction block: delete + insert
         with db.begin():
             db.execute(text("PRAGMA foreign_keys = OFF;"))
@@ -708,7 +729,11 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
 
         db.commit()
         print("DEBUG: Transaction committed successfully")
-        return {"success": True, "message": "Local DB replaced with hosted data"}
+        return {
+            "success": True,
+            "message": "Local DB replaced with hosted data",
+            "backup_path": backup_path,
+        }
 
     except Exception as e:
         return {"success": False, "message": str(e)}

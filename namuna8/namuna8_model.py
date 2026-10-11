@@ -67,6 +67,10 @@ class Property(Base):
     safaiKar: Mapped[bool] = mapped_column(default=False)
     shauchalayKar: Mapped[bool] = mapped_column(default=False)
     karLaguNahi: Mapped[bool] = mapped_column(default=False)
+    dwarPurv: Mapped[bool] = mapped_column(default=False)
+    dwarPashchim: Mapped[bool] = mapped_column(default=False)
+    dwarUttar: Mapped[bool] = mapped_column(default=False)
+    dwarDakshin: Mapped[bool] = mapped_column(default=False)
     gharKar: Mapped[float] = mapped_column(default=0)
     vacantLandType: Mapped[str] = mapped_column("vacantLandType", nullable=True)
     eastBoundary2: Mapped[str] = mapped_column(nullable=True)
@@ -76,7 +80,11 @@ class Property(Base):
     waterFacility1: Mapped[str] = mapped_column(nullable=True)
     waterFacility2: Mapped[str] = mapped_column(nullable=True)
     toilet: Mapped[str] = mapped_column(nullable=True)
+    toiletBenefitYear: Mapped[str] = mapped_column(nullable=True)  # शौचालय योजना लाभ वर्ष
     roofType: Mapped[str] = mapped_column(nullable=True)
+    gharkul: Mapped[str] = mapped_column(nullable=True)  # घरकुल: आहे/नाही
+    gharkulYojana: Mapped[str] = mapped_column(nullable=True)  # घरकुल योजनेचे नाव
+    gharkulBenefitYear: Mapped[str] = mapped_column(nullable=True)  # घरकुल योजना लाभ वर्ष
     eastLength: Mapped[float] = mapped_column(nullable=True)
     westLength: Mapped[float] = mapped_column(nullable=True)
     northLength: Mapped[float] = mapped_column(nullable=True)
@@ -84,12 +92,23 @@ class Property(Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(default=datetime.now)
     areaUnit: Mapped[str] = mapped_column(nullable=True)
+    # बांधकामाचे प्रकार तक्त्यातील लांबी/रुंदी कोणत्या एककात आहेत - areaUnit (एकूण जागेचे
+    # एकक) पेक्षा वेगळं असू शकतं, त्यामुळे वेगळं साठवतो. रिकामं असल्यास areaUnit प्रमाणेच धरायचं.
+    constructionAreaUnit: Mapped[str] = mapped_column(nullable=True)
     totalArea: Mapped[float] = mapped_column(nullable=True)
     qrcode: Mapped[str] = mapped_column(nullable=True)  # Path/URL to QR code image
     constructions = relationship("Construction", back_populates="property", cascade="all, delete-orphan")
     owners = relationship("Owner", secondary=property_owner_association, back_populates="properties")
     remarks: Mapped[str] = mapped_column(nullable=True)
-   
+    # यादीतला डिस्प्ले-क्रम - मालमत्ता क्रमांकाच्या मजकुरावरून काढलेल्या नैसर्गिक
+    # क्रमवारीऐवजी हाच वापरायचा, जेणेकरून "Insert" ने घातलेली मालमत्ता निवडलेल्या
+    # मालमत्तेनंतर लगेच दिसेल, तिचा मालमत्ता क्रमांक काहीही असो. अ.क्र. (anuKramank) पासून
+    # पूर्णपणे वेगळं - तो कधीच बदलत नाही.
+    sort_order: Mapped[float] = mapped_column(nullable=True)
+    # आजी/माजी सैनिक - प्रत्येक मालमत्तेनुसार (MASTER मधल्या जुन्या ग्लोबल सेटिंगऐवजी).
+    # टिक असल्यास प्रिंट्सवर सैनिक टीप दाखवायची.
+    exServiceman: Mapped[bool] = mapped_column(default=False)
+
 
 class ConstructionType(Base):
     __tablename__ = "construction_types"
@@ -144,6 +163,8 @@ class Namuna8SettingChecklist(Base):
     boundaryMarking = Column(Boolean, default=False)
     aadharCard = Column(Boolean, default=False)
     mobileNumberAdd = Column(Boolean, default=False)
+    pageNumber = Column(Boolean, default=False)
+    exportPassword = Column(String, nullable=True)  # Excel export उघडण्यासाठी पासवर्ड - रिकामं असेल तर पासवर्डशिवाय export होतो
 
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -161,9 +182,11 @@ class Namuna8DropdownAddSettings(Base):
     reassessmentYear = Column(Integer)
     exemptionCount = Column(Integer)
     anukramank_id = Column(String, nullable=True)
+    # कर रक्कम राउंडिंग - "ceil" (नेहमी वरचा रुपया, डिफॉल्ट) किंवा "half_up" (साधारण नियम).
+    taxRoundingMode = Column(String, nullable=True, default="ceil")
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
 class Namuna8SettingTax(Base):
     __tablename__ = "namuna8SettingTax"
 

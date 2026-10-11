@@ -136,7 +136,7 @@
     <td style="text-align:left; padding:4px;">In this year {{year}} Below poverty line list no.{{ record_no | default('') }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">श्री / श्रीमती {{ applicant_name | default('') }}  हा/हि/ह्याचा/त्याचा {{ relation | default('') }} आहे.</td>
+    <td style="text-align:left; padding:4px;">श्री / श्रीमती {{ applicant_name | default('') }}  हा/हि/ह्याचा/त्याचा {% if relation %}{{ relation }}{% elif relation_en == 'Self' %}स्वतः{% elif relation_en == 'Son' %}मुलगा{% elif relation_en == 'Daughter' %}मुलगी{% elif relation_en == 'Wife' %}पत्नी{% elif relation_en == 'Sister' %}बहिण{% elif relation_en == 'Brother' %}भाऊ{% elif relation_en == 'Other' %}इतर{% endif %} आहे.</td>
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">Mr./Mrs. {{ applicant_name_en | default('') }}  He/She/His/Her Self  {{ relation_en | default('') }} In Relation</td>
@@ -162,7 +162,7 @@
     <td style="width:33%; text-align:right; vertical-align:top; padding:8px;">
       सही व शिक्का<br>
       (Signature with Seal)<br>
-      सरपंच/ग्रामसेवक/ग्रामविकास अधिकारी
+      सरपंच / ग्रामपंचायत अधिकारी
     </td>
   </tr>
 </table>

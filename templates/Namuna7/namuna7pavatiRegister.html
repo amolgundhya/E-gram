@@ -45,7 +45,7 @@
         }
         @media print {
             @page {
-                size: A4 portrait;
+                size: A4;
             }
             #toolbar {
                 display: none !important;
@@ -191,6 +191,7 @@
             <th >पावती दिनांक</th>
             <th >पावती क्रमांक</th>
             <th >पावती बु. क्र.</th>
+            <th >मालमत्ता क्रमांक</th>
             <th >पावती धारकाचे नाव</th>
             <th >‍‍‍‍भोगवटदाराचे नाव</th>
             <th >रक्कम देण्याचे कारण </th>
@@ -199,10 +200,11 @@
         {% set ns = namespace(total=0) %}
         {% for row in data %}
         <tr class="record-row">
-            <td>{{ row.srNo }}</td>
+            <td>{{ row.propertySrNo if row.propertySrNo is not none else '' }}</td>
             <td>{{ row.receiptDate }}</td>
             <td>{{ row.receiptNumber }}</td>
             <td>{{ row.receiptBookNumber }}</td>
+            <td>{{ row.malmattaKramank }}</td>
             <td>{{ row.ownername }}</td>
             <td>{{ row.occupant }}</td>
             <td>{{ row.reason }}</td>
@@ -211,7 +213,7 @@
         {% set ns.total = ns.total + (row.receivedMoney | float) %}
         {% endfor %}
         <tr>
-            <td colspan="7" class="right bold">एकूण</td>
+            <td colspan="8" class="right bold">एकूण</td>
             <td>{{ ns.total }}</td>
         </tr>
     </table>

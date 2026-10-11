@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+from Utility.sqlite_compat import query_all_in_chunks
 from database import get_db
 from ..namuna8_model import Owner, Property, ConstructionType
 import os
@@ -114,10 +115,11 @@ class OwnerTransferRequest(BaseModel):
 
 @router.post("/owners/transfer/")
 def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)):
-    owners = db.query(Owner).filter(
-        Owner.id.in_(request.owner_ids), 
-        Owner.village_id == request.from_village_id
-    ).all()
+    owners = query_all_in_chunks(
+        db.query(Owner).filter(Owner.village_id == request.from_village_id),
+        Owner.id,
+        request.owner_ids
+    )
     
     if not owners:
         raise HTTPException(status_code=404, detail="No owners found for transfer.")
@@ -278,12 +280,24 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
             constructionArea = round(constructionArea, 2)
             openArea = round(totalArea - constructionArea, 2)
 
+            # qr_data = {
+            #     "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
+            #     "मालकाचे नाव": owner_name,
+            #     # "mobileNumber": mobile_number,
+            #     "एकूण क्षेत्रफळ": totalArea,
+            #     "बांधकाम क्षेत्रफळ": constructionArea,
+            #     "खुली जागा": openArea,
+            #     "एकूण कर": totalTax,
+            # }
+            # if wife_name:
+            #     qr_data["पत्नीचे नाव"] = wife_name
+
             qr_data = {
-                # Marathi labels for QR display
-                # "मा. धा. ना.": owner_name,
-                "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
-                "T. A.": totalArea,
-                "T. T.": totalTax
+                    # Marathi labels for QR display
+                    "मा. धा. ना.": owner_name,
+                    "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
+                    "T. A.": totalArea,
+                    "T. T.": totalTax
             }
 
             qr_dir = os.path.join(

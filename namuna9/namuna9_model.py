@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, Table, ForeignKe
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
+from Utility import pickle_compat
 import uuid
 
 namuna9_property_association = Table(
@@ -104,7 +105,7 @@ class Namuna9(Base):
     yearslap = Column(String(9), nullable=False)
     villageId = Column(String(36), nullable=False)
     grampanchayatId = Column(String(36), nullable=False)
-    property_ids = Column(PickleType, nullable=True)  # List of property IDs
+    property_ids = Column(PickleType(protocol=pickle_compat.PROTOCOL, pickler=pickle_compat), nullable=True)  # List of property IDs
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
     district_id = Column(Integer, ForeignKey("districts.id"), nullable=True)
@@ -147,3 +148,11 @@ class Namuna9Receipt(Base):
     vasuliWarrantFee = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
+
+    # सॉफ्ट-डिलीट: पावती कधीच पूर्णपणे काढायची नाही (client requirement) - फक्त
+    # is_deleted=True करून लपवायची. is_deleted=False वाल्याच सगळीकडे (बॅलन्स,
+    # ९क/९क2, एक्सपोर्ट, पावती यादी) मोजायच्या.
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_by = Column(String, nullable=True)
+    delete_reason = Column(Text, nullable=True)
