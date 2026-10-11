@@ -1,0 +1,14 @@
+Vendored copy of msoffcrypto-tool 5.4.2 (MIT licence, see LICENSE.txt and NOTICE.txt).
+
+Source: https://pypi.org/project/msoffcrypto-tool/5.4.2/
+        msoffcrypto_tool-5.4.2-py3-none-any.whl
+        sha256 274fe2181702d1e5a107ec1b68a4c9fea997a44972ae1cc9ae0cb4f6a50fef0e
+
+Why vendored: the Windows 7/8 build runs on Python 3.7. Password-protected
+Excel export needs OOXMLFile.encrypt(), which only exists in 5.2.0 and later,
+and those releases declare Requires-Python >=3.8, so pip refuses them on 3.7.
+The 5.4.2 code itself runs on Python 3.7 (tested), so it is kept here
+unmodified. Its dependencies (cryptography>=39.0, olefile>=0.46) are pinned in
+requirements.txt.
+
+Do not edit these files; to update, replace the folder with a newer release.
