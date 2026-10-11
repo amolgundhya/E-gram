@@ -24,6 +24,18 @@ router = APIRouter(
     tags=["namuna9"]
 )
 backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
+
+# Python 3.7 bundles SQLite 3.31, which allows only 999 variables per query,
+# so a large IN (...) list is queried in chunks (sorted, to keep id order).
+SQLITE_IN_CHUNK_SIZE = 900
+
+def query_all_in_chunks(query, column, values):
+    values = sorted(set(values))
+    rows = []
+    for start in range(0, len(values), SQLITE_IN_CHUNK_SIZE):
+        rows.extend(query.filter(column.in_(values[start:start + SQLITE_IN_CHUNK_SIZE])).all())
+    return rows
+
 @router.post("/copy-from-year")
 def copy_from_year(
     payload: dict,
@@ -384,9 +396,11 @@ def get_table_data(
         
         if thakit_rec and thakit_rec.property_ids:
             # Get property data from thakit year
-            thakit_properties = db.query(namuna8_model.Property).filter(
-                namuna8_model.Property.id.in_([int(i) for i in thakit_rec.property_ids])
-            ).all()
+            thakit_properties = query_all_in_chunks(
+                db.query(namuna8_model.Property),
+                namuna8_model.Property.id,
+                [int(i) for i in thakit_rec.property_ids]
+            )
             
             # Create a map of property number to thakit data
             for thakit_prop in thakit_properties:
@@ -432,8 +446,11 @@ def get_table_data(
     saved_data_map = {data.property_id: data for data in saved_property_data}
     
     # Fetch all property details
-    properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.id.in_([int(i) for i in property_ids]),
-                                                         namuna8_model.Property.village_id == villageId).all()
+    properties = query_all_in_chunks(
+        db.query(namuna8_model.Property).filter(namuna8_model.Property.village_id == villageId),
+        namuna8_model.Property.id,
+        [int(i) for i in property_ids]
+    )
     rows = []
     for idx, prop in enumerate(properties, 1):
         prop_data = build_property_response(prop, db, gram_panchayat_id)
@@ -723,9 +740,11 @@ def get_namuna9_table_data_custom(
             namuna9_model.Namuna9.yearslap == thakit_year
         ).first()
         if thakit_rec and thakit_rec.property_ids:
-            thakit_properties = db.query(namuna8_model.Property).filter(
-                namuna8_model.Property.id.in_([int(i) for i in thakit_rec.property_ids])
-            ).all()
+            thakit_properties = query_all_in_chunks(
+                db.query(namuna8_model.Property),
+                namuna8_model.Property.id,
+                [int(i) for i in thakit_rec.property_ids]
+            )
             for thakit_prop in thakit_properties:
                 thakit_prop_data = build_property_response(thakit_prop, db, gram_panchayat_id)
                 thakit_constructions = db.query(namuna8_model.Construction).filter(
@@ -750,8 +769,11 @@ def get_namuna9_table_data_custom(
                     'chaluCleaningTax': t_clean
                 }
 
-    properties = db.query(namuna8_model.Property).filter(namuna8_model.Property.id.in_([int(i) for i in property_ids]),
-                                                         namuna8_model.Property.village_id == villageId).all()
+    properties = query_all_in_chunks(
+        db.query(namuna8_model.Property).filter(namuna8_model.Property.village_id == villageId),
+        namuna8_model.Property.id,
+        [int(i) for i in property_ids]
+    )
     rows = []
     for idx, prop in enumerate(properties, 1):
         prop_data = build_property_response(prop, db, gram_panchayat_id)
