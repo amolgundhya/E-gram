@@ -66,7 +66,7 @@ class Construction(BaseModel):
     gram_panchayat_id: Optional[int] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 # --- Property Schemas ---
 class PropertyBase(BaseModel):
@@ -140,7 +140,7 @@ class PropertyRead(PropertyBase):
     sort_order: Optional[float] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class PropertyUpdate(PropertyBase):
     owners: List[OwnerUpdate]

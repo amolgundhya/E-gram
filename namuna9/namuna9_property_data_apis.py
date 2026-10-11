@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import database
 from namuna9 import namuna9_model, namuna9_schemas
 from namuna9.namuna9_schemas import Namuna9PropertyDataCreate, Namuna9PropertyDataUpdate, Namuna9PropertyDataRead, Namuna9BulkPropertyDataUpdate, Namuna9Collect, Namuna9ReceiptCreate, Namuna9ReceiptRead
-from typing import List , Optional
+from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from location_management import models as location_models
@@ -154,7 +154,7 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
     print(f"Found Namuna9 record: villageId={namuna9_record.villageId}, yearslap={namuna9_record.yearslap}")
     
     # Merge multiple updates per property_id to avoid duplicate inserts in one transaction
-    merged_by_property: dict[int, dict] = {}
+    merged_by_property: Dict[int, dict] = {}
     for item in bulk_data.property_data:
         pid = item.property_id
         if pid not in merged_by_property:
