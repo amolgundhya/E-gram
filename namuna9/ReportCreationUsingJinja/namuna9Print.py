@@ -140,7 +140,8 @@ async def namuna10_hishob_by_village(request: Request):
                         "gram_panchayat_id": gram_panchayat_id,
                         "from_date": from_date,
                         "to_date": to_date,
-                    }
+                    },
+                    timeout=300.0
                 )
             else:
                 response = await client.get(

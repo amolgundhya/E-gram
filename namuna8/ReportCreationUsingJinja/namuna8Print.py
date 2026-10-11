@@ -1839,7 +1839,7 @@ async def singlePrint(request : Request):
                 'taluka_id': requestData.get('taluka_id'),
                 "village_id" : villageID,
                 'gram_panchayat_id': requestData.get('gram_panchayat_id')
-            })
+            },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
@@ -1889,7 +1889,7 @@ async def singlePrint(request : Request):
                 "village_id" : villageID,
                 'taluka_id': requestData.get('taluka_id'),
                 'gram_panchayat_id': requestData.get('gram_panchayat_id')
-            })
+            },timeout=30.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
