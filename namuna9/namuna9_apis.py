@@ -20,8 +20,10 @@ from natural_sort import malmatta_kramank_sort_key
 import os
 import logging
 
+# UTF-8 so Marathi text can be logged (Python 3.7's basicConfig has no
+# encoding argument and would use the Windows code page).
 logging.basicConfig(
-    filename="namuna9_logs.txt",
+    handlers=[logging.FileHandler("namuna9_logs.txt", encoding="utf-8")],
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
