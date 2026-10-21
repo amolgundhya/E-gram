@@ -1,3 +1,10 @@
+import multiprocessing
+if __name__ == "__main__":
+    # Must run before anything else: in the PyInstaller exe a worker process
+    # (डिजिटल नेम प्लेट QR codes) starts this same script and stops here,
+    # without loading the whole app.
+    multiprocessing.freeze_support()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -527,5 +534,10 @@ def serve_react_index():
     return FileResponse(os.path.join("static", "index.html"))
 
 if __name__ == "__main__":
+    # Windows multiprocessing: spawn (freeze_support() is called at the top of this file)
+    try:
+        multiprocessing.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
