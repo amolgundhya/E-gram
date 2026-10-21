@@ -6,6 +6,7 @@ from fastapi import APIRouter , Request
 from fastapi.responses import JSONResponse
 from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text, build_area_lines, build_gp_heading
+from Utility import fast_qr
 import httpx
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -2195,7 +2196,12 @@ async def nameplate_sheet(request: Request):
     """डिजिटल नेम प्लेट - many QR name plates arranged on one 12x18in sheet,
     at a uniform, configurable plate size (default 6x5in) for consistent
     machine cutting. Follows the same open-HTML-and-let-the-browser-print-to-PDF
-    pattern used by every other report in this app."""
+    pattern used by every other report in this app.
+
+    पूर्ण गावाचं पान मोठं (~10 MB) होतं, म्हणून भागांत (parts) काढता येतं - पर्यायी:
+      partSize + part     : उदा. partSize=300, part=2 -> 301 ते 600 वी मालमत्ता (यादीतील क्रमाने)
+      fromSrNo / toSrNo   : अ.क्र. पासून - पर्यंत (दोन्ही धरून)
+    काहीच न दिल्यास पूर्ण गाव, पूर्वीप्रमाणेच."""
     try:
         requestData = await request.json()
         villageId = requestData.get("villageID")
@@ -2204,6 +2210,10 @@ async def nameplate_sheet(request: Request):
         gram_panchayat_id = requestData.get("gram_panchayat_id")
         plate_width_in = requestData.get("plateWidthIn", 6)
         plate_height_in = requestData.get("plateHeightIn", 5)
+        part_size = int(requestData.get("partSize") or 0)
+        part_no = int(requestData.get("part") or 1)
+        from_sr = requestData.get("fromSrNo")
+        to_sr = requestData.get("toSrNo")
 
         base_url = str(request.base_url).rstrip('/')
         async with httpx.AsyncClient() as client:
@@ -2222,11 +2232,33 @@ async def nameplate_sheet(request: Request):
         properties = response.json()
         if not isinstance(properties, list):
             properties = [properties]
+        total_count = len(properties)
+
+        # भाग निवड (पर्यायी) - अ.क्र. पासून/पर्यंत, किंवा partSize चे part वे भाग
+        def _sr(prop):
+            try:
+                return int(prop.get("srNo"))
+            except (TypeError, ValueError):
+                return None
+        if from_sr not in (None, "") or to_sr not in (None, ""):
+            lo = int(from_sr) if from_sr not in (None, "") else None
+            hi = int(to_sr) if to_sr not in (None, "") else None
+            properties = [p for p in properties if _sr(p) is not None
+                          and (lo is None or _sr(p) >= lo) and (hi is None or _sr(p) <= hi)]
+        parts = 1
+        if part_size > 0:
+            parts = max(1, -(-len(properties) // part_size))
+            part_no = min(max(1, part_no), parts)
+            properties = properties[(part_no - 1) * part_size: part_no * part_size]
+
+        # सगळे QR एकाच वेळी - same QR images as before (fast_qr), cache + parallel
+        qr_texts = [build_property_qr_text(prop, parent_gp_name, year_label) for prop in properties]
+        os.makedirs(static_dir, exist_ok=True)
+        qr_uris, qr_stats = fast_qr.png_data_uris(qr_texts, cache_path=os.path.join(static_dir, "qr_cache.sqlite"))
 
         tagline = "वेळेत कर भरा आणि गावाचा विकास साधा"
         plates = []
-        for prop in properties:
-            qr_text = build_property_qr_text(prop, parent_gp_name, year_label)
+        for prop, qr_uri in zip(properties, qr_uris):
             plates.append({
                 "sr_no": prop.get("srNo"),
                 "gram_panchayat_name": prop.get("gramPanchayat"),
@@ -2240,7 +2272,7 @@ async def nameplate_sheet(request: Request):
                 "construction_area_sqft": prop.get("totalconstructionareainfoot"),
                 "tagline": tagline,
                 "area_lines": build_area_lines(prop),
-                "qrcode": QRCodeGeneration.createQRcodeTextDataUri(qr_text),
+                "qrcode": qr_uri,
             })
 
         # /ReportImages is mounted as a top-level static route (see main.py), so an
@@ -2265,7 +2297,15 @@ async def nameplate_sheet(request: Request):
             content={
                 "success": True,
                 "message": "Output file is created",
-                "data": {"count": len(plates)}
+                "data": {
+                    "count": len(plates),
+                    "total": total_count,
+                    "part": part_no if part_size > 0 else 1,
+                    "parts": parts,
+                    "fromSrNo": plates[0]["sr_no"] if plates else None,
+                    "toSrNo": plates[-1]["sr_no"] if plates else None,
+                    "qr": qr_stats,
+                }
             }
         )
 
