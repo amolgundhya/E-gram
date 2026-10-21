@@ -26,7 +26,7 @@
         }
         @media print {
             @page {
-                size: A4;
+                size: A4 landscape;
             }
             #toolbar {
                 display: none !important;
@@ -177,6 +177,9 @@
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
             <tr>
+                <th rowspan="3" style="min-width:32px;">अ.क्र.</th>
+                <th rowspan="3" style="min-width:56px;">मालमत्ता क्रमांक</th>
+                <th rowspan="3" style="min-width:120px;">मालमत्ता धारकाचे नाव</th>
                 <th rowspan="3" style="min-width:48px;">‍‍भोगवटदाराचे नाव</th>
                 <th colspan="3" style="min-width:32px;">मागणी</th>
                 <th rowspan="2" style="min-width:48px;">सुट</th>
@@ -198,6 +201,9 @@
 
             {% for row in data %}
             <tr class="record-row">
+                <td>{{ row.srNo }}</td>
+                <td>{{ row.propertyNumber }}</td>
+                <td>{{ row.ownerName }}</td>
                 <td>{{ row.occupant }}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitSaWaterTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.saWaterTax}}{% endif %}</td>
@@ -210,7 +216,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="2"></td>
+                <td colspan="5"></td>
                 <td style="font-weight:normal; text-align:right;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>
