@@ -270,7 +270,7 @@
         <td rowspan="2" style="text-align: left;">{{roadName|default('')}}</td>
         <td rowspan="2">{{cityWardGatNumber|default('')}}</td>
         <td rowspan="2">{{propertyNumber|default('')}}</td>
-        <td rowspan="2" style="text-align: left;">{{ownerName|default('')|replace(' / ', ' पत्‍नी ')|replace('/', ' पत्‍नी ')}}{% if ownerWifeName %} पत्‍नी {{ownerWifeName}}{% endif %}</td>
+        <td rowspan="2" style="text-align: left;">{{ownerName|default('')}}{% if ownerWifeName %} पत्‍नी {{ownerWifeName}}{% endif %}</td>
         <td rowspan="2">{{occupantName|default('')}}</td>
         <td rowspan="2" style="text-align: left;">
             {{constructionType[0].type if constructionType and constructionType|length > 0 else ''}}<br>
