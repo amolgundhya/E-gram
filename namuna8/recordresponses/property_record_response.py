@@ -42,8 +42,10 @@ def compute_display_sr_no(db, village_id, anu_kramank) -> int:
 
 
 def _build_qrcode_url(prop, qr_path: str) -> str:
-    """Build QR URL with version token to avoid stale cached images."""
-    version = int(os.path.getmtime(qr_path))
+    """Build QR URL with version token to avoid stale cached images. If the QR file
+    is missing here, /namuna8/property_qrcode generates it on first request (so the
+    print never shows an empty QR box); version 0 until then."""
+    version = int(os.path.getmtime(qr_path)) if os.path.exists(qr_path) else 0
     return (
         f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}"
         f"?district_id={prop.district_id}&taluka_id={prop.taluka_id}"
@@ -506,10 +508,7 @@ def get_property_record(
     # Set QRcodeURL if QR code exists (single property)
     # Use location-based QR path
     qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id), str(prop.village_id),str(prop.anuKramank), "qrcode.png")
-    if os.path.exists(qr_path):
-        response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)
-    else:
-        response["QRcodeURL"] = None
+    response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)  # missing file -> made on request
     
     # Set bank_qr_code only if gram panchayat image exists
     from location_management import helpers
@@ -940,10 +939,7 @@ def get_property_records_by_village(
         # Set QRcodeURL if QR code exists (bulk)
         # Use location-based QR path
         qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id),str(prop.village_id), str(prop.anuKramank), "qrcode.png")
-        if os.path.exists(qr_path):
-            response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)
-        else:
-            response["QRcodeURL"] = None
+        response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)  # missing file -> made on request
         
         # Set bank_qr_code only if gram panchayat image exists (bulk)
         if gp_image_path and os.path.exists(gp_image_path):
@@ -1327,10 +1323,7 @@ def get_property_records_by_gram_panchayat(
             response["photoURL"] = photo_url
 
             qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id),str(prop.village_id), str(prop.anuKramank), "qrcode.png")
-            if os.path.exists(qr_path):
-                response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)
-            else:
-                response["QRcodeURL"] = None
+            response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)  # missing file -> made on request
 
             from location_management import helpers
             image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
