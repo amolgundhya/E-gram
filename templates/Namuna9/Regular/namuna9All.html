@@ -70,19 +70,22 @@
            min-width entirely - a <colgroup> is the one reliable way to size
            every column (name wide, numbers narrow) regardless of which
            header row's cells happen to span them. */
-        .main-table col.col-sr { width: 2.5%; }
-        .main-table col.col-property { width: 3.5%; }
+        .main-table col.col-sr { width: 2%; }
+        .main-table col.col-property { width: 3%; }
         .main-table col.col-name { width: 14.3%; }
-        .main-table col.col-occupant { width: 4%; }
+        .main-table col.col-occupant { width: 5%; }
         .main-table col.col-num { width: 4.2%; }
         .main-table col.col-total { width: 4.5%; }
         .main-table col.col-receipt { width: 4%; }
         /* ONE rule for every header cell in this table - same size, weight,
-           colour everywhere, no per-column overrides. 10px is small enough
-           that even the longest header (भोगवटदाराचे नाव, which has no space
-           to break on within its ~4% column) still wraps to 2 lines, not 3. */
+           colour everywhere, no per-column overrides. Same size as the data
+           rows (12px) and bold, like the गोषवारा labels. भोगवटदाराचे नाव's
+           column is widened slightly (borrowing from अ.क्र./मिळकत नंबर,
+           which have plenty of slack) so it still wraps to 2 lines at this
+           size instead of 3 - at 12px (or even 11px) it didn't fit in 2
+           lines within its original narrower column. */
         .main-table th {
-            font-size: 10px;
+            font-size: 12px;
             font-weight: bold;
             color: #000;
             white-space: normal;
