@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body, Query, UploadFile, File, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 import database
 from namuna8 import namuna8_model as models
 from namuna8.mastertab import mastertabmodels as settingModels
@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from namuna8.namuna8_schemas import PropertyReportDTO
 from typing import List, Optional
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, literal_column
 from namuna8.namuna8_model import Namuna8SettingTax
 from sqlalchemy.exc import SQLAlchemyError
 from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate
@@ -19,8 +19,10 @@ import shutil
 import time
 import re
 from Utility.QRcodeGeneration import QRCodeGeneration
-from Utility.qr_text import build_property_qr_text, build_area_lines
+from Utility.qr_text import build_property_qr_text_short, build_area_lines
 from Utility.tax_rounding import round_tax_amount
+from Utility import fast_qr
+import threading
 from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no
 from namuna8.mastertab.mastertabmodels import GeneralSetting, BuildingUsageWeightage
 from location_management import models as location_models
@@ -441,7 +443,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 qr_path = os.path.join(qr_dir, "qrcode.png")
                 parent_gp_name_qr = getattr(gram_panchayat, 'parent_gram_panchayat_name', None) if gram_panchayat else None
                 year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
-                qr_text = build_property_qr_text(record_response, parent_gp_name_qr, year_label_qr)
+                qr_text = build_property_qr_text_short(record_response)
                 QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
                 db_property.qrcode = qr_path.replace(os.sep, "/")
                 db.flush()
@@ -1083,7 +1085,7 @@ def update_namuna8_entry(
         gram_panchayat_qr = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
         parent_gp_name_qr = getattr(gram_panchayat_qr, 'parent_gram_panchayat_name', None) if gram_panchayat_qr else None
         year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
-        qr_text = build_property_qr_text(record_response, parent_gp_name_qr, year_label_qr)
+        qr_text = build_property_qr_text_short(record_response)
         QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
         db_property.qrcode = qr_path.replace(os.sep, "/")
         db.commit()
@@ -2562,14 +2564,93 @@ def get_properties_by_village(
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
     
+    # owners / constructions / construction types loaded in one batch each, and the
+    # tax settings once - previously ~5 queries per property (10,000+ for a big village)
     properties = (
         db.query(models.Property)
+        .options(
+            selectinload(models.Property.owners),
+            selectinload(models.Property.constructions).selectinload(models.Construction.construction_type),
+        )
         .filter(models.Property.village_id == village_id)
         .order_by(models.Property.sort_order)
         .all()
     )
+    tax_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
 
-    return [build_property_response(p, db, gram_panchayat_id) for p in properties]
+    return [build_property_response(p, db, gram_panchayat_id, tax_settings, water_settings, tax_settings) for p in properties]
+
+
+@router.get("/property_search_list/")
+def get_property_search_list(
+    village_id: int,
+    district_id: int = Query(..., description="District ID"),
+    taluka_id: int = Query(..., description="Taluka ID"),
+    gram_panchayat_id: int = Query(..., description="Gram Panchayat ID"),
+    db: Session = Depends(database.get_db)
+):
+    """नमुना-8 नोंदणी स्क्रीनवरची SEARCH DATA यादी - properties_by_village मधलीच, त्याच
+    क्रमाने (sort_order), पण फक्त यादी/शोध/पुढचा अनुक्रमांक/मालक निवडीला लागणारी फील्ड्स:
+    id, anuKramank, malmattaKramank, village_id, sort_order आणि मालक (id, नाव, पत्नीचे नाव,
+    भोगवटदार, मोबाईल, आधार). पूर्ण नोंद (बांधकाम, कर इ.) मालमत्ता क्लिक केल्यावरच
+    /namuna8/{anu_kramank} ने येते."""
+    district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
+    if not district:
+        raise HTTPException(status_code=404, detail="District not found")
+
+    taluka = db.query(location_models.Taluka).filter(
+        location_models.Taluka.id == taluka_id,
+        location_models.Taluka.district_id == district_id
+    ).first()
+    if not taluka:
+        raise HTTPException(status_code=400, detail="Taluka does not belong to the specified district")
+
+    gram_panchayat = db.query(location_models.GramPanchayat).filter(
+        location_models.GramPanchayat.id == gram_panchayat_id,
+        location_models.GramPanchayat.taluka_id == taluka_id
+    ).first()
+    if not gram_panchayat:
+        raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
+
+    P, O, A = models.Property, models.Owner, models.property_owner_association
+    rows = (
+        db.query(P.id, P.anuKramank, P.malmattaKramank, P.village_id, P.sort_order)
+        .filter(P.village_id == village_id)
+        .order_by(P.sort_order)
+        .all()
+    )
+    # every owner of the village's properties in one query, in the association table's
+    # stored order - the same order Property.owners lazy-loads them in
+    owner_rows = (
+        db.query(A.c.id, O.id, O.name, O.aadhaarNumber, O.mobileNumber, O.wifeName, O.occupantName)
+        .join(O, O.id == A.c.owner_id)
+        .join(P, P.id == A.c.id)
+        .filter(P.village_id == village_id)
+        .order_by(literal_column("property_owner_association.rowid"))
+        .all()
+    )
+    owners_by_property = {}
+    for prop_id, oid, name, aadhaar, mobile, wife, occupant in owner_rows:
+        owners_by_property.setdefault(prop_id, []).append({
+            "id": oid,
+            "name": name,
+            "aadhaarNumber": aadhaar,
+            "mobileNumber": mobile,
+            "wifeName": wife,
+            "occupantName": occupant,
+        })
+    return [
+        {
+            "id": r.id,
+            "anuKramank": r.anuKramank,
+            "malmattaKramank": r.malmattaKramank,
+            "village_id": r.village_id,
+            "sort_order": r.sort_order,
+            "owners": owners_by_property.get(r.id, []),
+        }
+        for r in rows
+    ]
 
 
 @router.post("/serialize_properties/")
@@ -2838,7 +2919,7 @@ def serialize_properties(
                     qr_path = os.path.join(qr_dir, "qrcode.png")
                     parent_gp_name_qr = getattr(gram_panchayat_obj, 'parent_gram_panchayat_name', None) if gram_panchayat_obj else None
                     year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
-                    qr_text = build_property_qr_text(record_response, parent_gp_name_qr, year_label_qr)
+                    qr_text = build_property_qr_text_short(record_response)
                     QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
                     db_property.qrcode = qr_path.replace(os.sep, "/")
                     db.flush()
@@ -3300,8 +3381,35 @@ def get_property_qrcode(
     qr_path = os.path.join("uploaded_images", "qrcode", str(district_id), str(taluka_id), str(gram_panchayat_id),str(village_id), str(anu_kramank), "qrcode.png")
     # print('in fetch ',os.path.abspath(qr_path))
     # print('in fetch ',os.path.exists(qr_path))
-    if not os.path.exists(qr_path):
-        raise HTTPException(status_code=404, detail="QR code not found")
+    # QR नेहमी चालू नोंदीप्रमाणेच: मालमत्ता सेव्ह/अपडेट करताना बनतो तोच मजकूर (create/update
+    # सारखंच) आत्ताच्या नोंदीवरून काढतो. फाईल नसेल (उदा. मालमत्ता दुसऱ्या इन्स्टॉलेशनमध्ये सेव्ह
+    # झाली) किंवा जुनी असेल (उदा. अनुक्रमांक बदलल्यावर/जुन्या QR स्वरूपातली - दुसऱ्याच
+    # मालकाचा मजकूर) तर तीच फाईल पुन्हा लिहितो; मजकूर तोच असेल तर फाईल जशीच्या तशी वापरतो.
+    # कोणता मजकूर लिहिला ते शेजारच्या qrcode.txt मध्ये ठेवतो.
+    text_path = os.path.join(os.path.dirname(qr_path), "qrcode.txt")
+    try:
+        record_response = get_property_record(anu_kramank, village_id, district_id, taluka_id, gram_panchayat_id, db)
+        parent_gp_name_qr = getattr(gram_panchayat, 'parent_gram_panchayat_name', None)
+        year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
+        qr_text = build_property_qr_text_short(record_response)
+        saved_text = None
+        if os.path.exists(qr_path) and os.path.exists(text_path):
+            with open(text_path, encoding="utf-8") as f:
+                saved_text = f.read()
+        if saved_text != qr_text:
+            os.makedirs(os.path.dirname(qr_path), exist_ok=True)
+            tmp = "%d.%d.tmp" % (os.getpid(), threading.get_ident())
+            with open(qr_path + "." + tmp, "wb") as f:
+                f.write(fast_qr.png_bytes(qr_text))
+            with open(text_path + "." + tmp, "w", encoding="utf-8") as f:
+                f.write(qr_text)
+            os.replace(qr_path + "." + tmp, qr_path)
+            os.replace(text_path + "." + tmp, text_path)
+            logging.info("QR code (re)generated for property %s: %s", anu_kramank, qr_path)
+    except Exception:
+        logging.exception("QR code could not be generated for property %s", anu_kramank)
+        if not os.path.exists(qr_path):
+            raise HTTPException(status_code=404, detail="QR code not found")
     return FileResponse(
         qr_path,
         media_type="image/png",
