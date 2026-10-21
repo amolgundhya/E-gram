@@ -65,18 +65,23 @@
                 font-size: 8px !important;
                 white-space: nowrap !important;
             }
+            /* The गोषवारा LABEL row (घर कर/दिवा कर/.../एकूण) isn't a sum, so
+               it doesn't need the tiny font above - match the table headers. */
+            tfoot td.gosh-label {
+                font-size: 12px !important;
+            }
         }
         /* table-layout:fixed only reads the FIRST row's widths, and ignores
            min-width entirely - a <colgroup> is the one reliable way to size
            every column (name wide, numbers narrow) regardless of which
            header row's cells happen to span them. */
-        .main-table col.col-sr { width: 2%; }
-        .main-table col.col-property { width: 3%; }
+        .main-table col.col-sr { width: 3.5%; }
+        .main-table col.col-property { width: 5%; }
         .main-table col.col-name { width: 14.3%; }
         .main-table col.col-occupant { width: 5%; }
-        .main-table col.col-num { width: 4.2%; }
-        .main-table col.col-total { width: 4.5%; }
-        .main-table col.col-receipt { width: 4%; }
+        .main-table col.col-num { width: 4%; }
+        .main-table col.col-total { width: 4.3%; }
+        .main-table col.col-receipt { width: 3.9%; }
         /* ONE rule for every header cell in this table - same size, weight,
            colour everywhere, no per-column overrides. Same size as the data
            rows (12px) and bold, like the गोषवारा labels. भोगवटदाराचे नाव's
@@ -395,13 +400,13 @@
         <!-- गोषवारा summary in tfoot so it repeats on every printed page -->
         <tfoot>
         <tr>
-            <td colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
-            <td colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">पाणी कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
-            <td colspan="2" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">पाणी कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+            <td class="gosh-label" colspan="2" style="font-weight:bold; text-align:center;">एकूण </td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
