@@ -77,14 +77,17 @@
         .main-table col.col-num { width: 4.2%; }
         .main-table col.col-total { width: 4.5%; }
         .main-table col.col-receipt { width: 4%; }
-        .main-table th.col-name-header {
+        /* ONE rule for every header cell in this table - same size, weight,
+           colour everywhere, no per-column overrides. 10px is small enough
+           that even the longest header (भोगवटदाराचे नाव, which has no space
+           to break on within its ~4% column) still wraps to 2 lines, not 3. */
+        .main-table th {
+            font-size: 10px;
             font-weight: bold;
-        }
-        .main-table th.col-occupant {
+            color: #000;
             white-space: normal;
             overflow-wrap: break-word;
             word-break: break-word;
-            font-size: 10px;
         }
     </style>
 </head>
