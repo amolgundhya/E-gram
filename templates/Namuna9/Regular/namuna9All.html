@@ -52,6 +52,33 @@
                 word-break: break-word !important;
                 white-space: normal !important;
             }
+            td.num, th.num {
+                white-space: nowrap !important;
+                font-size: 9px;
+            }
+            /* गोषवारा (tfoot) sums can run much bigger than any single row's
+               value (they add up every property in the village) - its own
+               smaller font keeps them on one line without needing columns
+               wide enough to waste space on every data row. Appears once per
+               page, so this doesn't cost any rows-per-page. */
+            tfoot td {
+                font-size: 8px !important;
+                white-space: nowrap !important;
+            }
+        }
+        /* table-layout:fixed only reads the FIRST row's widths, and ignores
+           min-width entirely - a <colgroup> is the one reliable way to size
+           every column (name wide, numbers narrow) regardless of which
+           header row's cells happen to span them. */
+        .main-table col.col-sr { width: 2.5%; }
+        .main-table col.col-property { width: 3.5%; }
+        .main-table col.col-name { width: 14.3%; }
+        .main-table col.col-occupant { width: 4%; }
+        .main-table col.col-num { width: 4.2%; }
+        .main-table col.col-total { width: 4.5%; }
+        .main-table col.col-receipt { width: 4%; }
+        .main-table th.col-name-header {
+            font-size: 10px;
         }
     </style>
 </head>
@@ -260,12 +287,25 @@
     </div>
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
+        <colgroup>
+            <col class="col-sr">
+            <col class="col-property">
+            <col class="col-name">
+            <col class="col-occupant">
+            <col class="col-num"><col class="col-num"><col class="col-num"><col class="col-num">
+            <col class="col-num"><col class="col-num"><col class="col-num">
+            <col class="col-num"><col class="col-num"><col class="col-num">
+            <col class="col-num"><col class="col-num"><col class="col-num">
+            <col class="col-num"><col class="col-num"><col class="col-num">
+            <col class="col-total">
+            <col class="col-receipt">
+        </colgroup>
         <thead>
             <tr>
-                <th rowspan="3" style="min-width:32px;">अ.क्र.</th>
-                <th rowspan="3" style="min-width:48px;">मिळकत नंबर</th>
-                <th rowspan="3" style="min-width:200px;">ज्या व्यक्तीकडुन कर येणे असेल त्या व्यक्तीचे नाव</th>
-                <th rowspan="3" style="min-width:48px;">‍‍‍‍भोगवटदाराचे नाव</th>
+                <th rowspan="3" class="col-sr">अ.क्र.</th>
+                <th rowspan="3" class="col-property">मिळकत नंबर</th>
+                <th rowspan="3" class="col-name-header">ज्या व्यक्तीकडुन कर येणे असेल त्या व्यक्तीचे नाव</th>
+                <th rowspan="3" class="col-occupant">‍‍‍‍भोगवटदाराचे नाव</th>
                 <th colspan="4">घरकर</th>
                 <th colspan="3">दिवाकर</th>
                 <th colspan="3">आरोग्यकर</th>
@@ -319,24 +359,24 @@
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
                 <td>{{ row.occupant }}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitHouseTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dandHouseTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.houseTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalHouseTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitLightingTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.lightingTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalLightingTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitHealthTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.healthTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalHealthTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.saWaterTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitCleaningTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.cleaningTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalCleaningTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removePurnaYekun != 'true' %}{{ (((row.totaltaxwithoutnoticwarrant|default(0)) - (row.totalViWaterTax|default(0)) - (row.totlaToiletTax|default(0))) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
-                <td>{{pavatiSRKivyaTarik}}</td>
+                <td class="num">{% if removeDhakit != 'true' %}{{row.dhakitHouseTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeDhakit != 'true' %}{{row.dandHouseTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeChalu != 'true' %}{{row.houseTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeYekun != 'true' %}{{row.totalHouseTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeDhakit != 'true' %}{{row.dhakitLightingTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeChalu != 'true' %}{{row.lightingTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeYekun != 'true' %}{{row.totalLightingTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeDhakit != 'true' %}{{row.dhakitHealthTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeChalu != 'true' %}{{row.healthTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeYekun != 'true' %}{{row.totalHealthTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeDhakit != 'true' %}{{row.dhakitSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeChalu != 'true' %}{{row.saWaterTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeYekun != 'true' %}{{row.totalSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeDhakit != 'true' %}{{row.dhakitCleaningTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeChalu != 'true' %}{{row.cleaningTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removeYekun != 'true' %}{{row.totalCleaningTax | blankzero(blankZero)}}{% endif %}</td>
+                <td class="num">{% if removePurnaYekun != 'true' %}{{ (((row.totaltaxwithoutnoticwarrant|default(0)) - (row.totalViWaterTax|default(0)) - (row.totlaToiletTax|default(0))) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
+                <td class="num">{{pavatiSRKivyaTarik}}</td>
             </tr>
             {% endfor  %}
         </tbody>
@@ -349,30 +389,30 @@
             <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">पाणी कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
-            <td style="font-weight:bold; text-align:center;">एकूण </td>
+            <td colspan="2" style="font-weight:bold; text-align:center;">एकूण </td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitHouseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dandHouseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='houseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalHouseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitLightingTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='lightingTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalLightingTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitHealthTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='healthTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalHealthTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitSaWaterTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='saWaterTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalSaWaterTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='cleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removePurnaYekun != 'true' %}{{ (((data | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (data | map(attribute='totalViWaterTax') | sum) - (data | map(attribute='totlaToiletTax') | sum)) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitHouseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dandHouseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (data | sum(attribute='houseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalHouseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitLightingTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (data | sum(attribute='lightingTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalLightingTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitHealthTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (data | sum(attribute='healthTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalHealthTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitSaWaterTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (data | sum(attribute='saWaterTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalSaWaterTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (data | sum(attribute='cleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removePurnaYekun != 'true' %}{{ (((data | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (data | map(attribute='totalViWaterTax') | sum) - (data | map(attribute='totlaToiletTax') | sum)) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
         </tr>
         </tfoot>
     </table>
