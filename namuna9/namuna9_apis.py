@@ -652,6 +652,10 @@ def get_table_data(
     # एकच असल्याने निकाल नेहमी तोच) - आता एकदाच fetch करून तीच कॅशे सगळ्या मालमत्तांसाठी
     # पुन्हा वापरतो.
     from namuna9.tax_calculations import calculate_total_house_tax
+    from namuna8.calculations.naumuna8_calculations import get_assessment_year
+    # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा, आजच्या
+    # तारखेवरून नाही.
+    tp_assessment_year = get_assessment_year(gram_panchayat)
     tp_general_setting = db.query(settingModels.GeneralSetting).filter_by().first()
     tp_weightage_map = {row.building_usage: row.weightage for row in db.query(settingModels.BuildingUsageWeightage).all()}
     tp_tax_settings = db.query(namuna8_model.Namuna8SettingTax).filter(namuna8_model.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
@@ -677,7 +681,7 @@ def get_table_data(
             prop, constructions, db,
             general_setting=tp_general_setting, weightage_map=tp_weightage_map,
             construction_type_cache=tp_construction_type_cache, depreciation_rate_cache=tp_depreciation_rate_cache,
-            rounding_mode=tp_rounding_mode,
+            rounding_mode=tp_rounding_mode, assessment_year=tp_assessment_year,
         )
         # Join all owner names (combined with भोगवटदार for owners like "सरकार" - see _owner_display_name)
         owner_names = ', '.join([_owner_display_name(o) for o in prop_data.get('owners', [])])
