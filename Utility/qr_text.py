@@ -114,7 +114,7 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
         f"अ.क्र. : {record.get('srNo') or ''}",
         f"मालमत्ता क्र. : {record.get('propertyNumber') or ''}",
         f"मालक : {record.get('ownerName') or ''}",
-        f"भोगवट : {record.get('occupantName') or 'स्वतः'}",
+        f"भोगवटदार : {record.get('occupantName') or 'स्वतः'}",
     ]
     lines.extend(build_area_lines(record, include_type=False))
     if year_label:
@@ -147,7 +147,7 @@ def build_property_qr_text_short(record: dict) -> str:
         f"अ.क्र. : {record.get('srNo') or ''}",
         f"मालमत्ता क्र. : {record.get('propertyNumber') or ''}",
         f"मालक : {record.get('ownerName') or ''}",
-        f"भोगवट : {record.get('occupantName') or 'स्वतः'}",
+        f"भोगवटदार : {record.get('occupantName') or 'स्वतः'}",
         f"एकूण कर : {_fmt_num(record.get('totaltax'))}",
     ]
     return "\n".join(lines)
