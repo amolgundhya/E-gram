@@ -1363,6 +1363,18 @@ async def blankPrint(request: Request):
             checklist_json = checklist_resp.json()
             checklist_fields = {k: v for k, v in checklist_json.items() if k not in ('id', 'gram_panchayat_id')}
 
+        # घर कर / पाणी कर Bank Scanner QR - same gate as the filled single_print
+        # (show_bank_scanner_in_reports toggle + the QR image actually uploaded).
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gp_resp.status_code == 200:
+            gp_data = gp_resp.json()
+            if gp_data.get('show_bank_scanner_in_reports'):
+                if gp_data.get('house_tax_qr_url'):
+                    houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                if gp_data.get('water_tax_qr_url'):
+                    waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+
         year_from = datetime.now().year
         year_to = year_from + 3
 
@@ -1377,6 +1389,8 @@ async def blankPrint(request: Request):
             "todays_date": date.today().strftime("%d-%m-%Y"),
             "photoURL": None,
             "bank_qr_code": None,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
             "QRcodeURL": None,
             "total_arearinfoot": "", "totalareainmeters": "",
             "occupantName": "", "aadharNumber": "", "ownerName": "", "ownerWifeName": "", "mobileNumber": "",
@@ -2260,6 +2274,10 @@ async def nameplate_sheet(request: Request):
                 "tagline": tagline,
                 "area_lines": build_area_lines(prop),
                 "qrcode": qr_uri,
+                "boundary_east": prop.get("boundaryEast"),
+                "boundary_west": prop.get("boundaryWest"),
+                "boundary_north": prop.get("boundaryNorth"),
+                "boundary_south": prop.get("boundarySouth"),
             })
 
         # /ReportImages is mounted as a top-level static route (see main.py), so an

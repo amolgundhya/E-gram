@@ -191,6 +191,21 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .boundary-block {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .boundary-line {
+      width: 100%;
+      font-weight: 600;
+      color: #000;
+      font-size: 9pt;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
 
     @media print {
       @page { size: 12in 18in; margin: 0.2in; }
@@ -230,6 +245,16 @@
         <div class="id-occ-line">
           अ.क्र. {{p.sr_no}} / <span class="nowrap-group">मालमत्ता क्र. {{p.malmatta_kramank}}</span> | भोगवटदार: {{p.occupant_name}}
         </div>
+        {% if p.boundary_east or p.boundary_west or p.boundary_north or p.boundary_south %}
+        <div class="boundary-block">
+          {% if p.boundary_east or p.boundary_west %}
+          <div class="boundary-line">पूर्व : {{ p.boundary_east or '-' }} | पश्चिम : {{ p.boundary_west or '-' }}</div>
+          {% endif %}
+          {% if p.boundary_north or p.boundary_south %}
+          <div class="boundary-line">उत्तर : {{ p.boundary_north or '-' }} | दक्षिण : {{ p.boundary_south or '-' }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
         <div class="tagline">{{p.tagline}}</div>
       </div>
     </div>
@@ -260,6 +285,7 @@
       function fitPlate(plate) {
         var ownerEl = plate.querySelector('.owner-name');
         var idEl = plate.querySelector('.id-occ-line');
+        var boundaryEls = Array.prototype.slice.call(plate.querySelectorAll('.boundary-line'));
         var areaEls = Array.prototype.slice.call(plate.querySelectorAll('.area-line'));
         var bottomRow = plate.querySelector('.bottom-row');
         if (!bottomRow) return;
@@ -267,6 +293,13 @@
         var sizes = {};
         if (ownerEl) sizes.owner = fitBlock(ownerEl, { max: 14, min: 10, maxLines: 2 });
         if (idEl) sizes.id = fitBlock(idEl, { max: 11, min: 8, maxLines: 2 });
+        if (boundaryEls.length) {
+          sizes.boundary = 9;
+          boundaryEls.forEach(function (el) {
+            el.style.fontSize = '9pt';
+            el.style.lineHeight = '1.2';
+          });
+        }
         if (areaEls.length) {
           // बांधकाम/खाली जागा ओळी 1 ते 4+ असू शकतात - क्षेत्रफळ ओळींसाठी उरलेली रिकामी
           // जागा जास्तीत जास्त वापरायला 10pt पासून सुरू करतो (आधीच्या 9pt ऐवजी).
@@ -293,6 +326,11 @@
               shrunkAny = true;
             }
           });
+          if (!shrunkAny && boundaryEls.length && sizes.boundary > 7) {
+            sizes.boundary = Math.max(7, Math.round((sizes.boundary - 0.3) * 100) / 100);
+            boundaryEls.forEach(function (el) { el.style.fontSize = sizes.boundary + 'pt'; });
+            shrunkAny = true;
+          }
           if (!shrunkAny && areaEls.length && sizes.area > 8) {
             sizes.area = Math.max(8, Math.round((sizes.area - 0.3) * 100) / 100);
             areaEls.forEach(function (el) { el.style.fontSize = sizes.area + 'pt'; });

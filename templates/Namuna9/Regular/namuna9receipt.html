@@ -152,20 +152,34 @@
                     पावती नं : {{ record.pavti_kramank or '' }}<br>
                     सन : {{ record.yearslap or record.yearslap or '' }}
                 </td>
+                {% if record.QRcodeURL or record.houseTaxQrUrl or record.waterTaxQrUrl %}
+                {% if record.QRcodeURL %}
+                <td class="center bold" style="text-align:center;">
+                    <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img src="{{ record.QRcodeURL }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    </div>
+                    <div style="font-size:10px; margin-top:2px;">मालमत्ता QR</div>
+                </td>
+                {% endif %}
                 {% if record.houseTaxQrUrl %}
                 <td class="center bold" style="text-align:center;">
-                    <div style="border: 1px solid #000; width: 60px; height: 60px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img src="{{ record.houseTaxQrUrl }}" style="width: 60px; height: 60px; object-fit: contain;" />
+                    <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img src="{{ record.houseTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
                     </div>
                     <div style="font-size:10px; margin-top:2px;">घर कर</div>
                 </td>
                 {% endif %}
                 {% if record.waterTaxQrUrl %}
                 <td class="center bold" style="text-align:center;">
-                    <div style="border: 1px solid #000; width: 60px; height: 60px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img src="{{ record.waterTaxQrUrl }}" style="width: 60px; height: 60px; object-fit: contain;" />
+                    <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img src="{{ record.waterTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
                     </div>
                     <div style="font-size:10px; margin-top:2px;">पाणी कर</div>
+                </td>
+                {% endif %}
+                {% else %}
+                <td>
+                    <div class="center bold" style="border: 1px solid #000; width: 100px; height: 100px; margin: 0 auto; overflow:hidden;"></div>
                 </td>
                 {% endif %}
             </tr>

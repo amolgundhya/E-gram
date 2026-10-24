@@ -859,6 +859,20 @@ def get_receipt(receipt_id: int, db: Session = Depends(database.get_db)):
             result.houseTaxQrUrl = f"{backend_url}/location/gram-panchayats/{gp.id}/qr/house"
         if show_bank_scanner and gp and gp.water_tax_qr_url:
             result.waterTaxQrUrl = f"{backend_url}/location/gram-panchayats/{gp.id}/qr/water"
+        # मालमत्ता QR (छोटा - अ.क्र./मालमत्ता क्र./मालक/भोगवट/एकूण कर) - नमुना-8
+        # प्रिंटवर आधीच वापरलेला तोच /namuna8/property_qrcode endpoint, जेणेकरून मजकूर
+        # आणि cached PNG दोन्हीकडे सुसंगत राहतील.
+        qr_path = os.path.join(
+            "uploaded_images", "qrcode", str(prop2.district_id), str(prop2.taluka_id),
+            str(prop2.gram_panchayat_id), str(prop2.village_id), str(prop2.anuKramank), "qrcode.png"
+        )
+        qr_version = int(os.path.getmtime(qr_path)) if os.path.exists(qr_path) else 0
+        result.QRcodeURL = (
+            f"{backend_url}/namuna8/property_qrcode/{prop2.anuKramank}"
+            f"?district_id={prop2.district_id}&taluka_id={prop2.taluka_id}"
+            f"&gram_panchayat_id={prop2.gram_panchayat_id}&village_id={prop2.village_id}"
+            f"&v={qr_version}"
+        )
         # occupant from owner occupantName if available, fallback to स्वतः (not the
         # owner's own name again - that duplicated the owner name on this line).
         try:

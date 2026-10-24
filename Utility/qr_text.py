@@ -138,14 +138,16 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
 
 def build_property_qr_text_short(record: dict) -> str:
     """नमुना-8 प्रिंट्ससाठी (single/P1/P2/VishehPani, Range, All Report) छोटा QR
-    मजकूर - फक्त 4 ओळी. क्षेत्रफळ/बांधकाम/खाली जागा/वेगळे कर दाखवत नाही (ऑगस्ट
+    मजकूर - फक्त 5 ओळी. क्षेत्रफळ/बांधकाम/खाली जागा/वेगळे कर दाखवत नाही (ऑगस्ट
     2026 मध्ये ठरलेला तपशीलवार मजकूर - build_property_qr_text - फक्त नाव प्लेट/
     sticker/घर स्कॅनरवरच राहतो, नमुना-8 प्रिंटवर नाही - ऑक्टोबर 2026 क्लायंट निर्णय,
-    कारण प्रिंटवरचा QR आता जास्त ओळींमुळे मोठा/स्कॅन करायला अवघड झाला होता)."""
+    कारण प्रिंटवरचा QR आता जास्त ओळींमुळे मोठा/स्कॅन करायला अवघड झाला होता). भोगवट
+    ओळ ऑक्टोबर 2026 मध्ये क्लायंटने approve केलेली भर."""
     lines = [
         f"अ.क्र. : {record.get('srNo') or ''}",
         f"मालमत्ता क्र. : {record.get('propertyNumber') or ''}",
         f"मालक : {record.get('ownerName') or ''}",
+        f"भोगवट : {record.get('occupantName') or 'स्वतः'}",
         f"एकूण कर : {_fmt_num(record.get('totaltax'))}",
     ]
     return "\n".join(lines)
