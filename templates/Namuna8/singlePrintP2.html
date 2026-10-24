@@ -130,7 +130,7 @@
 <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; margin-top: 0;">
     <tr>
         <!-- Left Info Table -->
-        <td style="width: 22%; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none; vertical-align: top; padding: 0;">
+        <td style="width: 160px; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none; vertical-align: top; padding: 0;">
             <table style="width: 100%; font-size: 14px; border-collapse: collapse; border: none;">
                 <tr>
                     <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; border-left: none; border-top: none;">ग्रामपंचायत : </td>
@@ -149,9 +149,9 @@
                     <td style="border-bottom: 1px solid #000; border-right: none; border-left: none; border-top: none;"> {{jilha|default('')}} </td>
                 </tr>
             </table>
-        </td>     
+        </td>
         <!-- Center Title -->
-        <td style="width: 56%; text-align: center; vertical-align: top; background: #e0e0e0; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none;">
+        <td style="text-align: center; vertical-align: top; background: #e0e0e0; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none;">
             <div style="font-size: 32px; font-weight: bold">नमुना ८</div>
             <div style="font-size: 14px;">नियम 32 (1)</div>
             <div style="font-size: 16px; margin-top: 8px;">
@@ -159,49 +159,49 @@
             </div>
         </td>
         <!-- Right PHOTO/QR -->
-        <td style="width: 22%; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
+        <td style="width: 330px; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
                     <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-                        <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                        <div style="border: 1px solid #000; width:72px; height: 72px; box-sizing: border-box; padding: 3px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow:hidden;">
                             {% if QRcodeURL %}
-                                <img src={{QRcodeURL | default('')}}  style="width: 78px; height: 78px; object-fit: contain; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;" />
+                                <img src={{QRcodeURL | default('')}}  style="width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;" />
                             {% else %}
                                 <div></div>
                             {% endif %}
                         </div>
-                        <div style="font-size:7px; line-height:1; margin-top:0;">मालमत्ता QR</div>
+                        <div style="font-size:9px; line-height:1.2; margin-top:2px;">मालमत्ता QR</div>
                     </td>
                     <td style="width: 25%; border-right: 1px solid #000; border-bottom: none; border-top: none; border-left: none; text-align: center; vertical-align: top;">
-                        <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                        <div style="border: 1px solid #000; width: 72px; height: 72px; box-sizing: border-box; padding: 3px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow:hidden;">
                             {% if photoURL %}
-                                <img src="{{ photoURL }}" style="width:78px; height:78px; object-fit: contain;" />
+                                <img src="{{ photoURL }}" style="width:100%; height:100%; object-fit: contain;" />
                             {% else %}
                                 <div></div>
                             {% endif %}
                         </div>
-                        <div style="font-size:7px; line-height:1; margin-top:0;">फोटो</div>
+                        <div style="font-size:9px; line-height:1.2; margin-top:2px;">फोटो</div>
                     </td>
                     {% if houseTaxQrUrl or waterTaxQrUrl %}
                     {% if houseTaxQrUrl %}
                     <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-                        <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            <img src="{{ houseTaxQrUrl }}" style="width:78px; height:78px; object-fit:contain;" />
+                        <div style="border: 1px solid #000; width:72px; height: 72px; box-sizing: border-box; padding: 3px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow:hidden;">
+                            <img src="{{ houseTaxQrUrl }}" style="width:100%; height:100%; object-fit:contain;" />
                         </div>
-                        <div style="font-size:9px; margin-top:2px;">घर कर</div>
+                        <div style="font-size:9px; line-height:1.2; margin-top:2px;">घर कर</div>
                     </td>
                     {% endif %}
                     {% if waterTaxQrUrl %}
                     <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-                        <div style="border: 1px solid #000; width:80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            <img src="{{ waterTaxQrUrl }}" style="width:78px; height:78px; object-fit:contain;" />
+                        <div style="border: 1px solid #000; width:72px; height: 72px; box-sizing: border-box; padding: 3px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow:hidden;">
+                            <img src="{{ waterTaxQrUrl }}" style="width:100%; height:100%; object-fit:contain;" />
                         </div>
-                        <div style="font-size:9px; margin-top:2px;">पाणी कर</div>
+                        <div style="font-size:9px; line-height:1.2; margin-top:2px;">पाणी कर</div>
                     </td>
                     {% endif %}
                     {% else %}
                     <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
-                        <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center;"></div>
+                        <div style="border: 1px solid #000; width: 72px; height: 72px; box-sizing: border-box; padding: 3px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow:hidden;"></div>
                     </td>
                     {% endif %}
                 </tr>
