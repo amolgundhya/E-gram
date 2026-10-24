@@ -6,7 +6,7 @@ from database import get_db
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 import math
-from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate
+from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate, get_assessment_year
 import os
 from namuna8.mastertab.mastertabmodels import BuildingUsageWeightage
 from namuna8.mastertab import mastertabmodels as settingModels
@@ -155,6 +155,9 @@ def get_property_record(
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
+    # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा,
+    # आजच्या तारखेवरून नाही.
+    assessment_year = get_assessment_year(gram_panchayat)
     prop = (
         db.query(models.Property)
         .filter(
@@ -310,7 +313,7 @@ def get_property_record(
             "usage": getattr(c, 'bharank', None),
             "capitalValue": c.capitalValue,
             "houseTax": c.houseTax,
-            "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name),
+            "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name, assessment_year),
             "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
             "taxRates": getattr(c.construction_type, 'rate', 0),
             **_construction_item_dual_unit_area(c.length, c.width, construction_unit_disp_early),
@@ -566,7 +569,10 @@ def get_property_records_by_village(
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail=f"Gram Panchayat {gram_panchayat_id} does not belong to taluka {taluka_id}")
-    
+    # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा,
+    # आजच्या तारखेवरून नाही.
+    assessment_year = get_assessment_year(gram_panchayat)
+
     # Validate that the village belongs to the specified gram panchayat
     village = db.query(models.Village).filter(models.Village.id == village_id).first()
     if not village:
@@ -638,7 +644,7 @@ def get_property_records_by_village(
     def _cached_depreciation_rate(year, type_name):
         key = (year, type_name)
         if key not in _depreciation_rate_cache:
-            _depreciation_rate_cache[key] = calculate_depreciation_rate(year, type_name)
+            _depreciation_rate_cache[key] = calculate_depreciation_rate(year, type_name, assessment_year)
         return _depreciation_rate_cache[key]
 
     def get_tax_by_area(area, field):
@@ -1010,6 +1016,9 @@ def get_property_records_by_gram_panchayat(
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail=f"Gram Panchayat {gram_panchayat_id} does not belong to taluka {taluka_id}")
+    # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा,
+    # आजच्या तारखेवरून नाही.
+    assessment_year = get_assessment_year(gram_panchayat)
 
     # Get all villages for the given gram panchayat
     villages = db.query(models.Village).filter(models.Village.gram_panchayat_id == gram_panchayat_id).all()
@@ -1149,7 +1158,7 @@ def get_property_records_by_gram_panchayat(
                     "usage": getattr(c, 'bharank', None),
                     "capitalValue": c.capitalValue,
                     "houseTax": c.houseTax,
-                    "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name),
+                    "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name, assessment_year),
                     "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
                     "taxRates": getattr(c.construction_type, 'rate', 0),
                 }

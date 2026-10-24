@@ -77,7 +77,9 @@ def init_construction_types():
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
-            "gharache_prakar": 0,
+            # घसारा प्रकार - महाराष्ट्र शासन राजपत्र दि. 31-12-2015, रकाना 3 (आरसीसी /
+            # दगड-विटा+चुना-सिमेंट / टिन शेड) = 1, रकाना 2 (झोपडी/मातीची) = 2.
+            "gharache_prakar": 1,
             "annualLandValueRate": 0.0,
             "district_id": 1,
             "taluka_id": 1,
@@ -89,7 +91,7 @@ def init_construction_types():
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
-            "gharache_prakar": 0,
+            "gharache_prakar": 1,
             "annualLandValueRate": 0.0,
             "district_id": 1,
             "taluka_id": 1,
@@ -101,7 +103,7 @@ def init_construction_types():
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
-            "gharache_prakar": 0,
+            "gharache_prakar": 2,
             "annualLandValueRate": 0.0,
             "district_id": 1,
             "taluka_id": 1,
@@ -113,7 +115,7 @@ def init_construction_types():
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
-            "gharache_prakar": 0,
+            "gharache_prakar": 2,
             "annualLandValueRate": 0.0,
             "district_id": 1,
             "taluka_id": 1,
@@ -125,7 +127,7 @@ def init_construction_types():
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
-            "gharache_prakar": 0,
+            "gharache_prakar": 1,
             "annualLandValueRate": 0.0,
             "district_id": 1,
             "taluka_id": 1,
@@ -153,6 +155,60 @@ def init_construction_types():
 
 # Call initializer after tables are created
 init_construction_types()
+
+# घसारा दर गणनेसाठी construction_types.gharache_prakar ची जुनी, उलटी साठवलेली मूल्यं
+# (आरसीसी/दगड-विटा गट चुकून 2, झोपडी/मातीची गट चुकून 1) - महाराष्ट्र शासन राजपत्र दि.
+# 31-12-2015 नुसार बरोबर करतो (रकाना 3 => 1, रकाना 2 => 2), नावाने जुळवून. फक्त
+# एकदाच चालतो (migration_flags मध्ये नोंद) - क्लायंटच्या DB वरही पहिल्यांदाच सुरू
+# केल्यावर चालेल, आणि नंतर युजरने Settings मधून स्वतः गharache_prakar बदललं तरी ही
+# migration पुन्हा चालून ते बदल पुसणार नाही.
+GHARACHE_PRAKAR_GAZETTE_2015_FIX = {
+    "आरसीसी पद्धतीची इमारत": 1,
+    "दगड विटांची व चुना किंवा सिमेंट वापरून उभारलेली इमारत": 1,
+    "टिन शेड": 1,
+    "दगड किंवा विटा वापरलेली मातीची इमारत": 2,
+    "झोपडी किंवा मातीची इमारत": 2,
+}
+MIGRATION_FLAG_GHARACHE_PRAKAR = "gharache_prakar_gazette_2015_fix"
+
+def _safe_print(msg):
+    # काही क्लायंट PC वर कन्सोल/लॉग cp1252 सारखं non-UTF8 एन्कोडिंग वापरतं, जे मराठी
+    # नावं print() करताना UnicodeEncodeError देतं - ती migration transaction मध्येच
+    # असल्याने संपूर्ण dumb rollback होऊ शकतो. कधीही क्रॅश न होता, शक्य तितकं वाचनीय
+    # लॉग करतो.
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        print(msg.encode('ascii', errors='replace').decode('ascii'))
+
+def fix_gharache_prakar_gazette_2015():
+    from datetime import datetime
+    try:
+        with engine.begin() as conn:
+            conn.exec_driver_sql(
+                "CREATE TABLE IF NOT EXISTS migration_flags (name TEXT PRIMARY KEY, applied_at TEXT)"
+            )
+            already_applied = conn.exec_driver_sql(
+                "SELECT 1 FROM migration_flags WHERE name = ?", (MIGRATION_FLAG_GHARACHE_PRAKAR,)
+            ).fetchone()
+            if already_applied:
+                return
+            for name, correct_value in GHARACHE_PRAKAR_GAZETTE_2015_FIX.items():
+                result = conn.exec_driver_sql(
+                    "UPDATE construction_types SET gharache_prakar = ? WHERE name = ?",
+                    (correct_value, name),
+                )
+                if result.rowcount:
+                    _safe_print(f"[Migration] gharache_prakar: '{name}' -> {correct_value} ({result.rowcount} row(s))")
+            conn.exec_driver_sql(
+                "INSERT INTO migration_flags (name, applied_at) VALUES (?, ?)",
+                (MIGRATION_FLAG_GHARACHE_PRAKAR, datetime.now().isoformat()),
+            )
+            _safe_print("[Migration] gharache_prakar gazette (31-12-2015) correction applied (one-time).")
+    except Exception as e:
+        _safe_print(f"[Migration] Could not fix gharache_prakar (gazette 2015): {e}")
+
+fix_gharache_prakar_gazette_2015()
 
 # Ensure new columns exist for namuna9_property_data (SQLite simple migration)
 def ensure_namuna9_property_data_columns():

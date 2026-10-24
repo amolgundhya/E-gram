@@ -1,6 +1,7 @@
-from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate
+from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate, get_assessment_year
 from namuna8 import namuna8_model
 from namuna8.mastertab import mastertabmodels as settingModels
+from location_management import models as location_models
 from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode
 from datetime import datetime
 import math
@@ -10,7 +11,7 @@ def calculate_total_house_tax(
     prop, constructions, db, gram_panchayat_id=None,
     general_setting=None, weightage_map=None,
     construction_type_cache=None, depreciation_rate_cache=None,
-    rounding_mode=None,
+    rounding_mode=None, assessment_year=None,
 ):
     # general_setting/weightage_map/construction_type_cache/depreciation_rate_cache/
     # rounding_mode: पास केले नसतील (जुन्या सगळ्या कॉलर्ससाठी डिफॉल्ट None) तर आधीसारखेच
@@ -31,6 +32,11 @@ def calculate_total_house_tax(
         construction_type_cache = {}
     if depreciation_rate_cache is None:
         depreciation_rate_cache = {}
+    if assessment_year is None:
+        # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा,
+        # आजच्या तारखेवरून नाही - कॉलरने आधीच दिलेलं नसेल तरच इथे एकदा काढतो.
+        gp_for_year = db.query(location_models.GramPanchayat).filter_by(id=gp_id).first() if gp_id else None
+        assessment_year = get_assessment_year(gp_for_year)
 
     def _construction_type_by_id(ctype_id):
         key = ('id', ctype_id)
@@ -47,7 +53,7 @@ def calculate_total_house_tax(
     def _cached_depreciation_rate(year, name):
         key = (year, name)
         if key not in depreciation_rate_cache:
-            depreciation_rate_cache[key] = calculate_depreciation_rate(year, name)
+            depreciation_rate_cache[key] = calculate_depreciation_rate(year, name, assessment_year)
         return depreciation_rate_cache[key]
 
     def _round_tax(value):

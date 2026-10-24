@@ -12,7 +12,7 @@ from datetime import datetime
 from sqlalchemy import select, literal_column
 from namuna8.namuna8_model import Namuna8SettingTax
 from sqlalchemy.exc import SQLAlchemyError
-from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate
+from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate, get_assessment_year
 from pydantic import BaseModel
 from jinja2 import Environment, FileSystemLoader
 import os
@@ -163,6 +163,12 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     detail="मालमत्ता क्रमांक आधीच या आयडीसह अस्तित्वात आहे / Malmatta Kramank already exists with this ID"
                 )
             # --- FIX: Convert constructions dicts to model instances ---
+            # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा,
+            # आजच्या तारखेवरून नाही - म्हणून एकदाच GP काढून वर्ष ठरवतो.
+            assessment_gp = db.query(location_models.GramPanchayat).filter(
+                location_models.GramPanchayat.id == property_data.gram_panchayat_id
+            ).first()
+            assessment_year = get_assessment_year(assessment_gp)
             constructions = []
             for construction_data in property_data.constructions:
                 if isinstance(construction_data, dict):
@@ -193,7 +199,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 else:
                     AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092937
                 ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
-                depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
+                depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name, assessment_year)
                 # Before using usageBasedBuildingWeightageFactor, build the mapping
                 weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
                 usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
@@ -893,6 +899,9 @@ def update_namuna8_entry(
         db_property.owners = new_owners
 
     # --- FIX: Convert constructions dicts to model instances ---
+    # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा, आजच्या
+    # तारखेवरून नाही.
+    assessment_year = get_assessment_year(gram_panchayat)
     if property_data.constructions:
         new_constructions = []
         for construction_data in property_data.constructions:
@@ -920,7 +929,7 @@ def update_namuna8_entry(
             else:
                 AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092937
             ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
-            depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name)
+            depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name, assessment_year)
             # Before using usageBasedBuildingWeightageFactor, build the mapping
             weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
             usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
