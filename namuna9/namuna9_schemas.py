@@ -261,6 +261,7 @@ class Namuna9ReceiptRead(BaseModel):
     remainingCleaningTax: Optional[float] = None
     houseTaxQrUrl: Optional[str] = None
     waterTaxQrUrl: Optional[str] = None
+    QRcodeURL: Optional[str] = None
     remainingTotal: Optional[float] = None
     exServicemanTip: Optional[bool] = None
     class Config: 
