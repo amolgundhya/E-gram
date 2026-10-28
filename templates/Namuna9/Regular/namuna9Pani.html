@@ -64,8 +64,9 @@
         const maxZoom = 2.0;
         const zoomStep = 0.1;
         let currentPage = 1;
-        const recordsPerPage = 10; // Show 10 records per page
         let totalPages = 0;
+        // रो आता सर्व्हरवरच पानांत वाटलेले आहेत (प्रत्येक .print-page = खरं एक छापील
+        // पान, स्वतःच्या गोषवारा बेरजेसह).
 
         function updateZoom() {
             document.getElementById('mainContent').style.zoom = zoomLevel;
@@ -86,14 +87,13 @@
             }
         }
         function showPage(page) {
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             if (page < 1) page = 1;
             if (page > totalPages) page = totalPages;
             currentPage = page;
-            records.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                el.style.display = (pageIdx === currentPage) ? '' : 'none';
+            pages.forEach((el, idx) => {
+                el.style.display = (idx + 1 === currentPage) ? '' : 'none';
             });
             document.getElementById('pageInput').value = currentPage;
             document.getElementById('pageTotal').innerText = '/' + totalPages;
@@ -108,23 +108,20 @@
             const toInput = document.getElementById('printTo');
             let from = parseInt(fromInput.value) || 1;
             let to = parseInt(toInput.value) || 1;
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             from = Math.max(1, Math.min(from, totalPages));
             to = Math.max(from, Math.min(to, totalPages));
             // Show only selected pages
-            const prevStates = records.map(el => el.style.display);
-            records.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                el.style.display = (pageIdx >= from && pageIdx <= to) ? '' : 'none';
+            pages.forEach((el, idx) => {
+                el.style.display = (idx + 1 >= from && idx + 1 <= to) ? '' : 'none';
             });
             setTimeout(() => {
                 window.print();
                 setTimeout(() => {
                     // Restore previous state (show only current page)
-                    records.forEach((el, idx) => {
-                        const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                        el.style.display = (pageIdx === currentPage) ? '' : 'none';
+                    pages.forEach((el, idx) => {
+                        el.style.display = (idx + 1 === currentPage) ? '' : 'none';
                     });
                 }, 100);
             }, 50);
@@ -136,8 +133,8 @@
             updateZoom();
             showPage(1);
             // Set print range max
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             document.getElementById('printFrom').max = totalPages;
             document.getElementById('printTo').max = totalPages;
             document.getElementById('printTo').value = totalPages;
@@ -150,6 +147,9 @@
     </script>
     <div id="mainContent">
     <!-- Top section to repeat on every page -->
+    <div id="mainContent">
+    {% for page in pages %}
+    <div class="print-page"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
     <table class="report-top">
         <tr>
             <td colspan="3" class="center bold" style="font-size:22px;">नमुना ९</td>
@@ -190,7 +190,7 @@
         </thead>
         <tbody>
 
-            {% for row in data %}
+            {% for row in page %}
             <tr class="record-row">
                 <td>{{ row.srNo }}</td>
                 <td>{{ row.propertyNumber }}</td>
@@ -204,14 +204,29 @@
             </tr>
             {% endfor  %}
         </tbody>
+        <tfoot>
         <tr>
             <td colspan="3"></td>
-            <td style="font-weight:normal; text-align:right;">गोषवारा</td>
+            <td style="font-weight:normal; text-align:right;">या पानाची बेरीज</td>
+            <td>{% if removeDhakit != 'true' %}{{ page | sum(attribute='dhakitSaWaterTax') }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ page | sum(attribute='saWaterTax') }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ page | sum(attribute='totalSaWaterTax') }}{% endif %}</td>
+            <td></td>
+        </tr>
+        {% if loop.last %}
+        <tr>
+            <td colspan="3"></td>
+            <td style="font-weight:bold; text-align:right;">एकूण बेरीज (सर्व पाने)</td>
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitSaWaterTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='saWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalSaWaterTax') }}{% endif %}</td>
             <td></td>
         </tr>
+        {% endif %}
+        </tfoot>
     </table>
+    </div>
+    {% endfor %}
+    </div>
 </body>
 </html>

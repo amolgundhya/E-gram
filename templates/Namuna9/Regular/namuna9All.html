@@ -129,8 +129,10 @@
         const maxZoom = 2.0;
         const zoomStep = 0.1;
         let currentPage = 1;
-        const recordsPerPage = 10; // Show 10 records per page
         let totalPages = 0;
+        // रो आता सर्व्हरवरच पानांत वाटलेले आहेत (प्रत्येक .print-page = खरं एक छापील
+        // पान, स्वतःच्या गोषवारा बेरजेसह) - त्यामुळे स्क्रीनवरचं "पान" आणि खरं प्रिंट
+        // पान आता नेहमी एकच असतं.
 
         function updateZoom() {
             document.getElementById('mainContent').style.zoom = zoomLevel;
@@ -150,70 +152,17 @@
                 updateZoom();
             }
         }
-        function updateFooterSummary() {
-            // Only sum visible rows
-            const visibleRows = Array.from(document.querySelectorAll('.record-row')).filter(
-                row => row.style.display !== 'none'
-            );
-            let sum = {
-                dhakitHouseTax: 0, dandHouseTax: 0, houseTax: 0, totalHouseTax: 0,
-                dhakitLightingTax: 0, lightingTax: 0, totalLightingTax: 0,
-                dhakitHealthTax: 0, healthTax: 0, totalHealthTax: 0,
-                dhakitSaWaterTax: 0, saWaterTax: 0, totalSaWaterTax: 0,
-                dhakitCleaningTax: 0, cleaningTax: 0, totalCleaningTax: 0,
-                totaltaxwithoutnoticwarrant: 0
-            };
-            visibleRows.forEach(row => {
-                sum.dhakitHouseTax += parseFloat(row.getAttribute('data-dhakit-house-tax')) || 0;
-                sum.dandHouseTax += parseFloat(row.getAttribute('data-dand-house-tax')) || 0;
-                sum.houseTax += parseFloat(row.getAttribute('data-house-tax')) || 0;
-                sum.totalHouseTax += parseFloat(row.getAttribute('data-total-house-tax')) || 0;
-                sum.dhakitLightingTax += parseFloat(row.getAttribute('data-dhakit-lighting-tax')) || 0;
-                sum.lightingTax += parseFloat(row.getAttribute('data-lighting-tax')) || 0;
-                sum.totalLightingTax += parseFloat(row.getAttribute('data-total-lighting-tax')) || 0;
-                sum.dhakitHealthTax += parseFloat(row.getAttribute('data-dhakit-health-tax')) || 0;
-                sum.healthTax += parseFloat(row.getAttribute('data-health-tax')) || 0;
-                sum.totalHealthTax += parseFloat(row.getAttribute('data-total-health-tax')) || 0;
-                sum.dhakitSaWaterTax += parseFloat(row.getAttribute('data-dhakit-sawater-tax')) || 0;
-                sum.saWaterTax += parseFloat(row.getAttribute('data-sawater-tax')) || 0;
-                sum.totalSaWaterTax += parseFloat(row.getAttribute('data-total-sawater-tax')) || 0;
-                sum.dhakitCleaningTax += parseFloat(row.getAttribute('data-dhakit-cleaning-tax')) || 0;
-                sum.cleaningTax += parseFloat(row.getAttribute('data-cleaning-tax')) || 0;
-                sum.totalCleaningTax += parseFloat(row.getAttribute('data-total-cleaning-tax')) || 0;
-                sum.totaltaxwithoutnoticwarrant += parseFloat(row.getAttribute('data-totaltaxwithoutnoticwarrant')) || 0;
-            });
-            // Update the footer cells
-            document.getElementById('sum-dhakit-house-tax').innerText = sum.dhakitHouseTax.toFixed(2);
-            document.getElementById('sum-dand-house-tax').innerText = sum.dandHouseTax.toFixed(2);
-            document.getElementById('sum-house-tax').innerText = sum.houseTax.toFixed(2);
-            document.getElementById('sum-total-house-tax').innerText = sum.totalHouseTax.toFixed(2);
-            document.getElementById('sum-dhakit-lighting-tax').innerText = sum.dhakitLightingTax.toFixed(2);
-            document.getElementById('sum-lighting-tax').innerText = sum.lightingTax.toFixed(2);
-            document.getElementById('sum-total-lighting-tax').innerText = sum.totalLightingTax.toFixed(2);
-            document.getElementById('sum-dhakit-health-tax').innerText = sum.dhakitHealthTax.toFixed(2);
-            document.getElementById('sum-health-tax').innerText = sum.healthTax.toFixed(2);
-            document.getElementById('sum-total-health-tax').innerText = sum.totalHealthTax.toFixed(2);
-            document.getElementById('sum-dhakit-sawater-tax').innerText = sum.dhakitSaWaterTax.toFixed(2);
-            document.getElementById('sum-sawater-tax').innerText = sum.saWaterTax.toFixed(2);
-            document.getElementById('sum-total-sawater-tax').innerText = sum.totalSaWaterTax.toFixed(2);
-            document.getElementById('sum-dhakit-cleaning-tax').innerText = sum.dhakitCleaningTax.toFixed(2);
-            document.getElementById('sum-cleaning-tax').innerText = sum.cleaningTax.toFixed(2);
-            document.getElementById('sum-total-cleaning-tax').innerText = sum.totalCleaningTax.toFixed(2);
-            document.getElementById('sum-totaltaxwithoutnoticwarrant').innerText = sum.totaltaxwithoutnoticwarrant.toFixed(2);
-        }
         function showPage(page) {
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             if (page < 1) page = 1;
             if (page > totalPages) page = totalPages;
             currentPage = page;
-            records.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                el.style.display = (pageIdx === currentPage) ? '' : 'none';
+            pages.forEach((el, idx) => {
+                el.style.display = (idx + 1 === currentPage) ? '' : 'none';
             });
             document.getElementById('pageInput').value = currentPage;
             document.getElementById('pageTotal').innerText = '/' + totalPages;
-            updateFooterSummary();
         }
         function nextPage() { showPage(currentPage + 1); }
         function prevPage() { showPage(currentPage - 1); }
@@ -225,23 +174,20 @@
             const toInput = document.getElementById('printTo');
             let from = parseInt(fromInput.value) || 1;
             let to = parseInt(toInput.value) || 1;
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             from = Math.max(1, Math.min(from, totalPages));
             to = Math.max(from, Math.min(to, totalPages));
             // Show only selected pages
-            const prevStates = records.map(el => el.style.display);
-            records.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                el.style.display = (pageIdx >= from && pageIdx <= to) ? '' : 'none';
+            pages.forEach((el, idx) => {
+                el.style.display = (idx + 1 >= from && idx + 1 <= to) ? '' : 'none';
             });
             setTimeout(() => {
                 window.print();
                 setTimeout(() => {
                     // Restore previous state (show only current page)
-                    records.forEach((el, idx) => {
-                        const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                        el.style.display = (pageIdx === currentPage) ? '' : 'none';
+                    pages.forEach((el, idx) => {
+                        el.style.display = (idx + 1 === currentPage) ? '' : 'none';
                     });
                 }, 100);
             }, 50);
@@ -253,8 +199,8 @@
             updateZoom();
             showPage(1);
             // Set print range max
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             document.getElementById('printFrom').max = totalPages;
             document.getElementById('printTo').max = totalPages;
             document.getElementById('printTo').value = totalPages;
@@ -266,7 +212,9 @@
         };
     </script>
     <div id="mainContent">
-    <!-- Top section to repeat on every page -->
+    {% for page in pages %}
+    <div class="print-page" data-page-no="{{ loop.index }}"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
+    <!-- Top section repeats on every page -->
     <div style="position:relative;">
     <table class="report-top">
         <tr>
@@ -352,26 +300,8 @@
 
         </thead>
         <tbody>
-            {% for row in data %}
-            <tr class="record-row"
-                data-dhakit-house-tax="{{row.dhakitHouseTax|default('0')}}"
-                data-dand-house-tax="{{row.dandHouseTax|default('0')}}"
-                data-house-tax="{{row.houseTax|default('0')}}"
-                data-total-house-tax="{{row.totalHouseTax|default('0')}}"
-                data-dhakit-lighting-tax="{{row.dhakitLightingTax|default('0')}}"
-                data-lighting-tax="{{row.lightingTax|default('0')}}"
-                data-total-lighting-tax="{{row.totalLightingTax|default('0')}}"
-                data-dhakit-health-tax="{{row.dhakitHealthTax|default('0')}}"
-                data-health-tax="{{row.healthTax|default('0')}}"
-                data-total-health-tax="{{row.totalHealthTax|default('0')}}"
-                data-dhakit-sawater-tax="{{row.dhakitSaWaterTax|default('0')}}"
-                data-sawater-tax="{{row.saWaterTax|default('0')}}"
-                data-total-sawater-tax="{{row.totalSaWaterTax|default('0')}}"
-                data-dhakit-cleaning-tax="{{row.dhakitCleaningTax|default('0')}}"
-                data-cleaning-tax="{{row.cleaningTax|default('0')}}"
-                data-total-cleaning-tax="{{row.totalCleaningTax|default('0')}}"
-                data-totaltaxwithoutnoticwarrant="{{ (((row.totaltaxwithoutnoticwarrant|default('0')) - (row.totalViWaterTax|default('0'))) - (row.totlaToiletTax|default('0'))) | round(2) }}"
-            >
+            {% for row in page %}
+            <tr class="record-row">
                 <td>{{ row.srNo }}</td>
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
@@ -397,10 +327,44 @@
             </tr>
             {% endfor  %}
         </tbody>
-        <!-- गोषवारा summary in tfoot so it repeats on every printed page -->
+        <!-- गोषवारा - या पानाची बेरीज (फक्त याच पानावरील ओळींची), शेवटच्या
+             पानावर खाली सर्व पानांची एकूण बेरीज (data, संपूर्ण) सुद्धा. -->
         <tfoot>
         <tr>
-            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:left;">या पानाची बेरीज</td>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">पाणी कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+            <td class="gosh-label" colspan="2" style="font-weight:bold; text-align:center;">एकूण </td>
+        </tr>
+        <tr>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitHouseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dandHouseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (page | sum(attribute='houseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalHouseTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitLightingTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (page | sum(attribute='lightingTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalLightingTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitHealthTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (page | sum(attribute='healthTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalHealthTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitSaWaterTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (page | sum(attribute='saWaterTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalSaWaterTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeChalu != 'true' %}{{ (page | sum(attribute='cleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td class="num">{% if removePurnaYekun != 'true' %}{{ (((page | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (page | map(attribute='totalViWaterTax') | sum) - (page | map(attribute='totlaToiletTax') | sum)) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
+        </tr>
+        {% if loop.last %}
+        <tr>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:left;">एकूण बेरीज (सर्व पाने)</td>
             <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
@@ -431,7 +395,11 @@
             <td class="num">{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td class="num">{% if removePurnaYekun != 'true' %}{{ (((data | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (data | map(attribute='totalViWaterTax') | sum) - (data | map(attribute='totlaToiletTax') | sum)) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
         </tr>
+        {% endif %}
         </tfoot>
     </table>
+    </div>
+    {% endfor %}
+    </div>
 </body>
 </html>
