@@ -143,8 +143,39 @@
     /* ROW 3 - पूर्ण रुंदीत, बटणांच्या मध्ये न अडकता खालच्या भागात 3 ओळी. मोठ्या QR
        मुळे उरलेली जागा कमी झालीच आहे; उरलेल्या जागेत मजकूर वरतीच (flex-start) ठेवतो,
        जेणेकरून मधल्या रांगेखालची पोकळी वाढणार नाही. */
+    /* खालचा भाग: [घर कर QR] | मजकूर (bottom-row) | [पाणी कर QR]. Bank QR नसतील तर
+       फक्त bottom-row, पूर्ण रुंदीत - आधीसारखाच. */
+    .bottom-area {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      gap: 0.06in;
+    }
+    .bank-qr {
+      flex: 0 0 auto;
+      width: 0.75in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.02in;
+    }
+    .bank-qr img {
+      width: 0.7in;
+      height: 0.7in;
+      object-fit: contain;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .bank-qr .bank-label {
+      font-weight: 700;
+      color: #000;
+      font-size: 8pt;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
     .bottom-row {
       flex: 1 1 auto;
+      min-width: 0;
       min-height: 0;
       display: flex;
       flex-direction: column;
@@ -175,6 +206,15 @@
       overflow-wrap: anywhere;
     }
     .id-occ-line .nowrap-group { white-space: nowrap; }
+    .info-line {
+      width: 100%;
+      font-weight: 700;
+      color: #000;
+      font-size: 10pt;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .info-line .nowrap-group { white-space: nowrap; }
     .area-lines {
       width: 100%;
       display: flex;
@@ -240,11 +280,27 @@
         </div>
       </div>
 
+      <div class="bottom-area">
+        {% if houseTaxQrUrl or waterTaxQrUrl %}
+        <div class="bank-qr">
+          {% if houseTaxQrUrl %}
+          <img src="{{ houseTaxQrUrl }}" alt="घर कर QR" />
+          <div class="bank-label">घर कर</div>
+          {% endif %}
+        </div>
+        {% endif %}
       <div class="bottom-row">
         <div class="owner-name">{{p.owner_name}}</div>
         <div class="id-occ-line">
           अ.क्र. {{p.sr_no}} / <span class="nowrap-group">मालमत्ता क्र. {{p.malmatta_kramank}}</span> | भोगवटदार: {{p.occupant_name}}
         </div>
+        {% if p.mobile_number or p.khali_jaga_sqft %}
+        <div class="info-line">
+          {% if p.mobile_number %}<span class="nowrap-group">मोबाईल क्र. : {{ p.mobile_number }}</span>{% endif %}
+          {% if p.mobile_number and p.khali_jaga_sqft %} | {% endif %}
+          {% if p.khali_jaga_sqft %}<span class="nowrap-group">खाली जागा : {{ p.khali_jaga_sqft }} चौ.फु.</span>{% endif %}
+        </div>
+        {% endif %}
         {% if p.boundary_east or p.boundary_west or p.boundary_north or p.boundary_south %}
         <div class="boundary-block">
           {% if p.boundary_east or p.boundary_west %}
@@ -256,6 +312,15 @@
         </div>
         {% endif %}
         <div class="tagline">{{p.tagline}}</div>
+      </div>
+        {% if houseTaxQrUrl or waterTaxQrUrl %}
+        <div class="bank-qr">
+          {% if waterTaxQrUrl %}
+          <img src="{{ waterTaxQrUrl }}" alt="पाणी कर QR" />
+          <div class="bank-label">पाणी कर</div>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
     </div>
     {% endfor %}
@@ -287,8 +352,11 @@
         var idEl = plate.querySelector('.id-occ-line');
         var boundaryEls = Array.prototype.slice.call(plate.querySelectorAll('.boundary-line'));
         var areaEls = Array.prototype.slice.call(plate.querySelectorAll('.area-line'));
+        var infoEls = Array.prototype.slice.call(plate.querySelectorAll('.info-line'));
         var bottomRow = plate.querySelector('.bottom-row');
         if (!bottomRow) return;
+        var taglineEl = bottomRow.querySelector('.tagline');
+        if (taglineEl) taglineEl.style.fontSize = '';
 
         var sizes = {};
         if (ownerEl) sizes.owner = fitBlock(ownerEl, { max: 14, min: 10, maxLines: 2 });
@@ -297,6 +365,13 @@
           sizes.boundary = 9;
           boundaryEls.forEach(function (el) {
             el.style.fontSize = '9pt';
+            el.style.lineHeight = '1.2';
+          });
+        }
+        if (infoEls.length) {
+          sizes.info = 10;
+          infoEls.forEach(function (el) {
+            el.style.fontSize = '10pt';
             el.style.lineHeight = '1.2';
           });
         }
@@ -326,6 +401,11 @@
               shrunkAny = true;
             }
           });
+          if (!shrunkAny && infoEls.length && sizes.info > 8) {
+            sizes.info = Math.max(8, Math.round((sizes.info - 0.3) * 100) / 100);
+            infoEls.forEach(function (el) { el.style.fontSize = sizes.info + 'pt'; });
+            shrunkAny = true;
+          }
           if (!shrunkAny && boundaryEls.length && sizes.boundary > 7) {
             sizes.boundary = Math.max(7, Math.round((sizes.boundary - 0.3) * 100) / 100);
             boundaryEls.forEach(function (el) { el.style.fontSize = sizes.boundary + 'pt'; });
@@ -338,6 +418,24 @@
           }
           if (!shrunkAny) break;
           guard++;
+        }
+
+        // शेवटचा उपाय (मोबाईल/खाली जागा/बँक QR मुळे जागा कमी झाल्यावर): तरीही बसत नसेल
+        // तर सगळा मजकूर एकत्र थोडा थोडा लहान (किमान 6pt) - मजकूर कापला जाऊ नये म्हणून.
+        // नाव/दुसऱ्या ओळीची 2-ओळींची मर्यादा काढतो, म्हणजे लहान झालेला मजकूर पूर्ण दिसतो.
+        if (bottomRow.scrollHeight > bottomRow.clientHeight + 1) {
+          if (ownerEl) ownerEl.style.maxHeight = 'none';
+          if (idEl) idEl.style.maxHeight = 'none';
+          var textEls = Array.prototype.slice.call(bottomRow.querySelectorAll(
+            '.owner-name, .id-occ-line, .info-line, .boundary-line, .area-line, .tagline'));
+          var scale = 1;
+          var base = textEls.map(function (el) { return parseFloat(window.getComputedStyle(el).fontSize); });
+          while (bottomRow.scrollHeight > bottomRow.clientHeight + 1 && scale > 0.5) {
+            scale = Math.round((scale - 0.03) * 100) / 100;
+            textEls.forEach(function (el, i) {
+              el.style.fontSize = Math.max(8, base[i] * scale) + 'px';
+            });
+          }
         }
       }
 
