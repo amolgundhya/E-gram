@@ -5,7 +5,7 @@
     <title>नमुना ८</title>
     <style>
         body { font-family: 'Mangal', Arial, sans-serif; }
-        table { border-collapse: collapse; table-layout: fixed; width: 100%; font-size: 13px; }
+        table { border-collapse: collapse; width: 100%; font-size: 13px; }
         .header-table td { border: none; padding: 2px 4px; }
         .center { text-align: center; }
         .left { text-align: left; }
@@ -46,7 +46,6 @@
         @media print {
             @page {
                 size: A4 landscape;
-                margin: 8mm;
                 {% if pageNumber %}
                 @bottom-center {
                     content: "पृष्ठ " counter(page) " / " counter(pages);
@@ -62,22 +61,6 @@
                 display: block !important;
                 page-break-inside: avoid;
                 break-inside: avoid;
-            }
-        }
-    </style>
-
-    <style>
-        /* नमुना-8 रजिस्टर प्रिंट - landscape मध्ये सर्व column page-width मध्ये बसावेत
-           म्हणून फॉन्ट किंचित लहान करतो आणि लांब मजकूर क्लिप न होता wrap होऊ देतो. */
-        @media print {
-            table, th, td {
-                font-size: 10px !important;
-            }
-            th, td {
-                padding: 1px 2px !important;
-                overflow-wrap: break-word !important;
-                word-break: break-word !important;
-                white-space: normal !important;
             }
         }
     </style>
@@ -200,7 +183,7 @@
         function exitPage() {
             window.close();
         }
-                window.onload = function() {
+        window.onload = function() {
             updateZoom();
             showPage(1);
             updateFooterSummary();
@@ -240,17 +223,15 @@
                             <td class="center bold" style="font-size:22px; width:34%">नमुना ८<br><span style="font-size:15px; font-weight:normal;">सन {{ yearFrom | default('') }} <b>ते</b> {{ yearTo | default('') }} </span></td>
                             <td class="right" style="width:33%">नियम 32 (1)<br>तालुका : {{ taluka | default('') }}  <br>जिल्हा : {{ jilha | default('') }} </td>
                             {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
-                            <td class="center" style="width:1%; white-space:nowrap;">
+                            <td class="center" style="width:1%; white-space:nowrap; padding:0 2px;">
                                 {% if houseTaxQrUrl %}
-                                <div style="display:inline-block; text-align:center; margin:0 4px;">
-                                    <img src="{{ houseTaxQrUrl }}" style="width:60px; height:60px; object-fit:contain;" />
-                                    <div style="font-size:10px;">घर कर</div>
+                                <div style="display:inline-block; text-align:center; margin:0 2px; font-size:9px; line-height:1.1;">
+                                    <img src="{{ houseTaxQrUrl }}" style="width:44px; height:44px; object-fit:contain; display:block;" />घर कर
                                 </div>
                                 {% endif %}
                                 {% if waterTaxQrUrl %}
-                                <div style="display:inline-block; text-align:center; margin:0 4px;">
-                                    <img src="{{ waterTaxQrUrl }}" style="width:60px; height:60px; object-fit:contain;" />
-                                    <div style="font-size:10px;">पाणी कर</div>
+                                <div style="display:inline-block; text-align:center; margin:0 2px; font-size:9px; line-height:1.1;">
+                                    <img src="{{ waterTaxQrUrl }}" style="width:44px; height:44px; object-fit:contain; display:block;" />पाणी कर
                                 </div>
                                 {% endif %}
                             </td>
@@ -334,7 +315,7 @@
                 data-vpanikar="{{ row.vpanikar | default('0') }}">
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
-                <td style="width: 300px;">{{ row.ownerName | default('') }}{% if row.aadharCard or row.mobileNumberAdd %}<div style="font-size: 9px; line-height: 1.1;">{% if row.aadharCard %}आधार क्रमांक : {{ row.aadharNumber|default('', true) }}{% endif %}{% if row.aadharCard and row.mobileNumberAdd %}<br>{% endif %}{% if row.mobileNumberAdd %}मोबाईल क्रमांक : {{ row.mobileNumber|default('', true) }}{% endif %}</div>{% endif %}</td>
+                <td style="width: 300px;">{{ row.ownerName | default('') }}{% if row.aadharCard and row.aadharNumber %}<div style="font-size: 9px; line-height: 1.15;">आधार :<br><span style="white-space: nowrap;">{{ row.aadharNumber }}</span></div>{% endif %}{% if row.mobileNumberAdd and row.mobileNumber %}<div style="font-size: 9px; line-height: 1.15;">मो. <span style="white-space: nowrap;">{{ row.mobileNumber }}</span></div>{% endif %}</td>
                 <td>{{ row.occupantName | default('') }}</td>
                 <td>
                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
@@ -497,7 +478,7 @@
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
-                <td>{{ row.remarks | default('') }}<br>घरकुल : {{ row.gharkul|default('', true) }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear }}){% endif %}</td>
+                <td>{{ row.remarks | default('') }}{% if row.gharkul %}<div style="font-size: 9px; line-height: 1.15; overflow-wrap: anywhere;">घरकुल : {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear }}){% endif %}</div>{% endif %}</td>
             </tr>
             <tr class="record-row">
                 <td colspan="22" style="text-align:center; font-size:15px; font-weight:bold; border-top:none;padding: 3px;">
@@ -506,7 +487,7 @@
                     <span style="font-weight:bold;">पश्चिम:</span> <span style="padding-right: 20px;"> {{ row.boundaryWest | default('') }} </span>
                     <span style="font-weight:bold;">उत्तर:</span> <span style="padding-right: 20px;"> {{ row.boundaryNorth | default('') }} </span>
                     <span style="font-weight:bold;">दक्षिण:</span> <span style="padding-right: 20px;"> {{ row.boundarySouth | default('') }} </span>
-                    <span style="font-weight:bold;">व्दार नांव:</span> <span style="padding-right: 20px;"> {{ row.dwarNaav | default('') }} </span>
+                    {% if row.dwarNaav %}<span style="font-weight:bold;">व्दार नांव:</span> <span style="padding-right: 20px;"> {{ row.dwarNaav }} </span>{% endif %}
                 </td>
             </tr>
             {% endfor %}
