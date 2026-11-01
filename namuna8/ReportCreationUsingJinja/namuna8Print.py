@@ -1,5 +1,6 @@
 from jinja2 import Environment, FileSystemLoader
 import os
+import re
 import requests
 from datetime import datetime, date
 from fastapi import APIRouter , Request
@@ -2198,6 +2199,30 @@ async def singlePrint(request : Request):
     
 
 
+_DEVANAGARI_DIGITS = str.maketrans('०१२३४५६७८९', '0123456789')
+
+
+def parse_sr_list(value):
+    """नेम प्लेट "ठराविक अ.क्र." यादी - "401, 402, 403" किंवा "401-404" किंवा दोन्ही
+    मिसळून ("3, 7, 10-12"), मराठी अंकही (४०१) चालतात. यादी (list) दिली तरी चालते.
+    (lo, hi) ranges परत करतो; चुकीचा तुकडा असल्यास ValueError."""
+    if isinstance(value, (list, tuple)):
+        value = ",".join(str(v) for v in value)
+    text = str(value or "").translate(_DEVANAGARI_DIGITS).replace('–', '-').replace('—', '-')
+    text = re.sub(r'\s*-\s*', '-', text)
+    ranges = []
+    for token in re.split(r'[,\s;]+', text):
+        if not token:
+            continue
+        m = re.fullmatch(r'(\d+)(?:-(\d+))?', token)
+        if not m:
+            raise ValueError(token)
+        lo = int(m.group(1))
+        hi = int(m.group(2)) if m.group(2) else lo
+        ranges.append((min(lo, hi), max(lo, hi)))
+    return ranges
+
+
 @router.post('/nameplate_sheet')
 async def nameplate_sheet(request: Request):
     """डिजिटल नेम प्लेट - many QR name plates arranged on one 12x18in sheet,
@@ -2208,6 +2233,7 @@ async def nameplate_sheet(request: Request):
     पूर्ण गावाचं पान मोठं (~10 MB) होतं, म्हणून भागांत (parts) काढता येतं - पर्यायी:
       partSize + part     : उदा. partSize=300, part=2 -> 301 ते 600 वी मालमत्ता (यादीतील क्रमाने)
       fromSrNo / toSrNo   : अ.क्र. पासून - पर्यंत (दोन्ही धरून)
+      srNos               : ठराविक अ.क्र. - "401, 402, 403" / "401-404" (parse_sr_list)
     काहीच न दिल्यास पूर्ण गाव, पूर्वीप्रमाणेच."""
     try:
         requestData = await request.json()
@@ -2221,6 +2247,19 @@ async def nameplate_sheet(request: Request):
         part_no = int(requestData.get("part") or 1)
         from_sr = requestData.get("fromSrNo")
         to_sr = requestData.get("toSrNo")
+        sr_nos = requestData.get("srNos")
+        try:
+            sr_ranges = parse_sr_list(sr_nos)
+        except ValueError as bad:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": f"अ.क्र. यादी चुकीची आहे: '{bad}' (उदा. 401, 402, 403 किंवा 401-404)", "data": {}}
+            )
+        if sr_nos not in (None, "", []) and not sr_ranges:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "कृपया अ.क्र. लिहा (उदा. 401, 402, 403 किंवा 401-404)", "data": {}}
+            )
 
         base_url = str(request.base_url).rstrip('/')
         async with httpx.AsyncClient() as client:
@@ -2233,8 +2272,22 @@ async def nameplate_sheet(request: Request):
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
-        parent_gp_name = gp_resp.json().get('parent_gram_panchayat_name') if gp_resp.status_code == 200 else None
+        gp_data = gp_resp.json() if gp_resp.status_code == 200 else {}
+        parent_gp_name = gp_data.get('parent_gram_panchayat_name')
         year_label = f"{datetime.now().year}-{datetime.now().year + 1}"
+
+        # घर कर / पाणी कर Bank Scanner - रिपोर्ट्सप्रमाणेच: Master settings मध्ये चालू
+        # असेल आणि QR अपलोड केलेला असेल तरच, तीच images. फाईल खरंच असेल तरच - नाहीतर
+        # प्लेटवर तुटलेल्या image ची चौकट छापली जाईल.
+        def _qr_uploaded(path):
+            return bool(path) and os.path.exists(path.replace("/", os.sep))
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gp_data.get('show_bank_scanner_in_reports'):
+            if _qr_uploaded(gp_data.get('house_tax_qr_url')):
+                houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+            if _qr_uploaded(gp_data.get('water_tax_qr_url')):
+                waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
 
         properties = response.json()
         if not isinstance(properties, list):
@@ -2252,6 +2305,14 @@ async def nameplate_sheet(request: Request):
             hi = int(to_sr) if to_sr not in (None, "") else None
             properties = [p for p in properties if _sr(p) is not None
                           and (lo is None or _sr(p) >= lo) and (hi is None or _sr(p) <= hi)]
+        missing_sr_nos = []
+        if sr_ranges:
+            properties = [p for p in properties if _sr(p) is not None
+                          and any(lo <= _sr(p) <= hi for lo, hi in sr_ranges)]
+            # यादीतले पण गावात नसलेले अ.क्र. (फक्त सांगण्यासाठी; खूप मोठ्या range साठी मोजत नाही)
+            if sum(hi - lo + 1 for lo, hi in sr_ranges) <= 10000:
+                found = set(_sr(p) for p in properties)
+                missing_sr_nos = sorted(set(n for lo, hi in sr_ranges for n in range(lo, hi + 1)) - found)
         parts = 1
         if part_size > 0:
             parts = max(1, -(-len(properties) // part_size))
@@ -2266,7 +2327,16 @@ async def nameplate_sheet(request: Request):
         tagline = "वेळेत कर भरा आणि गावाचा विकास साधा"
         plates = []
         for prop, qr_uri in zip(properties, qr_uris):
+            # मोबाईल / खाली जागा (चौ.फु.) - फक्त मूल्य असेल तरच प्लेटवर दिसतात
+            mobile = str(prop.get("mobileNumber") or "").strip()
+            khali = prop.get("khaliJaga") or []
+            try:
+                khali_sqft = float((khali[0].get("totalkhalijagaareainfoot") if khali else 0) or 0)
+            except (TypeError, ValueError):
+                khali_sqft = 0.0
             plates.append({
+                "mobile_number": mobile if mobile.translate(_DEVANAGARI_DIGITS).strip("0 ") else "",
+                "khali_jaga_sqft": "%.2f" % khali_sqft if khali_sqft > 0 else "",
                 "sr_no": prop.get("srNo"),
                 "gram_panchayat_name": prop.get("gramPanchayat"),
                 "taluka_name": prop.get("taluka"),
@@ -2296,6 +2366,8 @@ async def nameplate_sheet(request: Request):
             plate_width_in=plate_width_in,
             plate_height_in=plate_height_in,
             plates_per_row=requestData.get("platesPerRow", 2),
+            houseTaxQrUrl=houseTaxQrUrl,
+            waterTaxQrUrl=waterTaxQrUrl,
         )
 
         os.makedirs(static_dir, exist_ok=True)
@@ -2315,6 +2387,7 @@ async def nameplate_sheet(request: Request):
                     "parts": parts,
                     "fromSrNo": plates[0]["sr_no"] if plates else None,
                     "toSrNo": plates[-1]["sr_no"] if plates else None,
+                    "missingSrNos": missing_sr_nos,
                     "qr": qr_stats,
                 }
             }
