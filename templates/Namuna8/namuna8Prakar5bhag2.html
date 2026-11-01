@@ -606,6 +606,7 @@
                       शेरा : {{ row.remarks | default('') }}
                     </td>
                     <td style="text-align: left">शौचालय : {{ row.toilet | default('') }}</td>
+                    <td style="text-align: left">घरकुल : {{ row.gharkul|default('', true) }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear }}){% endif %}</td>
                     <td style="text-align: left; border-right: 1px solid #000">
                       चतुर्सिमा
                     </td>

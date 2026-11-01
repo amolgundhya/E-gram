@@ -140,7 +140,13 @@
                 <td style="font-weight: bold; width: 14%;">मालमत्ता धारकाचे नांव :</td>
                 <td style="padding: 2px 6px;"> {{ownerName|default('')}} </td>
                 <td style="font-weight: bold; width: 5%;padding: 2px 6px;">मोकं :</td>
-                <td style="width: 15%; padding: 2px 6px;">&nbsp;</td>
+                <td style="width: 15%; padding: 2px 6px;">{% if mobileNumberAdd %}{{mobileNumber|default('', true)}}{% endif %}&nbsp;</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold; width: 14%;">आधार क्रमांक :</td>
+                <td style="padding: 2px 6px;">{% if aadharCard %}{{aadharNumber|default('', true)}}{% endif %}</td>
+                <td style="font-weight: bold; width: 5%;padding: 2px 6px;">घरकुल :</td>
+                <td style="width: 15%; padding: 2px 6px;">{{gharkul|default('', true)}}{% if gharkulYojana and gharkul != 'नाही' %} - {{gharkulYojana}}{% endif %}{% if gharkulBenefitYear and gharkul != 'नाही' %} ({{gharkulBenefitYear}}){% endif %}</td>
             </tr>
         </table>
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
