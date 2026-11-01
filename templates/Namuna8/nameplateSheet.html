@@ -22,6 +22,13 @@
     gap: 0.1in;
     justify-content: start;
 }
+    /* एक record-page = एक छापलेली 12x18 शीट (नमुना-8 रिपोर्ट viewer प्रमाणे पान-पान) */
+    .record-page {
+      page-break-after: always; /* All pages break to new page */
+    }
+    .record-page:last-child {
+      page-break-after: avoid; /* EXCEPT the last page - no page break */
+    }
     /* Uniform plate size across the whole batch - fixed width/height, never
        resized by content, so a cutting machine can rely on a single measurement.
        padding = the 0.2in safe margin, applied once here so every direct child
@@ -250,12 +257,304 @@
     @media print {
       @page { size: 12in 18in; margin: 0.2in; }
       body { background: #fff; padding: 0; }
+      #toolbar {
+        display: none !important;
+      }
+      /* स्क्रीनवरचा zoom प्रिंटमध्ये नाही - प्लेट/QR साईज नेहमी तीच */
+      #mainContent { zoom: 1 !important; }
     }
   </style>
 </head>
 <body>
+    <div
+      id="toolbar"
+      style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 12px;
+        background: #f8f8f8;
+        border-bottom: 1px solid #ccc;
+      "
+    >
+      <!-- Left: Icon Buttons & Navigation -->
+      <div style="display: flex; align-items: center; gap: 6px">
+        <button
+          title="First Page"
+          style="
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          ⏮️
+        </button>
+        <button
+          title="Previous Page"
+          style="
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          ◀️
+        </button>
+        <input
+          type="text"
+          value="1"
+          id="pageInput"
+          style="
+            width: 32px;
+            text-align: center;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            margin: 0 2px;
+          "
+        />
+        <span id="pageTotal" style="font-size: 14px; color: #888"></span>
+        <button
+          title="Next Page"
+          style="
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          ▶️
+        </button>
+        <button
+          title="Last Page"
+          style="
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          ⏭️
+        </button>
+        <button
+          title="Zoom Out"
+          onclick="zoomOut()"
+          style="
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+          "
+        >
+          ➖
+        </button>
+        <span
+          id="zoomPercent"
+          style="min-width: 40px; text-align: center; font-size: 14px"
+          >100%</span
+        >
+        <button
+          title="Zoom In"
+          onclick="zoomIn()"
+          style="
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+          "
+        >
+          ➕
+        </button>
+      </div>
+      <!-- Right: Print & Exit Buttons -->
+      <div style="display: flex; align-items: center; gap: 8px">
+        <label style="font-size: 15px; font-weight: bold">From:</label>
+        <input
+          type="number"
+          id="printFrom"
+          min="1"
+          value="1"
+          style="
+            width: 48px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            padding: 2px 4px;
+          "
+        />
+        <label style="font-size: 15px; font-weight: bold">To:</label>
+        <input
+          type="number"
+          id="printTo"
+          min="1"
+          value="1"
+          style="
+            width: 48px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            padding: 2px 4px;
+          "
+        />
+        <button
+          onclick="printPage()"
+          style="
+            background: #4caf50;
+            color: #fff;
+            font-weight: bold;
+            font-size: 20px;
+            border: none;
+            border-radius: 20px;
+            padding: 2px 24px;
+            cursor: pointer;
+          "
+        >
+          Print
+        </button>
+        <button
+          onclick="exitPage()"
+          style="
+            background: #b71c1c;
+            color: #fff;
+            font-weight: bold;
+            font-size: 20px;
+            border: none;
+            border-radius: 20px;
+            padding: 2px 24px;
+            cursor: pointer;
+          "
+        >
+          EXIT
+        </button>
+      </div>
+    </div>
+    <script>
+      // नमुना-8 रिपोर्ट viewer (namuna8Prakar4bhag1.html) चाच toolbar - इथे एक "page" =
+      // एक छापलेली 12x18 शीट (.record-page).
+      let zoomLevel = 1.0;
+      const minZoom = 0.5;
+      const maxZoom = 2.0;
+      const zoomStep = 0.1;
+      let currentPage = 1;
+      let totalPages = 0;
+      let printingRange = false;
+
+      function updateZoom() {
+        document.getElementById("mainContent").style.zoom = zoomLevel;
+        document.getElementById("zoomPercent").innerText =
+          Math.round(zoomLevel * 100) + "%";
+      }
+      function zoomIn() {
+        if (zoomLevel < maxZoom) {
+          zoomLevel += zoomStep;
+          zoomLevel = Math.min(maxZoom, zoomLevel);
+          updateZoom();
+        }
+      }
+      function zoomOut() {
+        if (zoomLevel > minZoom) {
+          zoomLevel -= zoomStep;
+          zoomLevel = Math.max(minZoom, zoomLevel);
+          updateZoom();
+        }
+      }
+      function showPage(page) {
+        const recordPages = Array.from(
+          document.querySelectorAll(".record-page"),
+        );
+        totalPages = recordPages.length;
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+        recordPages.forEach((el, idx) => {
+          el.style.display = idx + 1 === currentPage ? "" : "none";
+        });
+        document.getElementById("pageInput").value = currentPage;
+        if (document.getElementById("pageTotal"))
+          document.getElementById("pageTotal").innerText = "/" + totalPages;
+        // नुकत्याच दिसलेल्या शीटवरचा मजकूर बसवतो (लपलेल्या प्लेट्स मोजता येत नाहीत)
+        if (window.fitNamePlates) window.fitNamePlates();
+      }
+      function nextPage() {
+        showPage(currentPage + 1);
+      }
+      function prevPage() {
+        showPage(currentPage - 1);
+      }
+      function firstPage() {
+        showPage(1);
+      }
+      function lastPage() {
+        showPage(totalPages);
+      }
+      function printPage() {
+        // Print only the specified page range
+        let from = parseInt(document.getElementById("printFrom").value) || 1;
+        let to = parseInt(document.getElementById("printTo").value) || 1;
+        from = Math.min(Math.max(1, from), totalPages);
+        to = Math.min(Math.max(from, to), totalPages);
+        const recordPages = Array.from(
+          document.querySelectorAll(".record-page"),
+        );
+        // Show only pages in the selected page range
+        recordPages.forEach((el, idx) => {
+          const pageIdx = idx + 1;
+          el.style.display = pageIdx >= from && pageIdx <= to ? "" : "none";
+        });
+        printingRange = true;
+        setTimeout(() => {
+          window.print();
+          setTimeout(() => {
+            // Restore previous state
+            printingRange = false;
+            showPage(currentPage);
+          }, 100);
+        }, 50);
+      }
+      function exitPage() {
+        window.close();
+      }
+      // Print बटणाशिवाय (Ctrl+P) प्रिंट केल्यास आधीसारख्याच सगळ्या शीट्स छापतो.
+      window.addEventListener("beforeprint", function () {
+        if (printingRange) return;
+        document.querySelectorAll(".record-page").forEach((el) => {
+          el.style.display = "";
+        });
+      });
+      window.addEventListener("afterprint", function () {
+        if (!printingRange) showPage(currentPage);
+      });
+      window.onload = function () {
+        updateZoom();
+        showPage(1);
+        // Set printTo max to totalPages after first render
+        setTimeout(() => {
+          document.getElementById("printTo").max = totalPages;
+          document.getElementById("printFrom").max = totalPages;
+          document.getElementById("printTo").value = totalPages;
+        }, 100);
+        // Wire up navigation buttons
+        document.querySelector('button[title="First Page"]').onclick =
+          firstPage;
+        document.querySelector('button[title="Previous Page"]').onclick =
+          prevPage;
+        document.querySelector('button[title="Next Page"]').onclick = nextPage;
+        document.querySelector('button[title="Last Page"]').onclick = lastPage;
+        document.getElementById("pageInput").onchange = function () {
+          showPage(parseInt(this.value) || currentPage);
+        };
+      };
+    </script>
+  {# 12x18 शीट (@page margin 0.2in -> 17.6in उंची) वर किती ओळी बसतात - ब्राउझर प्रिंटमध्ये
+     आपोआप जेवढ्या बसतात तेवढ्याच (6x5 प्लेट -> 3 ओळी x 2 = 6 प्लेट्स प्रति शीट). #}
+  {% set rows_per_sheet = [((17.6 + 0.1) / ((plate_height_in|default(5))|float + 0.1))|int, 1]|max %}
+  {% set plates_per_sheet = rows_per_sheet * (plates_per_row|default(2))|int %}
+  <div id="mainContent">
+  {% for sheet_plates in plates|batch(plates_per_sheet) %}
+  <div class="record-page">
   <div class="sheet">
-    {% for p in plates %}
+    {% for p in sheet_plates %}
     <div class="plate">
       <div class="top-row">
         <div class="sr-badge">अ.क्र. {{p.sr_no}}</div>
@@ -324,6 +623,9 @@
       </div>
     </div>
     {% endfor %}
+  </div>
+  </div>
+  {% endfor %}
   </div>
   <script>
     // प्रत्येक प्लेटवरचा तळातील मजकूर (owner-name / id-occ-line) दिलेल्या किमान-कमाल
@@ -439,9 +741,18 @@
         }
       }
 
+      // फक्त दिसणाऱ्या प्लेट्स (toolbar ने निवडलेली शीट / प्रिंटच्या शीट्स) - लपलेल्यांचं
+      // मोजमाप 0 येतं. मोजताना zoom 100% ठेवतो, म्हणजे स्क्रीन zoom चा परिणाम होत नाही.
       function fitAll() {
-        document.querySelectorAll('.plate').forEach(fitPlate);
+        var mc = document.getElementById('mainContent');
+        var zoom = mc ? mc.style.zoom : '';
+        if (mc) mc.style.zoom = 1;
+        document.querySelectorAll('.plate').forEach(function (plate) {
+          if (plate.getClientRects().length) fitPlate(plate);
+        });
+        if (mc) mc.style.zoom = zoom;
       }
+      window.fitNamePlates = fitAll;
 
       if (document.readyState === 'complete') {
         fitAll();
