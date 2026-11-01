@@ -593,21 +593,10 @@
         <div class="id-occ-line">
           अ.क्र. {{p.sr_no}} / <span class="nowrap-group">मालमत्ता क्र. {{p.malmatta_kramank}}</span> | भोगवटदार: {{p.occupant_name}}
         </div>
-        {% if p.mobile_number or p.khali_jaga_sqft %}
+        {# खाली जागा व चतुःसीमा (पूर्व/पश्चिम/उत्तर/दक्षिण) प्लेटवर दाखवत नाही - क्लायंट विनंती #}
+        {% if p.mobile_number %}
         <div class="info-line">
-          {% if p.mobile_number %}<span class="nowrap-group">मोबाईल क्र. : {{ p.mobile_number }}</span>{% endif %}
-          {% if p.mobile_number and p.khali_jaga_sqft %} | {% endif %}
-          {% if p.khali_jaga_sqft %}<span class="nowrap-group">खाली जागा : {{ p.khali_jaga_sqft }} चौ.फु.</span>{% endif %}
-        </div>
-        {% endif %}
-        {% if p.boundary_east or p.boundary_west or p.boundary_north or p.boundary_south %}
-        <div class="boundary-block">
-          {% if p.boundary_east or p.boundary_west %}
-          <div class="boundary-line">पूर्व : {{ p.boundary_east or '-' }} | पश्चिम : {{ p.boundary_west or '-' }}</div>
-          {% endif %}
-          {% if p.boundary_north or p.boundary_south %}
-          <div class="boundary-line">उत्तर : {{ p.boundary_north or '-' }} | दक्षिण : {{ p.boundary_south or '-' }}</div>
-          {% endif %}
+          <span class="nowrap-group">मोबाईल क्र. : {{ p.mobile_number }}</span>
         </div>
         {% endif %}
         <div class="tagline">{{p.tagline}}</div>
