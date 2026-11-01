@@ -305,7 +305,7 @@
 
     <tr>
         <td colspan="2" style="text-align: left; font-weight: bold;">आधार क्रमांक :</td>
-        <td>{% if aadharCard %}{{aadharNumber|default('')}}{% endif %}</td>
+        <td>{% if aadharCard %}{{aadharNumber|default('', true)}}{% endif %}</td>
         {% if areaUnit == 'sqm' %}
         <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
         <td> {{totalareainmeters|default('')}} </td>
@@ -326,7 +326,7 @@
     </tr>
     <tr>
         <td colspan="2" style="text-align: left; font-weight: bold;">मोबाईल क्रमांक :</td>
-        <td>{% if mobileNumberAdd %}{{mobileNumber|default('')}}{% endif %}</td>
+        <td>{% if mobileNumberAdd %}{{mobileNumber|default('', true)}}{% endif %}</td>
         {% if areaUnit == 'sqm' %}
         <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस फुट </td>
         <td> {{total_arearinfoot|default('')|round_sqft}} </td>

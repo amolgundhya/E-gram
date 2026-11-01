@@ -318,7 +318,7 @@
                                 <td rowspan="2"> {{ row.cityWardGatNumber | default('') }} </td>
                                 <td rowspan="2"> {{ row.propertyNumber | default('') }} </td>
                                 <td rowspan="2" style="text-align: left;">
-                                    {{ row.ownerName | default('') }}
+                                    {{ row.ownerName | default('') }}{% if row.aadharCard or row.mobileNumberAdd %}<div style="font-size: 9px; line-height: 1.1;">{% if row.aadharCard %}आधार क्रमांक : {{ row.aadharNumber|default('', true) }}{% endif %}{% if row.aadharCard and row.mobileNumberAdd %}<br>{% endif %}{% if row.mobileNumberAdd %}मोबाईल क्रमांक : {{ row.mobileNumber|default('', true) }}{% endif %}</div>{% endif %}
                                 </td>
                                 <td rowspan="2"> {{ row.occupantName | default('') }} </td>
                                 <td rowspan="2" style="text-align: left;">
@@ -516,6 +516,7 @@
                         <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
                             <tr>
                                 <td style="text-align: left; border-right: 1px solid #000;">शौचालय :  {{ row.toilet | default('') }} </td>
+                                <td style="text-align: left; border-right: 1px solid #000;">घरकुल : {{ row.gharkul|default('', true) }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear }}){% endif %}</td>
                                 <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
                                 <td style="text-align: left; border-right: 1px solid #000;">पूर्व :  {{ row.boundaryEast | default('') }} </td>
                                 <td style="text-align: left; border-right: 1px solid #000;">पश्चिम :  {{ row.boundaryWest | default('') }} </td>
