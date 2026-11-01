@@ -6,29 +6,11 @@
     <style>
         @media print {
           @page {
-            /* portrait A4 was too narrow for this table + the column-30 map/boundary
-               box (300px fixed width) - both got cut off on the right. */
             size: A4 landscape;
-            margin: 5mm;
           }
           #toolbar {
             display: none !important;
         }
-          .record-page {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-          table {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-          /* Browsers put a default ~8px margin on <body> that isn't part of a
-             record-page's own measured size, so it was pushing the fitted content
-             just past the page box and creating a blank trailing page. */
-          html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
         }
     </style>
 </head>
@@ -133,60 +115,6 @@
     function firstPage() { showPage(1); }
     function lastPage() { showPage(totalPages); }
 
-    // Print-time auto-fit: each .record-page (one property per page) is scaled
-    // independently so its table + column-30 map box + footer lands on a single
-    // A4-landscape page, regardless of the on-screen zoom level. Only pages left
-    // visible by printPage()'s range selection are measured/scaled. Restored after
-    // printing so the on-screen preview is unaffected.
-    let preZoomLevel = zoomLevel;
-    let lastVisiblePageForPrint = null;
-    function fitToPagePrint() {
-        try {
-            preZoomLevel = zoomLevel;
-            const mc = document.getElementById('mainContent');
-            if (mc) mc.style.zoom = 1;
-            const pxPerMm = 96 / 25.4;
-            // Extra 2mm safety buffer (beyond the 5mm @page margin) so the scaled
-            // content is always strictly smaller than the page box - a flush fit
-            // can still spill a near-empty extra page from sub-pixel rounding.
-            const safetyMm = 2;
-            const availW = (297 - 5 * 2 - safetyMm) * pxPerMm;
-            const availH = (210 - 5 * 2 - safetyMm) * pxPerMm;
-            lastVisiblePageForPrint = null;
-            document.querySelectorAll('.record-page').forEach(function (page) {
-                if (page.style.display === 'none') return;
-                page.style.zoom = 1;
-                const naturalWidth = page.scrollWidth;
-                const naturalHeight = page.scrollHeight;
-                let scale = Math.min(availW / naturalWidth, availH / naturalHeight, 1);
-                if (!isFinite(scale) || scale <= 0) scale = 1;
-                page.style.zoom = scale;
-                lastVisiblePageForPrint = page;
-            });
-            // Each record-page forces "page-break-after: always" (inline) so the
-            // NEXT property starts on a new sheet - but on the last visible page
-            // that always-break has nothing after it to push onto, and was
-            // producing a trailing blank page. Suppress it only on that last page.
-            if (lastVisiblePageForPrint) {
-                lastVisiblePageForPrint.style.pageBreakAfter = 'avoid';
-                lastVisiblePageForPrint.style.breakAfter = 'avoid';
-            }
-        } catch (e) { /* if measuring fails, print at natural size */ }
-    }
-    function restoreZoomAfterPrint() {
-        const mc = document.getElementById('mainContent');
-        if (mc) mc.style.zoom = preZoomLevel;
-        document.querySelectorAll('.record-page').forEach(function (page) {
-            page.style.zoom = '';
-        });
-        if (lastVisiblePageForPrint) {
-            lastVisiblePageForPrint.style.pageBreakAfter = '';
-            lastVisiblePageForPrint.style.breakAfter = '';
-            lastVisiblePageForPrint = null;
-        }
-    }
-    window.addEventListener('beforeprint', fitToPagePrint);
-    window.addEventListener('afterprint', restoreZoomAfterPrint);
 
     window.onload = function() {
         updateZoom();
@@ -223,7 +151,7 @@
 <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; margin-top: 0;">
     <tr>
         <!-- Left Info Table -->
-        <td style="width: 160px; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none; vertical-align: top; padding: 0;">
+        <td style="width: 22%; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none; vertical-align: top; padding: 0;">
             <table style="width: 100%; font-size: 14px; border-collapse: collapse; border: none;">
                 <tr>
                     <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; border-left: none; border-top: none;">ग्रामपंचायत : </td>
@@ -244,7 +172,7 @@
             </table>
         </td>
         <!-- Center Title -->
-        <td style="text-align: center; vertical-align: top; background: #e0e0e0; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none;">
+        <td style="width: 56%; text-align: center; vertical-align: top; background: #e0e0e0; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none;">
             <div style="font-size: 32px; font-weight: bold">नमुना ८</div>
             <div style="font-size: 14px;">नियम 32 (1)</div>
             <div style="font-size: 16px; margin-top: 8px;">
@@ -252,7 +180,7 @@
             </div>
         </td>
         <!-- Right PHOTO/QR -->
-        <td style="width: 330px; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
+        <td style="width: 22%; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
                     <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
@@ -578,8 +506,8 @@
 <!-- Footer/Signature/Logo area -->
 <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
     <tr>
-        <td style="text-align: left; border-right: 1px solid #000;">{% if row.toilet == 'आहे' %}शौचालय : {% if row.toiletBenefitYear %}सन {{ row.toiletBenefitYear|financial_year_short }} शौचालयाचा लाभ मिळालेला आहे.{% else %}शौचालयाचा लाभ मिळालेला आहे.{% endif %}{% else %}शौचालय : {{row.toilet|default('')}}{% if row.toiletBenefitYear %} ({{row.toiletBenefitYear}}){% endif %}{% endif %} </td>
-        <td style="text-align: left; border-right: 1px solid #000;">व्दार : {{row.dwarNaav|default('')}}</td>
+        <td style="text-align: left; border-right: 1px solid #000;">{% if row.toilet == 'आहे' %}शौचालय : {% if row.toiletBenefitYear %}सन {{ row.toiletBenefitYear|financial_year_full }} शौचालयाचा लाभ मिळालेला आहे.{% else %}शौचालयाचा लाभ मिळालेला आहे.{% endif %}{% else %}शौचालय : {{row.toilet|default('')}}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}{% endif %} </td>
+        <td style="text-align: left; border-right: 1px solid #000;">{% if row.dwarNaav %}व्दार : {{row.dwarNaav}}{% endif %}</td>
         {% if row.boundaryMarking %}
         <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
         {% else %}
@@ -598,7 +526,7 @@
         {% endif %}
     </tr>
     <tr>
-        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">{% if row.gharkul == 'आहे' and row.gharkulYojana %}घरकुल : {{ row.gharkulYojana }} {% if row.gharkulBenefitYear %}सन {{ row.gharkulBenefitYear|financial_year_short }} {% endif %}योजनेचा लाभ मिळाला आहे.{% else %}घरकुल : {{row.gharkul|default('')}}{% if row.gharkulYojana %} - {{row.gharkulYojana}}{% endif %}{% if row.gharkulBenefitYear %} ({{row.gharkulBenefitYear}}){% endif %}{% endif %}
+        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">{% if row.gharkul == 'आहे' and row.gharkulYojana %}घरकुल : {{ row.gharkulYojana }} {% if row.gharkulBenefitYear %}सन {{ row.gharkulBenefitYear|financial_year_full }} {% endif %}योजनेचा लाभ मिळाला आहे.{% else %}घरकुल : {{row.gharkul|default('')}}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{row.gharkulYojana}}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}{% endif %}
             {% if row.date %}
             <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
                 दिनांक : {{row.todays_date|default('')}} <br>
@@ -617,17 +545,11 @@
             {% endif %}
         </td>
         {% if row.sachivSarpanch %}
-        <td style="text-align: right; vertical-align: middle; border-right: 1px solid #000;">
-            <div style="display: inline-block; text-align: center; font-size: 13px;">
-                <div style="width: 220px; height: 80px; margin: 0 auto 2px auto; display: flex; align-items: center; justify-content: center; background: transparent;">
-                    {% if row.signature_image %}
-                    <img src="{{ row.signature_image }}" style="max-width: 220px; max-height: 80px; object-fit: contain; background: transparent;" onerror="this.style.display='none';" />
-                    {% endif %}
-                </div>
-                ग्रामपंचायत अधिकारी <br>
-                ग्रामपंचायत कार्यालय {{row.gramPanchayat|default('')}} <br>
-                ता. {{row.taluka|default('')}} जि. {{row.jilha|default('')}}
-            </div>
+        <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
+            {% if row.signature_image %}<div style="width: 0; min-width: 100%;"><img src="{{ row.signature_image }}" style="display: block; max-width: 100%; max-height: 80px; object-fit: contain; background: transparent;" onerror="this.style.display='none';" /></div>{% endif %}
+            ग्रामपंचायत अधिकारी <br>
+            ग्रामपंचायत कार्यालय {{row.gramPanchayat|default('')}} <br>
+            ता. {{row.taluka|default('')}} जि. {{row.jilha|default('')}}
         </td>
         {% else %}
         <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000; height:30px ">
