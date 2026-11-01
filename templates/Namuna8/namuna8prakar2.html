@@ -334,7 +334,7 @@
                 data-vpanikar="{{ row.vpanikar | default('0') }}">
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
-                <td style="width: 300px;">{{ row.ownerName | default('') }}</td>
+                <td style="width: 300px;">{{ row.ownerName | default('') }}{% if row.aadharCard or row.mobileNumberAdd %}<div style="font-size: 9px; line-height: 1.1;">{% if row.aadharCard %}आधार क्रमांक : {{ row.aadharNumber|default('', true) }}{% endif %}{% if row.aadharCard and row.mobileNumberAdd %}<br>{% endif %}{% if row.mobileNumberAdd %}मोबाईल क्रमांक : {{ row.mobileNumber|default('', true) }}{% endif %}</div>{% endif %}</td>
                 <td>{{ row.occupantName | default('') }}</td>
                 <td>
                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
@@ -497,7 +497,7 @@
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
-                <td>{{ row.remarks | default('') }}</td>
+                <td>{{ row.remarks | default('') }}<br>घरकुल : {{ row.gharkul|default('', true) }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear }}){% endif %}</td>
             </tr>
             <tr class="record-row">
                 <td colspan="22" style="text-align:center; font-size:15px; font-weight:bold; border-top:none;padding: 3px;">
