@@ -6,31 +6,11 @@
     <style>
         @media print {
           @page {
-            /* portrait A4 was too narrow for this table + the column-30 map/boundary
-               box (300px fixed width) - both got cut off on the right. */
             size: A4 landscape;
-            margin: 5mm;
           }
           #toolbar {
             display: none !important;
         }
-          table {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-          /* Browsers put a default ~8px margin on <body> that isn't part of
-             #mainContent's own measured size, so it was pushing the fitted
-             content just past the page box and creating a blank 2nd page.
-             Also forbid a break after the content so nothing trailing can
-             start a new page. */
-          html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          #mainContent {
-            page-break-after: avoid;
-            break-after: avoid;
-          }
         }
     </style>
 </head>
@@ -85,33 +65,6 @@
     // Initialize zoom display
     window.onload = updateZoom;
 
-    // Print-time auto-fit: scale #mainContent so the whole form (table + column-30
-    // map box + footer) always lands on a single A4-landscape page, regardless of
-    // the on-screen zoom level the user had set. Restored after printing.
-    let preZoomLevel = zoomLevel;
-    function fitToPagePrint() {
-        try {
-            preZoomLevel = zoomLevel;
-            const mc = document.getElementById('mainContent');
-            if (!mc) return;
-            mc.style.zoom = 1;
-            const naturalWidth = mc.scrollWidth;
-            const naturalHeight = mc.scrollHeight;
-            const pxPerMm = 96 / 25.4;
-            const safetyMm = 2;
-            const availW = (297 - 5 * 2 - safetyMm) * pxPerMm;
-            const availH = (210 - 5 * 2 - safetyMm) * pxPerMm;
-            let scale = Math.min(availW / naturalWidth, availH / naturalHeight, 1);
-            if (!isFinite(scale) || scale <= 0) scale = 1;
-            mc.style.zoom = scale;
-        } catch (e) { /* if measuring fails, print at natural size */ }
-    }
-    function restoreZoomAfterPrint() {
-        const mc = document.getElementById('mainContent');
-        if (mc) mc.style.zoom = preZoomLevel;
-    }
-    window.addEventListener('beforeprint', fitToPagePrint);
-    window.addEventListener('afterprint', restoreZoomAfterPrint);
 </script>
 <div id="mainContent">
 
@@ -132,7 +85,7 @@
 <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; margin-top: 0;">
     <tr>
         <!-- Left Info Table -->
-        <td style="width: 160px; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none; vertical-align: top; padding: 0;">
+        <td style="width: 22%; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none; vertical-align: top; padding: 0;">
             <table style="width: 100%; font-size: 14px; border-collapse: collapse; border: none;">
                 <tr>
                     <td style="border-right: 1px solid #000; border-bottom: 1px solid #000; border-left: none; border-top: none;">ग्रामपंचायत : </td>
@@ -153,7 +106,7 @@
             </table>
         </td>
         <!-- Center Title -->
-        <td style="text-align: center; vertical-align: top; background: #e0e0e0; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none;">
+        <td style="width: 56%; text-align: center; vertical-align: top; background: #e0e0e0; border-right: 1px solid #000; border-left: none; border-top: none; border-bottom: none;">
             <div style="font-size: 32px; font-weight: bold">नमुना ८</div>
             <div style="font-size: 14px;">नियम 32 (1)</div>
             <div style="font-size: 16px; margin-top: 8px;">
@@ -161,7 +114,7 @@
             </div>
         </td>
         <!-- Right PHOTO/QR -->
-        <td style="width: 330px; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
+        <td style="width: 22%; text-align: center; vertical-align: top; border-left: none; border-top: none; border-bottom: none; border-right: none; padding: 0;">
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
                     <td style="width: 25%; border-left: none; border-bottom: none; border-top: none; border-right: none; text-align: center; vertical-align: top;">
@@ -494,8 +447,8 @@
 <!-- Footer/Signature/Logo area -->
 <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
     <tr>
-        <td style="text-align: left; border-right: 1px solid #000;">{% if toilet == 'आहे' %}शौचालय : {% if toiletBenefitYear %}सन {{ toiletBenefitYear|financial_year_short }} शौचालयाचा लाभ मिळालेला आहे.{% else %}शौचालयाचा लाभ मिळालेला आहे.{% endif %}{% else %}शौचालय : {{toilet|default('')}}{% if toiletBenefitYear %} ({{toiletBenefitYear}}){% endif %}{% endif %} </td>
-        <td style="text-align: left; border-right: 1px solid #000;">व्दार : {{dwarNaav|default('')}}</td>
+        <td style="text-align: left; border-right: 1px solid #000;">{% if toilet == 'आहे' %}शौचालय : {% if toiletBenefitYear %}सन {{ toiletBenefitYear|financial_year_full }} शौचालयाचा लाभ मिळालेला आहे.{% else %}शौचालयाचा लाभ मिळालेला आहे.{% endif %}{% else %}शौचालय : {{toilet|default('')}}{% if toiletBenefitYear and toilet != 'नाही' %} ({{ toiletBenefitYear|financial_year_full }}){% endif %}{% endif %} </td>
+        <td style="text-align: left; border-right: 1px solid #000;">{% if dwarNaav %}व्दार : {{dwarNaav}}{% endif %}</td>
         {% if boundaryMarking %}
         <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
         {% else %}
@@ -514,7 +467,7 @@
         {% endif %}
     </tr>
     <tr>
-        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">{% if gharkul == 'आहे' and gharkulYojana %}घरकुल : {{ gharkulYojana }} {% if gharkulBenefitYear %}सन {{ gharkulBenefitYear|financial_year_short }} {% endif %}योजनेचा लाभ मिळाला आहे.{% else %}घरकुल : {{gharkul|default('')}}{% if gharkulYojana %} - {{gharkulYojana}}{% endif %}{% if gharkulBenefitYear %} ({{gharkulBenefitYear}}){% endif %}{% endif %}
+        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">{% if gharkul == 'आहे' and gharkulYojana %}घरकुल : {{ gharkulYojana }} {% if gharkulBenefitYear %}सन {{ gharkulBenefitYear|financial_year_full }} {% endif %}योजनेचा लाभ मिळाला आहे.{% else %}घरकुल : {{gharkul|default('')}}{% if gharkulYojana and gharkul != 'नाही' %} - {{gharkulYojana}}{% endif %}{% if gharkulBenefitYear and gharkul != 'नाही' %} ({{ gharkulBenefitYear|financial_year_full }}){% endif %}{% endif %}
             {% if date %}
             <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
                 दिनांक : {{todays_date|default('')}} <br>
@@ -533,17 +486,11 @@
             {% endif %}
         </td>
         {% if sachivSarpanch %}
-        <td style="text-align: right; vertical-align: middle; border-right: 1px solid #000;">
-            <div style="display: inline-block; text-align: center; font-size: 13px;">
-                <div style="width: 220px; height: 80px; margin: 0 auto 2px auto; display: flex; align-items: center; justify-content: center; background: transparent;">
-                    {% if signature_image %}
-                    <img src="{{ signature_image }}" style="max-width: 220px; max-height: 80px; object-fit: contain; background: transparent;" onerror="this.style.display='none';" />
-                    {% endif %}
-                </div>
-                ग्रामपंचायत अधिकारी <br>
-                ग्रामपंचायत कार्यालय {{gramPanchayat|default('')}} <br>
-                ता. {{taluka|default('')}} जि. {{jilha|default('')}}
-            </div>
+        <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
+            {% if signature_image %}<div style="width: 0; min-width: 100%;"><img src="{{ signature_image }}" style="display: block; max-width: 100%; max-height: 80px; object-fit: contain; background: transparent;" onerror="this.style.display='none';" /></div>{% endif %}
+            ग्रामपंचायत अधिकारी <br>
+            ग्रामपंचायत कार्यालय {{gramPanchayat|default('')}} <br>
+            ता. {{taluka|default('')}} जि. {{jilha|default('')}}
         </td>
         {% else %}
         <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000; height:30px ">

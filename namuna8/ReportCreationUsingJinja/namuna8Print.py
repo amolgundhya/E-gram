@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text, build_area_lines, build_gp_heading
 from Utility import fast_qr
+from Utility.benefit_year import financial_year_full
 import httpx
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -19,16 +20,8 @@ namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
 # static_dir = os.path.join(base_dir, 'reports')
 env = Environment(loader=FileSystemLoader(namuna8_template_dir))
 
-# शौचालय/घरकुल लाभ सालाला "25-26" (आर्थिक वर्ष) या स्वरूपात दाखवण्यासाठी - साठवलेलं
-# वर्ष रिकामं/अवैध असल्यास रिकामी स्ट्रिंग परत करतो, म्हणजे टेम्प्लेट ते वगळून पुढे जाऊ शकेल.
-def financial_year_short(value):
-    try:
-        y = int(value)
-    except (TypeError, ValueError):
-        return ''
-    return f"{y % 100:02d}-{(y + 1) % 100:02d}"
-
-env.filters['financial_year_short'] = financial_year_short
+# शौचालय/घरकुल लाभ वर्ष - तारीख टाकली असली तरी प्रिंटमध्ये फक्त "2020-2021" (Utility/benefit_year.py)
+env.filters['financial_year_full'] = financial_year_full
 
 # चौ.फु. क्षेत्रफळ/लांबी-रुंदी आकड्यांना 10.76 (किंवा 1/10.76) रूपांतरणामुळे 599.98,
 # 1199.96 सारखे किंचित-चुकीचे आकडे येतात - अपेक्षित आकड्याच्या 0.05 च्या आत असल्यास पूर्ण
