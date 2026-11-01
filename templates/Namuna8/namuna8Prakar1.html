@@ -5,7 +5,7 @@
     <title>नमुना ८</title>
     <style>
         body { font-family: 'Mangal', Arial, sans-serif; }
-        table { border-collapse: collapse; table-layout: fixed; width: 100%; font-size: 13px; }
+        table { border-collapse: collapse; width: 100%; font-size: 13px; }
         .header-table td { border: none; padding: 2px 4px; }
         .center { text-align: center; }
         .left { text-align: left; }
@@ -13,6 +13,10 @@
         .bold { font-weight: bold; }
         th, td { border: 1px solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
         th { background: #f0f0f0; }
+        /* शौचालय/घरकुल/व्दार: @page डावा/उजवा margin 4mm केल्याने वाचलेली जागा (~47px) एवढीच या
+           3 column ची एकूण रुंदी (22/23/24 क्रमांकाच्या div ने ठरते - टेबल overflow असताना Chrome td/th वरची width मानत नाही), म्हणून बाकी 21 column ची रुंदी व फॉन्ट Aditya च्या प्रिंटसारखेच राहतात */
+        .extra-col { font-size: 8px; line-height: 1.1; padding: 0 1px; overflow-wrap: anywhere; }
+        th.extra-col-title { writing-mode: vertical-rl; }
         .footer-summary {
             border: 3px solid #000;
             font-size: 13px;
@@ -45,7 +49,8 @@
         @media print {
             @page {
                 size: A4 landscape;
-                margin: 8mm;
+                margin-left: 4mm;
+                margin-right: 4mm;
                 {% if pageNumber %}
                 @bottom-center {
                     content: "पृष्ठ " counter(page) " / " counter(pages);
@@ -64,22 +69,6 @@
                 display: block !important;
                 page-break-inside: avoid;
                 break-inside: avoid;
-            }
-        }
-    </style>
-
-    <style>
-        /* नमुना-8 रजिस्टर प्रिंट - landscape मध्ये सर्व column page-width मध्ये बसावेत
-           म्हणून फॉन्ट किंचित लहान करतो आणि लांब मजकूर क्लिप न होता wrap होऊ देतो. */
-        @media print {
-            table, th, td {
-                font-size: 10px !important;
-            }
-            th, td {
-                padding: 1px 2px !important;
-                overflow-wrap: break-word !important;
-                word-break: break-word !important;
-                white-space: normal !important;
             }
         }
     </style>
@@ -205,7 +194,7 @@
         function exitPage() {
             window.close();
         }
-                window.onload = function() {
+        window.onload = function() {
             updateZoom();
             showPage(1);
             updateFooterSummary(); // <-- Add this line
@@ -229,17 +218,15 @@
                             <td class="center bold" style="font-size:22px; width:34%">नमुना ८<br><span style="font-size:15px; font-weight:normal;">सन {{ yearFrom | default('') }} <b>ते</b> {{ yearTo | default('') }} </span></td>
                             <td class="right" style="width:33%">नियम 32 (1)<br>तालुका : {{ taluka | default('') }} <br>जिल्हा : {{ jilha | default('') }} </td>
                             {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
-                            <td class="center" style="width:1%; white-space:nowrap;">
+                            <td class="center" style="width:1%; white-space:nowrap; padding:0 2px;">
                                 {% if houseTaxQrUrl %}
-                                <div style="display:inline-block; text-align:center; margin:0 4px;">
-                                    <img src="{{ houseTaxQrUrl }}" style="width:60px; height:60px; object-fit:contain;" />
-                                    <div style="font-size:10px;">घर कर</div>
+                                <div style="display:inline-block; text-align:center; margin:0 2px; font-size:9px; line-height:1.1;">
+                                    <img src="{{ houseTaxQrUrl }}" style="width:44px; height:44px; object-fit:contain; display:block;" />घर कर
                                 </div>
                                 {% endif %}
                                 {% if waterTaxQrUrl %}
-                                <div style="display:inline-block; text-align:center; margin:0 4px;">
-                                    <img src="{{ waterTaxQrUrl }}" style="width:60px; height:60px; object-fit:contain;" />
-                                    <div style="font-size:10px;">पाणी कर</div>
+                                <div style="display:inline-block; text-align:center; margin:0 2px; font-size:9px; line-height:1.1;">
+                                    <img src="{{ waterTaxQrUrl }}" style="width:44px; height:44px; object-fit:contain; display:block;" />पाणी कर
                                 </div>
                                 {% endif %}
                             </td>
@@ -262,9 +249,9 @@
                 <th rowspan="2">भांडवली मुल्य (रु.)</th>
                 <th rowspan="2">कराचे दर (पैसे)</th>
                 <th colspan="7">कराची रक्कम (रु.)</th>
-                <th rowspan="2">शौचालय</th>
-                <th rowspan="2">घरकुल</th>
-                <th rowspan="2">व्दार</th>
+                <th rowspan="2" class="extra-col extra-col-title">शौचालय</th>
+                <th rowspan="2" class="extra-col extra-col-title">घरकुल</th>
+                <th rowspan="2" class="extra-col extra-col-title">व्दार</th>
             </tr>
             <tr>
                 <th rowspan="1" style="width: 100px;">जमीन</th>
@@ -300,9 +287,9 @@
                 <th rowspan="1"></th>
                 <th rowspan="1"></th>
                 <th rowspan="1">21</th>
-                <th rowspan="1">22</th>
-                <th rowspan="1">23</th>
-                <th rowspan="1">24</th>
+                <th rowspan="1" class="extra-col"><div style="width: 11px;">22</div></th>
+                <th rowspan="1" class="extra-col"><div style="width: 16px;">23</div></th>
+                <th rowspan="1" class="extra-col"><div style="width: 11px;">24</div></th>
             </tr>
         </thead>
         
@@ -327,7 +314,7 @@
                 data-vpanikar="{{ row.vpanikar | default('0') }}">
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
-                <td style="width: 300px;">{{ row.ownerName | default('') }}{% if row.aadharCard or row.mobileNumberAdd %}<div style="font-size: 9px; line-height: 1.1;">{% if row.aadharCard %}आधार क्रमांक : {{ row.aadharNumber|default('', true) }}{% endif %}{% if row.aadharCard and row.mobileNumberAdd %}<br>{% endif %}{% if row.mobileNumberAdd %}मोबाईल क्रमांक : {{ row.mobileNumber|default('', true) }}{% endif %}</div>{% endif %}</td>
+                <td style="width: 300px;">{{ row.ownerName | default('') }}{% if row.aadharCard and row.aadharNumber %}<div style="font-size: 9px; line-height: 1.15;">आधार :<br><span style="white-space: nowrap;">{{ row.aadharNumber }}</span></div>{% endif %}{% if row.mobileNumberAdd and row.mobileNumber %}<div style="font-size: 9px; line-height: 1.15;">मो. <span style="white-space: nowrap;">{{ row.mobileNumber }}</span></div>{% endif %}</td>
                 <td>{{ row.occupantName | default('') }}</td>
                 <td>
                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
@@ -494,9 +481,9 @@
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
-                <td>{{ row.toilet | default('') }}{% if row.toiletBenefitYear %} ({{ row.toiletBenefitYear }}){% endif %}</td>
-                <td>{{ row.gharkul | default('') }}{% if row.gharkulYojana %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear %} ({{ row.gharkulBenefitYear }}){% endif %}</td>
-                <td>{{ row.dwarNaav | default('') }}</td>
+                <td class="extra-col">{{ row.toilet | default('', true) }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}</td>
+                <td class="extra-col">{{ row.gharkul | default('', true) }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}</td>
+                <td class="extra-col">{{ row.dwarNaav | default('', true) }}</td>
             </tr>
             {% endfor %}
         </tbody>

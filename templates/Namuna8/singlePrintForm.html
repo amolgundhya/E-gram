@@ -142,12 +142,14 @@
                 <td style="font-weight: bold; width: 5%;padding: 2px 6px;">मोकं :</td>
                 <td style="width: 15%; padding: 2px 6px;">{% if mobileNumberAdd %}{{mobileNumber|default('', true)}}{% endif %}&nbsp;</td>
             </tr>
+            {% if (aadharCard and aadharNumber) or gharkul %}
             <tr>
                 <td style="font-weight: bold; width: 14%;">आधार क्रमांक :</td>
                 <td style="padding: 2px 6px;">{% if aadharCard %}{{aadharNumber|default('', true)}}{% endif %}</td>
                 <td style="font-weight: bold; width: 5%;padding: 2px 6px;">घरकुल :</td>
                 <td style="width: 15%; padding: 2px 6px;">{{gharkul|default('', true)}}{% if gharkulYojana and gharkul != 'नाही' %} - {{gharkulYojana}}{% endif %}{% if gharkulBenefitYear and gharkul != 'नाही' %} ({{gharkulBenefitYear}}){% endif %}</td>
             </tr>
+            {% endif %}
         </table>
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <tr>
@@ -177,7 +179,7 @@
         <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
         <p style="padding-left: 50px;">स.क्र./ग.क्र ____________ प्लॉट क्र ____________</p>
         <p style="padding-left: 50px;"><b>चतुर्सिमा पूर्व -:</b>  {{boundaryEast|default('')}}, <b>पश्चिम -:</b>  {{boundaryWest|default('')}}, <b>उत्तर -:</b>  {{boundaryNorth|default('')}} <b>दक्षिण -:</b> {{boundarySouth|default('')}}.</p>
-        <p style="padding-left: 50px;"><b>व्दार नांव -:</b>  {{dwarNaav|default('')}}.</p>
+        {% if dwarNaav %}<p style="padding-left: 50px;"><b>व्दार नांव -:</b>  {{dwarNaav}}.</p>{% endif %}
         <p style="padding-left: 50px;"><b>वापराची दिशा :</b>_______________ </p>
         <p style="padding-left: 50px;"><b>ग्रामपंचायत नमुना ८ ला स.न.</b>-च्या नोंदीप्रमाणे मिळकतीचे तपशीलासह वर्णन</p>
     </div>
