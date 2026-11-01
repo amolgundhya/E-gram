@@ -4,6 +4,7 @@ import requests
 from fastapi import APIRouter , Request
 from fastapi.responses import JSONResponse
 import httpx
+from namuna9.namuna9_sort import sort_rows_by_owner_name, is_true
 
 router = APIRouter()
 # Load templates from the 'templates' folder (adjust path as needed)
@@ -44,6 +45,17 @@ def paginate_rows(data, rows_per_page=NAMUNA9_ROWS_PER_PAGE):
     if not data:
         return [[]]
     return [data[i:i + rows_per_page] for i in range(0, len(data), rows_per_page)]
+
+
+def apply_name_sort(data, requestData):
+    """"नमुना ९, मालमत्ता धारकांच्या नावानुसार प्रिंट करा" टिक असेल तर रो मालमत्ता
+    धारकाच्या नावानुसार (मराठी बाराखडी क्रम, बघा namuna9_sort.py) लावतो, नाहीतर
+    आलेला अ.क्र. क्रम तसाच. pages (आणि त्यामुळे पानाची बेरीज / गोषवारा) या sort
+    केलेल्या data वरूनच बनतात, म्हणून हे pages बनवण्याआधीच व्हायला हवं. आधी हा
+    पर्याय फक्त context मध्ये जात होता आणि कुठलाच रिपोर्ट तो वापरत नव्हता."""
+    if is_true(requestData.get('namuna9Based')):
+        return sort_rows_by_owner_name(data)
+    return data
 
 # --- Marathi number-to-words, for "रक्कम अक्षरी" on receipts ---
 _MARATHI_ONES = ["शून्य", "एक", "दोन", "तीन", "चार", "पाच", "सहा", "सात", "आठ", "नऊ"]
@@ -324,6 +336,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
 
         # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has
         # turned this on in Master settings.
@@ -432,6 +445,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -515,6 +529,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -598,6 +613,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -679,6 +695,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -762,6 +779,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -843,6 +861,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -926,6 +945,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1004,6 +1024,7 @@ async def prakar1(request: Request):
         data = response.json()
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         context = {
             'data': data,
             'pages': paginate_rows(data),
@@ -1065,6 +1086,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1145,6 +1167,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1225,6 +1248,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
 
         # Derive the notice's "from"/"to" dates from the selected financial
         # year (e.g. "2025-2026" -> 01/04/2025 to 31/03/2026).
@@ -1332,6 +1356,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1418,6 +1443,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1502,6 +1528,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1586,6 +1613,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1670,6 +1698,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1753,6 +1782,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1837,6 +1867,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -1920,6 +1951,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2004,6 +2036,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2087,6 +2120,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2171,6 +2205,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2250,6 +2285,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2332,6 +2368,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2418,6 +2455,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2502,6 +2540,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2585,6 +2624,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2669,6 +2709,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2748,6 +2789,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -2829,6 +2871,7 @@ async def prakar1(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
         context = {
             'data': data,
