@@ -41,6 +41,7 @@ COLUMNS = [
     ("dand", "दंड"),
     ("noticeFee", "नोटीस फी"),
     ("warrantFee", "वारंट फी"),
+    ("sut", "सूट"),
     ("total", "एकूण"),
     ("deletedAt", "डिलीट दिनांक-वेळ"),
     ("deletedBy", "डिलीट करणारा"),
@@ -105,6 +106,15 @@ def _fetch_rows(
             prop = db.query(namuna8_model.Property).filter(
                 namuna8_model.Property.id == r.property_id
             ).first()
+            # पावतीवर सूटची स्वतंत्र रक्कम साठवली जात नाही - सर्व कर/फी रकमांच्या बेरजेपेक्षा
+            # एकूण कमी असेल तर तो फरक म्हणजे सूट.
+            components_sum = sum((getattr(r, f) or 0) for f in (
+                "vasuliGhar", "vasuliChaluGhar", "vasuliDiva", "vasuliChaluDiva",
+                "vasuliAarogyaKar", "vasuliChaluAarogyaKar", "vasuliSapanikar", "vasuliChaluSapanikar",
+                "vasuliVpanikar", "vasuliChaluVpanikar", "vasuliCleaningTax", "vasuliChaluCleaningTax",
+                "vasuliDand", "vasuliNoticeFee", "vasuliWarrantFee",
+            ))
+            sut = round(components_sum - (r.total or 0), 2)
             rows.append({
                 "type": "नमुना-9",
                 "pavtiKramank": r.pavti_kramank,
@@ -122,6 +132,7 @@ def _fetch_rows(
                 "dand": round(r.vasuliDand or 0, 2),
                 "noticeFee": round(r.vasuliNoticeFee or 0, 2),
                 "warrantFee": round(r.vasuliWarrantFee or 0, 2),
+                "sut": sut if sut > 0 else 0,
                 "total": round(r.total or 0, 2),
                 "deletedAt": r.deleted_at.strftime("%Y-%m-%d %H:%M") if r.deleted_at else None,
                 "deletedBy": r.deleted_by,
@@ -165,6 +176,7 @@ def _fetch_rows(
                 "dand": None,
                 "noticeFee": None,
                 "warrantFee": None,
+                "sut": None,
                 "total": round(r.receivedMoney or 0, 2),
                 "deletedAt": r.deleted_at.strftime("%Y-%m-%d %H:%M") if r.deleted_at else None,
                 "deletedBy": r.deleted_by,
