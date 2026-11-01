@@ -17,6 +17,7 @@ from location_management import models as location_models
 from typing import List
 from Utility.sqlite_compat import query_all_in_chunks
 from natural_sort import malmatta_kramank_sort_key
+from namuna9.namuna9_sort import sort_rows_by_owner_name
 import os
 import logging
 
@@ -464,6 +465,9 @@ def get_table_data(
     applyWarrantFee: bool = Query(False),
     applyNoticeFee: bool = Query(False),
     applyPenalty: bool = Query(False),
+    # स्क्रीनवरच्या यादीतला "नावानुसार" toggle - प्रिंटच्या "मालमत्ता धारकांच्या
+    # नावानुसार" पर्यायासारखाच क्रम (namuna9_sort.py). अंतर्गत callers नेहमी False देतात.
+    sortByName: bool = Query(False),
     db: Session = Depends(database.get_db)
 ):
     # Validate location hierarchy - check if the three fields match the actual data
@@ -900,6 +904,9 @@ def get_table_data(
     # आणि मालमत्ता क्रमांकाच्या मजकुरावरून काढलेल्या नैसर्गिक क्रमवारीऐवजीही आता हाच
     # वापरतो ("Insert" ने घातलेल्या मालमत्तेचा मजकूर काहीही असो, योग्य जागीच दिसण्यासाठी).
     rows = sorted(rows, key=lambda r: (r.get("sort_order") if r.get("sort_order") is not None else float("inf")))
+    # is True: थेट Python मधून बोलावल्यास default Query(False) object truthy असतो.
+    if sortByName is True:
+        rows = sort_rows_by_owner_name(rows, field="ownerNames")
     return rows
 
 @router.get("/recordresponses/property_records_by_village")
@@ -1340,6 +1347,7 @@ def get_property_records_by_village_regular(
         applyWarrantFee=applyWarrantFee,
         applyNoticeFee=applyNoticeFee,
         applyPenalty=applyPenalty,
+        sortByName=False,
         db=db
     )
     bank_qr = None;
@@ -1606,6 +1614,7 @@ def get_property_records_by_village_visheshpani(
         applyWarrantFee=False,
         applyNoticeFee=False,
         applyPenalty=False,
+        sortByName=False,
         db=db
     )
     bank_qr = None;
