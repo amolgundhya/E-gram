@@ -12,6 +12,7 @@ from sqlalchemy import select, literal_column
 from namuna8.namuna8_model import Namuna8SettingTax
 from sqlalchemy.exc import SQLAlchemyError
 from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate, get_assessment_year
+from namuna8.calculations.construction_tax import compute_construction_values
 from pydantic import BaseModel
 from jinja2 import Environment, FileSystemLoader
 import os
@@ -184,53 +185,29 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 
                 
                 userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-                
-                if userFormulaPreference:
-                    formula1 = userFormulaPreference.capitalFormula1
-                    formula2 = userFormulaPreference.capitalFormula2
-                else:
-                    # print("No user formula preference found")
-                    pass
-                   
-                # capital_value = 0
-                AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
+                formula1 = userFormulaPreference.capitalFormula1 if userFormulaPreference else None
                 # for capital_value calculation: respect the बांधकाम table's OWN unit
                 # (constructionAreaUnit) - it can differ from एकूण जागा's areaUnit, e.g.
                 # plot size entered in मीटर while construction लांबी/रुंदी stay in फूट.
                 unit = getattr(property_data, 'constructionAreaUnit', None) or getattr(property_data, 'areaUnit', 'sqft')
-                if unit == 'sqm':
-                    AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0)
-                else:
-                    AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092937
-                ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
-                depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name, assessment_year)
-                # Before using usageBasedBuildingWeightageFactor, build the mapping
                 weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
-                usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
-                
+
                 # Check if karLaguNahi is True - if so, set all taxes to zero
                 karLaguNahi = bool(getattr(property_data, 'karLaguNahi', False))
-                
+
                 if karLaguNahi:
                     # If tax is not applicable, set capital value and house tax to 0
                     capital_value = 0
                     house_tax = 0
                 else:
-                    if formula1:
-                        # capital_value = (( ((construction_data.length * 0.092937) * (construction_data.width * 0.092937)) * AnnualLandValueRate ) + ( ((construction_data.length * 0.092937) * (construction_data.width * 0.092937)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
-                        capital_value = (( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
-                        # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                        # भांडवली मूल्य आता राउंड (ceil/half-up) करत नाही - फक्त 2 दशांश स्थळांपर्यंत
-                        # ठेवतो (साठवण्यासाठी/दाखवण्यासाठी) - फक्त कर रक्कम (house_tax) राउंड होते.
-                        capital_value = round(capital_value, 2)
-                        # print("capital_value_from_formula1" , capital_value)
-                    else:
-                        capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
-                        capital_value = round(capital_value, 2)
-                        # print("capital_value_from_formula2" , capital_value)
+                    # भांडवली मूल्य/घरपट्टी - संपादन (PUT) व "सर्व मालमत्तांचा कर पुन्हा मोजा"
+                    # सुद्धा हेच फंक्शन वापरतात.
+                    capital_value, house_tax = compute_construction_values(
+                        db, construction_type, construction_data.length, construction_data.width,
+                        construction_data.constructionYear, getattr(construction_data, 'bharank', None),
+                        unit, assessment_year, formula1, weightage_map, getattr(property_data, 'gram_panchayat_id', None),
+                    )
 
-                    house_tax = round_tax_amount((getattr(construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
-                
                 # Debug logging for construction creation
                 construction_district_id = getattr(property_data, 'district_id', None)
                 construction_taluka_id = getattr(property_data, 'taluka_id', None)
@@ -916,38 +893,17 @@ def update_namuna8_entry(
                 raise HTTPException(status_code=400, detail=f"Invalid construction type: {construction_data.constructionType}")
             
             userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-            if userFormulaPreference:
-                    formula1 = userFormulaPreference.capitalFormula1
-                    formula2 = userFormulaPreference.capitalFormula2
-            else:
-                # print("No user formula preference found")
-                pass
-                
-            # capital_value = 0
-            AnnualLandValueRate = getattr(construction_type, 'annualLandValueRate', 1)
+            formula1 = userFormulaPreference.capitalFormula1 if userFormulaPreference else None
             # for capital_value calculation: respect the बांधकाम table's OWN unit
             # (constructionAreaUnit) - it can differ from एकूण जागा's areaUnit.
             unit = getattr(property_data, 'constructionAreaUnit', None) or getattr(property_data, 'areaUnit', 'sqft')
-            if unit == 'sqm':
-                AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0)
-            else:
-                AreaInMeter = (construction_data.length or 0) * (construction_data.width or 0) * 0.092937
-            ConstructionRateAsPerConstruction = construction_type.bandhmastache_dar
-            depreciationRate = calculate_depreciation_rate(construction_data.constructionYear, construction_type.name, assessment_year)
-            # Before using usageBasedBuildingWeightageFactor, build the mapping
             weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
-            usageBasedBuildingWeightageFactor = weightage_map.get(getattr(construction_data, 'bharank', None), 1)
-            if formula1:
-                capital_value =(( ((AreaInMeter)) * AnnualLandValueRate ) + ( ((AreaInMeter)) * ConstructionRateAsPerConstruction * (depreciationRate/100))) * usageBasedBuildingWeightageFactor
-                # capital_value = (( AreaInMeter * AnnualLandValueRate ) + ( AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                # भांडवली मूल्य आता राउंड करत नाही - फक्त 2 दशांश स्थळांपर्यंत ठेवतो.
-                capital_value = round(capital_value, 2)
-                # print("capital_value_from_formula1" , capital_value)
-            else:
-                capital_value = (AreaInMeter) * AnnualLandValueRate * depreciationRate/100 * usageBasedBuildingWeightageFactor
-                capital_value = round(capital_value, 2)
-
-            house_tax = round_tax_amount((getattr(construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(property_data, 'gram_panchayat_id', None))
+            # भांडवली मूल्य/घरपट्टी - "सर्व मालमत्तांचा कर पुन्हा मोजा" सुद्धा हेच फंक्शन वापरतो.
+            capital_value, house_tax = compute_construction_values(
+                db, construction_type, construction_data.length, construction_data.width,
+                construction_data.constructionYear, getattr(construction_data, 'bharank', None),
+                unit, assessment_year, formula1, weightage_map, getattr(property_data, 'gram_panchayat_id', None),
+            )
             new_construction = models.Construction(
                 construction_type_id=construction_type.id,
                 length=construction_data.length,
@@ -3142,48 +3098,55 @@ def recalculate_all_property_taxes(
     district_id: int = Query(..., description="District ID"),
     taluka_id: int = Query(..., description="Taluka ID"),
     gram_panchayat_id: int = Query(..., description="Gram Panchayat ID"),
+    dry_run: bool = Query(False, description="true = फक्त पूर्वावलोकन, काहीही बदलत नाही"),
     db: Session = Depends(database.get_db)
 ):
     # Validate location hierarchy - check if the three fields match the actual data
     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
     if not district:
         raise HTTPException(status_code=404, detail="District not found")
-    
+
     taluka = db.query(location_models.Taluka).filter(
         location_models.Taluka.id == taluka_id,
         location_models.Taluka.district_id == district_id
     ).first()
     if not taluka:
         raise HTTPException(status_code=400, detail="Taluka does not belong to the specified district")
-    
+
     gram_panchayat = db.query(location_models.GramPanchayat).filter(
         location_models.GramPanchayat.id == gram_panchayat_id,
         location_models.GramPanchayat.taluka_id == taluka_id
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
-    settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
-    if not settings:
-        return {"detail": "No settings found"}
-    def get_tax_by_area(area, field):
-        if area is None:
-            area = 0
-        if area <= 300:
-            return getattr(settings, field + 'Upto300', 0) or 0
-        elif 301 <= area <= 700:
-            return getattr(settings, field + '301_700', 0) or 0
-        else:
-            return getattr(settings, field + 'Above700', 0) or 0
-    properties = db.query(models.Property).filter(models.Property.gram_panchayat_id == gram_panchayat_id).all()
-    for prop in properties:
-        total_area = prop.totalAreaSqFt or 0
-        prop.divaKar = get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0
-        prop.aarogyaKar = get_tax_by_area(total_area, 'health') if not prop.divaArogyaKar else 0
-        prop.cleaningTax = get_tax_by_area(total_area, 'cleaning') if prop.safaiKar else 0
-        toilet_tax = get_tax_by_area(total_area, 'bathroom') if prop.shauchalayKar else 0.0
-        prop.toiletTax = toilet_tax
-    db.commit()
-    return {"detail": "All property taxes recalculated and updated."}
+    # UTILITY > "सर्व मालमत्तांचा कर पुन्हा मोजा" - बांधकाम रो चं भांडवली मूल्य/घरपट्टी
+    # पुन्हा सेव्ह केल्यासारखंच पुन्हा मोजतो (आधी बॅकअप, all-or-nothing, आधी/नंतर अहवाल).
+    # dry_run=true: फक्त पूर्वावलोकन - बॅकअप/बदल काहीच नाही. तपशील namuna8/tax_recalculation.py.
+    # (आधीचं हे endpoint Property वर DB कॉलम नसलेले divaKar/aarogyaKar... सेट करायचं -
+    # प्रत्यक्षात काहीच जतन होत नव्हतं.)
+    from namuna8 import tax_recalculation
+    try:
+        return tax_recalculation.run_recalculation(db, district_id, taluka_id, gram_panchayat, dry_run=dry_run)
+    except tax_recalculation.RecalculationBusy:
+        raise HTTPException(status_code=409, detail="कर पुन्हा मोजण्याची प्रक्रिया आधीच चालू आहे - ती संपेपर्यंत थांबा.")
+    except tax_recalculation.RecalculationFailed as e:
+        detail = str(e)
+        if e.backup_path:
+            detail += " | बॅकअप: " + e.backup_path
+        raise HTTPException(status_code=500, detail=detail)
+
+
+@router.get("/admin/recalculate_taxes/report")
+def download_recalculate_taxes_report(file: str = Query(..., description="अहवाल फाईलचं नाव")):
+    from namuna8 import tax_recalculation
+    path = tax_recalculation.report_path(file)
+    if not path:
+        raise HTTPException(status_code=404, detail="अहवाल सापडला नाही")
+    return FileResponse(
+        path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=file,
+    )
 
 @router.get("/all_properties/")
 def get_all_properties(
