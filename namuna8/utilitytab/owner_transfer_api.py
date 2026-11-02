@@ -8,7 +8,7 @@ import os
 from pydantic import BaseModel
 from Utility.QRcodeGeneration import QRCodeGeneration
 from namuna8.recordresponses.property_record_response import get_property_record
-from namuna8.namuna8_apis import build_property_response
+from namuna8.namuna8_apis import build_property_response, compute_property_sort_order
 import qrcode
 from namuna8.PropertyDocuments.property_document_model import PropertyDocument
 import shutil
@@ -168,6 +168,15 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
 
             # Update location fields
             property.village_id = request.to_village_id
+            # जुना sort_order आधीच्या गावातल्या क्रमाचा होता - नव्या गावाच्या यादीत तो
+            # कुठेही (कुणाच्या तरी मधे/बरोबरीने) पडला असता. नव्या गावात "New" प्रमाणेच
+            # मालमत्ता क्रमांकाच्या नैसर्गिक क्रमवारीत जागा देतो; हवं तर नंतर "जागा बदला".
+            # flush: session autoflush=False आहे - याच लूपमध्ये आधी हलवलेल्या मालमत्ता
+            # नव्या गावाच्या query मध्ये दिसाव्यात (नाहीतर दोघांना एकच जागा मिळू शकते).
+            db.flush()
+            property.sort_order = compute_property_sort_order(
+                db, request.to_village_id, property.malmattaKramank, exclude=property
+            )
             if request.district_id is not None:
                 property.district_id = request.district_id
             if request.taluka_id is not None:
