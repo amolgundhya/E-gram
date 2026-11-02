@@ -52,32 +52,59 @@ def _safe_qr_payload(value):
     return str(value)
 
 
+SORT_ORDER_GAP = 10.0
+# दोन शेजाऱ्यांमधली जागा यापेक्षा कमी उरली (एकाच ठिकाणी खूप वेळा Insert/जागा बदल
+# केल्याने सरासरी-सरासरी घेत float ची अचूकता संपत आली) तर गावातले सगळे sort_order
+# 10,20,30... असे पुन्हा देतो - क्रम तोच राहतो, फक्त आकडे बदलतात.
+SORT_ORDER_MIN_GAP = 1e-6
+
+
+def ordered_village_properties(db: Session, village_id: int, exclude=None):
+    """गावातल्या मालमत्ता यादी/प्रिंटमध्ये दिसतात त्याच क्रमाने (sort_order, नसलेले
+    सगळ्यात शेवटी - compute_display_sr_no प्रमाणेच). exclude दिलेली मालमत्ता (जिची जागा
+    आत्ता ठरवायची आहे) यादीतून वगळतो."""
+    props = db.query(models.Property).filter(models.Property.village_id == village_id).all()
+    props = [p for p in props if p is not exclude]
+    return sorted(props, key=lambda p: (p.sort_order if p.sort_order is not None else float("inf")))
+
+
+def sort_order_at_position(ordered, pos: int) -> float:
+    """ordered यादीत pos या जागी (ordered[pos-1] नंतर, ordered[pos] आधी) बसणारा sort_order.
+    पहिल्या जागेसाठी डावी सीमा 0 धरतो, म्हणजे sort_order नेहमी 0 पेक्षा मोठाच राहतो.
+    मधे मोकळी जागा नसेल (किंवा शेजाऱ्याचा sort_order नसेल) तर आधी सगळ्यांना 10,20,30...
+    असा नवा sort_order देतो (क्रम न बदलता) आणि मग जागा काढतो."""
+    def bounds():
+        left = ordered[pos - 1].sort_order if pos > 0 else 0.0
+        right = ordered[pos].sort_order if pos < len(ordered) else None
+        return left, right
+
+    left, right = bounds()
+    if left is None or (pos < len(ordered) and right is None) or (right is not None and right - left < SORT_ORDER_MIN_GAP):
+        for i, p in enumerate(ordered, start=1):
+            p.sort_order = i * SORT_ORDER_GAP
+        left, right = bounds()
+    if right is None:
+        return left + SORT_ORDER_GAP
+    return (left + right) / 2.0
+
+
 # मालमत्ता यादीत नवीन मालमत्तेला कुठे दाखवायचं ते ठरवणारा sort_order मोजतो:
-# - insert_after_anu_kramank दिलेला असेल ("Insert" बटण): त्या मालमत्तेच्या लगेच नंतर -
-#   नवीन मालमत्तेचा मालमत्ता क्रमांक काहीही टाईप केला (आकडा, मराठी शब्द, "1 भाग" सारखा
-#   मोकळा मजकूर...) तरी हीच जागा कायम राहते, कारण जागा फक्त निवडलेल्या मालमत्तेवरून
-#   ठरते, नवीन टाईप केलेल्या मजकुरावरून नाही.
+# - insert_after_anu_kramank दिलेला असेल (नमुना-8 वरचा "या मालमत्तेनंतर ठेवा" / "Insert"
+#   बटण): त्या मालमत्तेच्या लगेच नंतर - नवीन मालमत्तेचा मालमत्ता क्रमांक काहीही टाईप केला
+#   (आकडा, मराठी शब्द, "1 भाग" सारखा मोकळा मजकूर...) तरी हीच जागा कायम राहते, कारण
+#   जागा फक्त निवडलेल्या मालमत्तेवरून ठरते, नवीन टाईप केलेल्या मजकुरावरून नाही.
 # - नसेल ("New"): सध्याप्रमाणेच, मालमत्ता क्रमांकाच्या नैसर्गिक क्रमवारीत जिथे बसेल तिथे.
-# दोन्ही बाबतीत, शेजाऱ्यांचे sort_order न बदलता (10,20,30... मधली मोकळी जागा/दोघांची
-# सरासरी वापरून) फक्त नवीन मालमत्तेचाच sort_order ठरवतो.
-def compute_property_sort_order(db: Session, village_id: int, malmatta_kramank: str, insert_after_anu_kramank: Optional[int] = None) -> float:
-    GAP = 10.0
-    siblings = (
-        db.query(models.Property)
-        .filter(models.Property.village_id == village_id)
-        .order_by(models.Property.sort_order)
-        .all()
-    )
+# शक्यतो शेजाऱ्यांचे sort_order न बदलता (मधली सरासरी) फक्त याच मालमत्तेचा sort_order
+# ठरतो; मधे जागा उरली नसेल तरच sort_order_at_position गावाचे sort_order पुन्हा देतो.
+# exclude: जिची जागा ठरवायची ती मालमत्ता आधीच session मध्ये असेल (उदा. दुसऱ्या गावात
+# हलवलेली) तर ती शेजाऱ्यांच्या यादीत धरू नये म्हणून.
+def compute_property_sort_order(db: Session, village_id: int, malmatta_kramank: str, insert_after_anu_kramank: Optional[int] = None, exclude=None) -> float:
+    siblings = ordered_village_properties(db, village_id, exclude)
 
     if insert_after_anu_kramank is not None:
         idx = next((i for i, p in enumerate(siblings) if p.anuKramank == insert_after_anu_kramank), None)
-        if idx is None:
-            # निवडलेली मालमत्ता सापडली नाही (उदा. दरम्यान डिलीट झाली) - शेवटी जोडतो.
-            left = siblings[-1].sort_order if siblings else None
-            right = None
-        else:
-            left = siblings[idx].sort_order
-            right = siblings[idx + 1].sort_order if idx + 1 < len(siblings) else None
+        # निवडलेली मालमत्ता सापडली नाही (उदा. दरम्यान डिलीट झाली) - शेवटी जोडतो.
+        pos = len(siblings) if idx is None else idx + 1
     else:
         pos = 0
         for p in siblings:
@@ -85,16 +112,8 @@ def compute_property_sort_order(db: Session, village_id: int, malmatta_kramank: 
                 pos += 1
             else:
                 break
-        left = siblings[pos - 1].sort_order if pos > 0 else None
-        right = siblings[pos].sort_order if pos < len(siblings) else None
 
-    if left is None and right is None:
-        return GAP
-    if left is None:
-        return right - GAP
-    if right is None:
-        return left + GAP
-    return (left + right) / 2.0
+    return sort_order_at_position(siblings, pos)
 
 
 @router.post("/", response_model=schemas.PropertyRead, status_code=status.HTTP_201_CREATED)
@@ -310,7 +329,8 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 db_property = models.Property(**property_dict, owners=owners, constructions=constructions)
                 db_property.created_at = datetime.now()
                 db_property.sort_order = compute_property_sort_order(
-                    db, db_property.village_id, db_property.malmattaKramank, insert_after_anu_kramank
+                    db, db_property.village_id, db_property.malmattaKramank, insert_after_anu_kramank,
+                    exclude=db_property
                 )
                 db.add(db_property)
             except Exception as e:
@@ -2618,6 +2638,56 @@ def get_property_search_list(
     ]
 
 
+class PropertyMoveRequest(BaseModel):
+    village_id: int
+    anuKramank: int
+    # या anuKramank च्या मालमत्तेनंतर लगेच ठेवायचं; रिकामं = यादीत सगळ्यात पहिली.
+    afterAnuKramank: Optional[int] = None
+
+
+@router.post("/move_property/")
+def move_property(data: PropertyMoveRequest, db: Session = Depends(database.get_db)):
+    """नमुना-8 "जागा बदला" - आधीपासून असलेली मालमत्ता यादीत निवडलेल्या मालमत्तेनंतर
+    (किंवा सगळ्यात पहिली) हलवते. फक्त sort_order बदलतो, म्हणजे यादी/नमुना-8/नमुना-9/९क
+    प्रिंटमधला अ.क्र. (compute_display_sr_no) नव्या क्रमाने येतो; जतन केलेला अनुक्रमांक,
+    मालमत्ता क्रमांक, QR, पावत्या यांना हात लावत नाही."""
+    if data.afterAnuKramank is not None and data.afterAnuKramank == data.anuKramank:
+        raise HTTPException(status_code=400, detail="मालमत्ता स्वतःच्याच नंतर ठेवता येत नाही")
+    try:
+        prop = db.query(models.Property).filter(
+            models.Property.village_id == data.village_id,
+            models.Property.anuKramank == data.anuKramank
+        ).first()
+        if not prop:
+            raise HTTPException(status_code=404, detail="मालमत्ता सापडली नाही")
+
+        others = ordered_village_properties(db, data.village_id, exclude=prop)
+        if data.afterAnuKramank is None:
+            pos = 0
+        else:
+            idx = next((i for i, p in enumerate(others) if p.anuKramank == data.afterAnuKramank), None)
+            if idx is None:
+                raise HTTPException(status_code=404, detail="निवडलेली (या मालमत्तेनंतर) मालमत्ता सापडली नाही")
+            pos = idx + 1
+
+        prop.sort_order = sort_order_at_position(others, pos)
+        db.commit()
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logging.exception("move_property failed")
+        raise HTTPException(status_code=500, detail="जागा बदलता आली नाही: " + str(e))
+
+    return {
+        "success": True,
+        "anuKramank": prop.anuKramank,
+        "sort_order": prop.sort_order,
+        "display_sr_no": compute_display_sr_no(db, data.village_id, prop.anuKramank),
+    }
+
+
 @router.post("/serialize_properties/")
 def serialize_properties(
     village_id: int = Body(...),
@@ -2653,16 +2723,12 @@ def serialize_properties(
             if not gram_panchayat:
                 raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
             
-            # गावातल्या सर्व मालमत्ता - जुन्या (साठवलेल्या) अ.क्र. नुसार नव्हे, तर मालमत्ता
-            # क्रमांकाच्या नैसर्गिक क्रमवारीनुसार (नमुना-8 search list मध्ये जशा दिसतात तशाच,
-            # उदा. 15, 23, 100, 175, 500, 500/1) - जेणेकरून सिरीयलाईज केल्यावर साठवलेला अ.क्र.
-            # हाच डिस्प्ले अ.क्र. (sort_order वरून ठरणारा) असेल, जुन्या नोंदणी-क्रमाशी बांधलेला नसेल.
-            properties = sorted(
-                db.query(models.Property).filter(
-                    models.Property.village_id == village_id
-                ).all(),
-                key=lambda p: malmatta_kramank_sort_key(p.malmattaKramank)
-            )
+            # गावातल्या सर्व मालमत्ता - जुन्या (साठवलेल्या) अ.क्र. नुसार नव्हे, तर नमुना-8
+            # search list मध्ये जशा दिसतात त्याच क्रमाने (sort_order). मालमत्ता क्रमांकाच्या
+            # मजकुरावरून पुन्हा क्रम लावत नाही - नाहीतर "या मालमत्तेनंतर ठेवा"/"जागा बदला" ने
+            # यूजरने ठरवलेली जागा सिरीयलाईज करताच मोडली असती. सिरीयलाईज केल्यावर साठवलेला
+            # अ.क्र. = डिस्प्ले अ.क्र.
+            properties = ordered_village_properties(db, village_id)
 
             if not properties:
                 return {"success": True, "message": "No properties found for this village", "updated_count": 0}
@@ -2676,10 +2742,10 @@ def serialize_properties(
                 # सुरुवात क्रमांक = 1 दिल्यास मालमत्ता 1,2,3... व्हायला हव्यात) - आधी इथे
                 # "+1" जास्त होत होतं, त्यामुळे 1 दिल्यावर प्रत्यक्षात 2 पासून सुरू होत असे.
                 new_anuKramank = start_number + index
-                # sort_order हाच "डिस्प्ले अ.क्र." (compute_display_sr_no) ठरवतो - इथेही
-                # त्याच नैसर्गिक-क्रमवारीने (10,20,30... मोकळी जागा ठेवून, backfill
-                # फंक्शनप्रमाणेच) अपडेट करतो, जेणेकरून साठवलेला अ.क्र. = डिस्प्ले अ.क्र.
-                # ही अट पुढेही (नवी मालमत्ता "Insert" होईपर्यंत) टिकून राहील.
+                # sort_order हाच "डिस्प्ले अ.क्र." (compute_display_sr_no) ठरवतो - इथे
+                # त्याच क्रमाने 10,20,30... (मोकळी जागा ठेवून, backfill फंक्शनप्रमाणेच)
+                # पुन्हा देतो, जेणेकरून साठवलेला अ.क्र. = डिस्प्ले अ.क्र. ही अट पुढेही
+                # (नवी मालमत्ता "Insert" होईपर्यंत / जागा बदलेपर्यंत) टिकून राहील.
                 db_property.sort_order = (index + 1) * 10.0
                 anu_needs_change = old_anuKramank != new_anuKramank
                 # मालमत्ता क्रमांक (e.g. "500/1") must also be serialized even when
