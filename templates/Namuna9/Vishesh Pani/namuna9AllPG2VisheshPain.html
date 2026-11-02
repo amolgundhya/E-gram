@@ -26,7 +26,15 @@
         }
         @media print {
             @page {
-                size: A4;
+                size: A4 landscape;
+            }
+            /* आडव्या A4 पानात पूर्ण टेबल बसावे - नाहीतर min-width मुळे उजवीकडचा
+               (शेरा) कॉलम व त्याची रेषा पानाबाहेर कापली जाते. */
+            #mainContent { zoom: 1 !important; }
+            .main-table { width: 100% !important; font-size: 10px !important; }
+            .main-table th, .main-table td {
+                min-width: 0 !important;
+                padding: 1px 2px;
             }
             #toolbar {
                 display: none !important;
@@ -177,6 +185,9 @@
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
             <tr>
+                <th rowspan="3" style="min-width:40px;">अ.क्र.</th>
+                <th rowspan="3" style="min-width:56px;">मिळकत नंबर</th>
+                <th rowspan="3" style="min-width:56px;">मालकाचे नाव</th>
                 <th rowspan="3" style="min-width:48px;">‍‍भोगवटदाराचे नाव</th>
                 <th colspan="16" style="min-width:32px;">वसुली</th>
                 <th rowspan="2" colspan="5" style="min-width:48px;">सुट</th>
@@ -223,23 +234,26 @@
 
             {% for row in data %}
             <tr class="record-row">
+                <td>{{ row.srNo }}</td>
+                <td>{{ row.propertyNumber }}</td>
+                <td>{{ row.ownerName }}</td>
                 <td>{{ row.occupant }}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitHouseTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dandHouseTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.houseTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalHouseTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitLightingTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.lightingTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalLightingTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitHealthTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.healthTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalHealthTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitSaWaterTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.saWaterTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalSaWaterTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitViWaterTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.viWaterTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalViWaterTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitHouseTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDandHouseTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliHouseTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalHouseTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitLightingTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliLightingTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalLightingTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitHealthTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliHealthTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalHealthTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitSaWaterTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliSaWaterTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalSaWaterTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitViWaterTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliViWaterTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalViWaterTax}}{% endif %}</td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -256,7 +270,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="2"></td>
+                <td colspan="5"></td>
                 <td style="font-weight:normal; text-align:right;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>
