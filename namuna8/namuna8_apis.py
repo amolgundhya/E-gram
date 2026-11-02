@@ -2599,7 +2599,8 @@ def move_property(data: PropertyMoveRequest, db: Session = Depends(database.get_
     """नमुना-8 "जागा बदला" - आधीपासून असलेली मालमत्ता यादीत निवडलेल्या मालमत्तेनंतर
     (किंवा सगळ्यात पहिली) हलवते. फक्त sort_order बदलतो, म्हणजे यादी/नमुना-8/नमुना-9/९क
     प्रिंटमधला अ.क्र. (compute_display_sr_no) नव्या क्रमाने येतो; जतन केलेला अनुक्रमांक,
-    मालमत्ता क्रमांक, QR, पावत्या यांना हात लावत नाही."""
+    मालमत्ता क्रमांक, QR, पावत्या यांना हात लावत नाही. सिरीयलाईज केल्यावर ही जागा पुन्हा
+    मालमत्ता क्रमांकाच्या नैसर्गिक क्रमानुसार होते - हे सिरीयलाईजनंतरच्या खास प्रकरणांसाठी."""
     if data.afterAnuKramank is not None and data.afterAnuKramank == data.anuKramank:
         raise HTTPException(status_code=400, detail="मालमत्ता स्वतःच्याच नंतर ठेवता येत नाही")
     try:
@@ -2672,12 +2673,18 @@ def serialize_properties(
             if not gram_panchayat:
                 raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
             
-            # गावातल्या सर्व मालमत्ता - जुन्या (साठवलेल्या) अ.क्र. नुसार नव्हे, तर नमुना-8
-            # search list मध्ये जशा दिसतात त्याच क्रमाने (sort_order). मालमत्ता क्रमांकाच्या
-            # मजकुरावरून पुन्हा क्रम लावत नाही - नाहीतर "या मालमत्तेनंतर ठेवा"/"जागा बदला" ने
-            # यूजरने ठरवलेली जागा सिरीयलाईज करताच मोडली असती. सिरीयलाईज केल्यावर साठवलेला
-            # अ.क्र. = डिस्प्ले अ.क्र.
-            properties = ordered_village_properties(db, village_id)
+            # गावातल्या सर्व मालमत्ता - जुन्या (साठवलेल्या) अ.क्र. नुसार नव्हे, तर मालमत्ता
+            # क्रमांकाच्या नैसर्गिक क्रमवारीनुसार (क्लायंटची ऑगस्टची गरज: 15, 23, 100, 175,
+            # 500, 500/1) - जेणेकरून सिरीयलाईज केल्यावर साठवलेला अ.क्र. हाच डिस्प्ले अ.क्र.
+            # (sort_order वरून ठरणारा) असेल. "या मालमत्तेनंतर ठेवा"/"जागा बदला" ने हाताने
+            # ठेवलेल्या जागा इथे जाणूनबुजून पुन्हा मालमत्ता क्रमांकानुसार होतात (frontend
+            # सिरीयलाईज आधी तशी सूचना दाखवतो); खास प्रकरणं सिरीयलाईजनंतर "जागा बदला" ने दुरुस्त करायची.
+            properties = sorted(
+                db.query(models.Property).filter(
+                    models.Property.village_id == village_id
+                ).all(),
+                key=lambda p: malmatta_kramank_sort_key(p.malmattaKramank)
+            )
 
             if not properties:
                 return {"success": True, "message": "No properties found for this village", "updated_count": 0}
@@ -2691,10 +2698,10 @@ def serialize_properties(
                 # सुरुवात क्रमांक = 1 दिल्यास मालमत्ता 1,2,3... व्हायला हव्यात) - आधी इथे
                 # "+1" जास्त होत होतं, त्यामुळे 1 दिल्यावर प्रत्यक्षात 2 पासून सुरू होत असे.
                 new_anuKramank = start_number + index
-                # sort_order हाच "डिस्प्ले अ.क्र." (compute_display_sr_no) ठरवतो - इथे
-                # त्याच क्रमाने 10,20,30... (मोकळी जागा ठेवून, backfill फंक्शनप्रमाणेच)
-                # पुन्हा देतो, जेणेकरून साठवलेला अ.क्र. = डिस्प्ले अ.क्र. ही अट पुढेही
-                # (नवी मालमत्ता "Insert" होईपर्यंत / जागा बदलेपर्यंत) टिकून राहील.
+                # sort_order हाच "डिस्प्ले अ.क्र." (compute_display_sr_no) ठरवतो - इथेही
+                # त्याच नैसर्गिक-क्रमवारीने (10,20,30... मोकळी जागा ठेवून, backfill
+                # फंक्शनप्रमाणेच) अपडेट करतो, जेणेकरून साठवलेला अ.क्र. = डिस्प्ले अ.क्र.
+                # ही अट पुढेही (नवी मालमत्ता "Insert" होईपर्यंत / जागा बदलेपर्यंत) टिकून राहील.
                 db_property.sort_order = (index + 1) * 10.0
                 anu_needs_change = old_anuKramank != new_anuKramank
                 # मालमत्ता क्रमांक (e.g. "500/1") must also be serialized even when
