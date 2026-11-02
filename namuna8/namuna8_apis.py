@@ -714,10 +714,20 @@ def update_namuna8_entry(
     ).first()
     if not db_property:
         raise HTTPException(status_code=404, detail="Property not found in the specified location")
-    
-    # Store old anuKramank before updating
-    old_anu_kramank = db_property.anuKramank
-    
+
+    # संपादन (Update) आणि नमुना-8 "Bulk Update" (प्रत्येक मालमत्तेसाठी GET -> हाच PUT) कधीच
+    # अनुक्रमांक किंवा यादीतला क्रम (sort_order) बदलत नाहीत - ते फक्त नवी नोंद/Insert,
+    # "जागा बदला", Transfer आणि सिरीयलाईज बदलतात. वेगळा अनुक्रमांक आला तर चुपचाप न बदलता
+    # स्पष्ट नकार देतो; दोन्ही फील्ड्स खालच्या setattr मधून वगळतो.
+    if property_data.anuKramank is not None and int(property_data.anuKramank) != int(db_property.anuKramank):
+        raise HTTPException(
+            status_code=400,
+            detail="संपादनात अनुक्रमांक बदलता येत नाही (सध्याचा: %s). क्रम बदलायचा असेल तर \"जागा बदला\" किंवा सिरीयलाईज वापरा."
+                   % db_property.anuKramank
+        )
+    property_update_data.pop("anuKramank", None)
+    property_update_data.pop("sort_order", None)
+
     # Validate malmattaKramank duplication in the same village if it's being changed
     new_malmatta_kramank = property_update_data.get('malmattaKramank')
     current_malmatta_kramank = getattr(db_property, 'malmattaKramank', None)
@@ -768,82 +778,6 @@ def update_namuna8_entry(
 
     except Exception:
         db_property.totalAreaSqFt = round(db_property.totalArea or 0, 2)
-
-    # Update property document paths if anuKramank is changed
-    new_anu_kramank = property_update_data.get('anuKramank', old_anu_kramank)
-    if new_anu_kramank is not None and old_anu_kramank != new_anu_kramank:
-        try:
-            # Find all property documents for this property
-            property_docs = db.query(PropertyDocument).filter(
-                PropertyDocument.property_anuKramank.in_([old_anu_kramank, str(old_anu_kramank)]),
-                PropertyDocument.village_id == village_id
-            ).all()
-            
-            if property_docs:
-                UPLOAD_DIR = "uploaded_images/property_documents"
-                old_dir = os.path.join(UPLOAD_DIR, str(village_id), str(old_anu_kramank))
-                new_dir = os.path.join(UPLOAD_DIR, str(village_id), str(new_anu_kramank))
-                
-                # Create new directory if it doesn't exist
-                if not os.path.exists(new_dir):
-                    os.makedirs(new_dir, exist_ok=True)
-                
-                # Update each document
-                for doc in property_docs:
-                    # Update document_image path if exists
-                    if doc.document_image:
-                        old_image_path = doc.document_image
-                        # Convert to absolute path if relative
-                        if not os.path.isabs(old_image_path):
-                            old_image_path = os.path.join(os.getcwd(), old_image_path)
-                        
-                        if os.path.exists(old_image_path):
-                            # Extract filename from old path
-                            filename = os.path.basename(old_image_path)
-                            new_image_path = os.path.join(new_dir, filename)
-                            
-                            # Move file
-                            try:
-                                shutil.move(old_image_path, new_image_path)
-                                # Update database path (relative path with forward slashes)
-                                rel_new_path = os.path.relpath(new_image_path, start=os.getcwd()).replace(os.sep, "/")
-                                doc.document_image = rel_new_path
-                            except Exception as e:
-                                logging.error(f"Error moving document_image: {e}")
-                    
-                    # Update document_path if exists
-                    if doc.document_path:
-                        old_doc_path = doc.document_path
-                        # Convert to absolute path if relative
-                        if not os.path.isabs(old_doc_path):
-                            old_doc_path = os.path.join(os.getcwd(), old_doc_path)
-                        
-                        if os.path.exists(old_doc_path):
-                            # Extract filename from old path
-                            filename = os.path.basename(old_doc_path)
-                            new_doc_path = os.path.join(new_dir, filename)
-                            
-                            # Move file
-                            try:
-                                shutil.move(old_doc_path, new_doc_path)
-                                # Update database path (relative path with forward slashes)
-                                rel_new_path = os.path.relpath(new_doc_path, start=os.getcwd()).replace(os.sep, "/")
-                                doc.document_path = rel_new_path
-                            except Exception as e:
-                                logging.error(f"Error moving document_path: {e}")
-                    
-                    # Update property_anuKramank in database
-                    doc.property_anuKramank = new_anu_kramank
-                
-                # Try to remove old directory if empty
-                try:
-                    if os.path.exists(old_dir) and not os.listdir(old_dir):
-                        os.rmdir(old_dir)
-                except Exception:
-                    pass
-        except Exception as e:
-            logging.error(f"Error updating property document paths: {e}")
-            # Don't raise exception, just log the error to not block the property update
 
     if property_data.owners:
         new_owners = []
