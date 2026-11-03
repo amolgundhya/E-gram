@@ -39,6 +39,38 @@ def round_sqft(value):
 
 env.filters['round_sqft'] = round_sqft
 
+# नमुना-8 रजिस्टर (हजारो मालमत्ता) चं HTML 10-30 MB होतं, त्यातला मोठा भाग फक्त टॅग्सच्या मधली
+# टेम्प्लेट indentation/रिकाम्या ओळी आणि प्रत्येक पानावर पुन्हा पुन्हा येणारे तेच <style> blocks.
+# - फक्त दोन टॅग्सच्या मधलं, पूर्ण whitespace असलेलं आणि ओळ-बदल असलेलं अंतर (">  \n   <") एका
+#   newline मध्ये बदलतो. एक whitespace ठेवतो कारण दोन inline टॅग्समधला space दिसतो; newline
+#   ब्राउझरमध्ये त्याच एका space सारखाच दिसतो.
+# - मजकुरातले (नावं, पत्ते, लेबल) spaces कधीच बदलत नाही; <pre>/<textarea>/<script>/<style> आतलं
+#   काहीच बदलत नाही.
+# - अगदी तसाच (byte-to-byte) <style> block दुसऱ्यांदा आला तर काढतो - तो काहीच बदलत नाही.
+_STYLE_BLOCK_RE = re.compile(r'<style\b[^>]*>.*?</style>', re.S | re.I)
+_RAW_BLOCK_RE = re.compile(r'(<(pre|textarea|script|style)\b[^>]*>.*?</\2\s*>)', re.S | re.I)
+_BETWEEN_TAGS_WS_RE = re.compile(r'>[ \t\r]*\n[ \t\r\n]*<')
+
+def compact_register_html(html):
+    seen = set()
+
+    def _first_style_only(m):
+        block = m.group(0)
+        if block in seen:
+            return ''
+        seen.add(block)
+        return block
+
+    html = _STYLE_BLOCK_RE.sub(_first_style_only, html)
+    parts = _RAW_BLOCK_RE.split(html)
+    out = []
+    # split: [बाहेरचा मजकूर, raw block, टॅगचं नाव, बाहेरचा मजकूर, ...]
+    for i in range(0, len(parts), 3):
+        out.append(_BETWEEN_TAGS_WS_RE.sub('>\n<', parts[i]))
+        if i + 1 < len(parts):
+            out.append(parts[i + 1])
+    return ''.join(out)
+
 # # Get the user home directory
 home_path = os.path.expanduser("~")
 logs_path = os.path.expanduser("~")
@@ -84,7 +116,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8Prakar1copy.html')
+            template = env.get_template('namuna8Prakar1.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -157,7 +189,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
 
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -198,7 +230,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8Prakar2copy.html')
+            template = env.get_template('namuna8Prakar2.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -276,7 +308,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
 
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -318,7 +350,7 @@ async def prakar1(request : Request):
         base_url = str(request.base_url).rstrip('/')
 
         if checkbox:
-            template = env.get_template('namuna8Prakar3copy.html')
+            template = env.get_template('namuna8Prakar3.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -396,7 +428,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -515,7 +547,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -634,7 +666,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -754,7 +786,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -874,7 +906,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -916,7 +948,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8VishehPaniPrakar1copy.html')
+            template = env.get_template('namuna8VishehPaniPrakar1.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -994,7 +1026,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -1035,7 +1067,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8VishehPaniPrakar2copy.html')
+            template = env.get_template('namuna8VishehPaniPrakar2.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -1113,7 +1145,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -1154,7 +1186,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8VishehPaniPrakar3copy.html')
+            template = env.get_template('namuna8VishehPaniPrakar3.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -1232,7 +1264,7 @@ async def prakar1(request : Request):
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
