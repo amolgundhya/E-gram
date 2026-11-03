@@ -80,6 +80,65 @@ async def receipt(request : Request):
             }
         )
         
+@router.post('/receipt/all')
+async def receipt_all(request : Request):
+    try:
+        # "पूर्ण दाखवा" - कालावधीतील सर्व पावत्या, एक पावती = एक पान
+        requestData = await request.json()
+        template = env.get_template('namuna7PavatiAll.html')
+
+        params = {
+            "from_date": requestData.get("from_date"),
+            "to_date": requestData.get("to_date"),
+            "district_id": requestData.get("district_id"),
+            "taluka_id": requestData.get("taluka_id"),
+            "gram_panchayat_id": requestData.get("gram_panchayat_id"),
+        }
+        if requestData.get("village_id"):
+            params["village_id"] = requestData.get("village_id")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f'{localhost}/namuna7/prints/by-date/', params=params)
+        if response.status_code != 200:
+            raise Exception(f"API error {response.status_code}: {response.text}")
+
+        receipts = response.json()
+        if not receipts:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "message": "निवडलेल्या कालावधीत पावती उपलब्ध नाही",
+                    "data": {}
+                }
+            )
+
+        rendered_html = template.render(receipts=receipts)
+
+        os.makedirs(static_dir, exist_ok=True)
+        output_path = os.path.join(static_dir, 'output.html')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(rendered_html)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "Output file is created",
+                "data": {"count": len(receipts)}
+            }
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Error: {str(e)}",
+                "data": {}
+            }
+        )
+
 @router.post('/register')
 async def receipt(request : Request):
     try:
