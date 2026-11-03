@@ -50,6 +50,29 @@ def get_assessment_year(gram_panchayat) -> int:
     return datetime.now().year
 
 
+# बांध. वर्ष युजर कॅलेंडरमधून निवडू शकतो किंवा हाताने टाईप करू शकतो - त्यामुळे साधं वर्ष
+# ("2015") नसून पूर्ण तारीख ("12/06/2015", "2015-06-12", "12-06-2015") साठवलेली असू शकते.
+# साधं वर्ष आधीसारखंच int() ने वाचतो; ते न जमल्यास तारखेतून फक्त वर्ष काढतो. काहीच ओळखता
+# न आल्यास None (=> घसारा 0, आधीसारखंच).
+_CONSTRUCTION_DATE_FORMATS = ('%d/%m/%Y', '%d-%m-%Y', '%d.%m.%Y', '%Y-%m-%d', '%Y/%m/%d')
+
+
+def parse_construction_year(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        pass
+    if value is None:
+        return None
+    s = str(value).strip()[:10]
+    for fmt in _CONSTRUCTION_DATE_FORMATS:
+        try:
+            return datetime.strptime(s, fmt).year
+        except ValueError:
+            continue
+    return None
+
+
 def calculate_depreciation_rate(year: int, name: str, assessment_year: int = None):
     """year: बांधकामाचे वर्ष (construction year). assessment_year: चालू आकारणी
     चक्राचं सुरुवातीचं वर्ष (get_assessment_year() ने काढलेलं) - दिलं नाही तर
@@ -57,9 +80,8 @@ def calculate_depreciation_rate(year: int, name: str, assessment_year: int = Non
     "वय नेहमी 0" हा वापर यामुळे मोडत नाही)."""
     reference_year = assessment_year if assessment_year is not None else datetime.now().year
 
-    try:
-        year = int(year)
-    except (TypeError, ValueError):
+    year = parse_construction_year(year)
+    if year is None:
         return 0
 
     # अवास्तव/अशक्य बांधकाम वर्ष (रिकामं वर आधीच return झालंय; इथे उदा. वर्ष चुकून
