@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session, selectinload
 from namuna8 import namuna8_model as models
 from namuna8 import namuna8_schemas as schemas
@@ -45,7 +47,11 @@ def _build_qrcode_url(prop, qr_path: str) -> str:
     """Build QR URL with version token to avoid stale cached images. If the QR file
     is missing here, /namuna8/property_qrcode generates it on first request (so the
     print never shows an empty QR box); version 0 until then."""
-    version = int(os.path.getmtime(qr_path)) if os.path.exists(qr_path) else 0
+    # एकच stat (exists + getmtime असे दोन file-system calls नाहीत) - हजारो मालमत्तांच्या यादीत हे प्रत्येक मालमत्तेला चालतं
+    try:
+        version = int(os.stat(qr_path).st_mtime)
+    except OSError:
+        version = 0
     return (
         f"{backend_url}/namuna8/property_qrcode/{prop.anuKramank}"
         f"?district_id={prop.district_id}&taluka_id={prop.taluka_id}"
@@ -614,6 +620,8 @@ def get_property_records_by_village(
     rounding_mode = get_tax_rounding_mode(db, gram_panchayat_id)
     from location_management import helpers
     gp_image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
+    # GP image फाईल आहे का ते एकदाच तपासतो (आधी loop मध्ये प्रत्येक मालमत्तेला तपासत होतो)
+    gp_image_exists = bool(gp_image_path and os.path.exists(gp_image_path))
 
     def _round_tax(value):
         # Same rule as Utility.tax_rounding.round_tax_amount, just reusing the
@@ -950,7 +958,7 @@ def get_property_records_by_village(
         response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)  # missing file -> made on request
         
         # Set bank_qr_code only if gram panchayat image exists (bulk)
-        if gp_image_path and os.path.exists(gp_image_path):
+        if gp_image_exists:
             response["bank_qr_code"] = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
 
         # Set signature_image only if a digital signature has been uploaded
@@ -991,7 +999,13 @@ def get_property_records_by_village(
     # व्हॅल्यू आता योग्य क्रमाने दिसते (आधी ती चुकून जतन केलेला anuKramank दाखवत होती).
     for idx, r in enumerate(results, start=1):
         r["srNo"] = idx
-    return results
+    # हजारो मालमत्तांची यादी FastAPI च्या jsonable_encoder मधून घालवायला ~1 सेकंद लागतो; इथली
+    # सगळी मूल्यं आधीच साधे JSON प्रकार आहेत, म्हणून थेट पाठवतो (response bytes तेच). कधी
+    # एखादं साधं नसलेलं मूल्य (उदा. datetime) आलं तर आधीसारखंच jsonable_encoder वापरतो.
+    try:
+        return JSONResponse(content=results)
+    except (TypeError, ValueError):
+        return JSONResponse(content=jsonable_encoder(results))
 
 @router.get("/property_records_by_gram_panchayat/{gram_panchayat_id}")
 def get_property_records_by_gram_panchayat(
