@@ -187,6 +187,7 @@
             <tr>
                 <th rowspan="3" style="min-width:40px;">अ.क्र.</th>
                 <th rowspan="3" style="min-width:56px;">मिळकत नंबर</th>
+                <th rowspan="3" style="min-width:56px;">मालकाचे नाव</th>
                 <th rowspan="3" style="min-width:56px;">‍‍भोगवटदाराचे नाव</th>
                 <th colspan="16" style="min-width:32px;">वसुली</th>
                 <th rowspan="2" colspan="5" style="min-width:56px;">सुट</th>
@@ -235,23 +236,24 @@
             <tr class="record-row">
                 <td>{{ row.srNo }}</td>
                 <td>{{ row.propertyNumber }}</td>
+                <td>{{ row.ownerName }}</td>
                 <td>{{ row.occupant }}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitHouseTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dandHouseTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.houseTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalHouseTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitLightingTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.lightingTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalLightingTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitHealthTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.healthTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalHealthTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.saWaterTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitCleaningTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.cleaningTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalCleaningTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitHouseTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDandHouseTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliHouseTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalHouseTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitLightingTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliLightingTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalLightingTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitHealthTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliHealthTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalHealthTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitCleaningTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliCleaningTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalCleaningTax | blankzero(blankZero)}}{% endif %}</td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -268,7 +270,7 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="4"></td>
+                <td colspan="5"></td>
                 <td style="font-weight:normal; text-align:right;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>

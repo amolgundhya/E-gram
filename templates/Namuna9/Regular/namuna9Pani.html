@@ -146,10 +146,10 @@
         };
     </script>
     <div id="mainContent">
-    <!-- Top section to repeat on every page -->
-    <div id="mainContent">
     {% for page in pages %}
     <div class="print-page"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
+    <!-- Top section: फक्त पहिल्या पानावर (मथळा + GP/village/taluka/jilha) -->
+    {% if loop.first %}
     <table class="report-top">
         <tr>
             <td colspan="3" class="center bold" style="font-size:22px;">नमुना ९</td>
@@ -167,6 +167,7 @@
             <td >जिल्हा : {{jilha}}</td>
         </tr>
     </table>
+    {% endif %}
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
@@ -207,10 +208,11 @@
         <tfoot>
         <tr>
             <td colspan="3"></td>
-            <td style="font-weight:normal; text-align:right;">या पानाची बेरीज</td>
+            <td style="font-weight:normal; text-align:right;">गोषवारा</td>
             <td>{% if removeDhakit != 'true' %}{{ page | sum(attribute='dhakitSaWaterTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ page | sum(attribute='saWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ page | sum(attribute='totalSaWaterTax') }}{% endif %}</td>
+            <td></td>
             <td></td>
         </tr>
         {% if loop.last %}
@@ -220,6 +222,7 @@
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitSaWaterTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='saWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalSaWaterTax') }}{% endif %}</td>
+            <td></td>
             <td></td>
         </tr>
         {% endif %}

@@ -158,7 +158,8 @@
     <div id="mainContent">
     {% for page in pages %}
     <div class="print-page"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
-    <!-- Top section repeats on every page -->
+    <!-- Top section: फक्त पहिल्या पानावर (मथळा + GP/village/taluka/jilha) -->
+    {% if loop.first %}
     <table class="report-top">
         <tr>
             <td colspan="3" class="center bold" style="font-size:22px;">नमुना ९</td>
@@ -174,6 +175,7 @@
             <td  style="width:34%">गाव/मोहल्ला : {{village}} </td>
         </tr>
     </table>
+    {% endif %}
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
@@ -246,7 +248,7 @@
         <!-- गोषवारा - या पानाची बेरीज, शेवटच्या पानावर सर्व पानांची एकूण बेरीज -->
         <tfoot>
         <tr>
-            <td colspan="4" style="font-weight:bold; text-align:left;">या पानाची बेरीज</td>
+            <td colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
             <td colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
