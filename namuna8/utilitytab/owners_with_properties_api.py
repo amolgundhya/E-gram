@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from database import get_db
 from ..namuna8_model import Owner
 from ..namuna8_apis import build_property_response
@@ -35,7 +35,20 @@ def owners_with_properties_by_village(
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
-    owners = db.query(namuna8_model.Owner).filter(namuna8_model.Owner.village_id == village_id).all()
+    # मालकांच्या मालमत्ता + त्यांचे मालक/बांधकाम एकाच वेळी आणतो, आणि कर सेटिंग्ज एकदाच -
+    # आधी प्रत्येक मालक/मालमत्तेला वेगळ्या query होत होत्या (N+1).
+    P = namuna8_model.Property
+    owners = (
+        db.query(namuna8_model.Owner)
+        .options(
+            selectinload(namuna8_model.Owner.properties).selectinload(P.owners),
+            selectinload(namuna8_model.Owner.properties).selectinload(P.constructions).selectinload(namuna8_model.Construction.construction_type),
+        )
+        .filter(namuna8_model.Owner.village_id == village_id)
+        .all()
+    )
+    tax_settings = db.query(namuna8_model.Namuna8SettingTax).filter(namuna8_model.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    water_settings = db.query(namuna8_model.Namuna8WaterTaxSettings).filter(namuna8_model.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
     result = []
     for owner in owners:
         owner_dict = {
@@ -47,7 +60,7 @@ def owners_with_properties_by_village(
             "occupantName": owner.occupantName,
             "ownerPhoto": owner.ownerPhoto,
             "village_id": owner.village_id,
-            "properties": [build_property_response(p, db, gram_panchayat_id) for p in owner.properties]
+            "properties": [build_property_response(p, db, gram_panchayat_id, tax_settings, water_settings, tax_settings) for p in owner.properties]
         }
         result.append(owner_dict)
     return result

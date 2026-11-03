@@ -432,6 +432,7 @@ def get_property_record(
         "aadharNumber": owner.aadhaarNumber if owner else None,
         "ownerName": owner.name if owner else None,
         "ownerWifeName":owner.wifeName if owner else None,
+        "owners": [{"name": o.name, "wifeName": o.wifeName} for o in prop.owners],
         "mobileNumber": owner.mobileNumber if owner else None,
         "roadName": prop.streetName,
         "cityWardGatNumber": prop.citySurveyOrGatNumber,
@@ -869,6 +870,7 @@ def get_property_records_by_village(
             "aadharNumber": owner.aadhaarNumber if owner else None,
             "ownerName": owner.name if owner else None,
             "ownerWifeName": owner.wifeName if owner else None,
+            "owners": [{"name": o.name, "wifeName": o.wifeName} for o in prop.owners],
             "mobileNumber": owner.mobileNumber if owner else None,
             "roadName": prop.streetName,
             "cityWardGatNumber": prop.citySurveyOrGatNumber,
@@ -1030,13 +1032,73 @@ def get_property_records_by_gram_panchayat(
         checklist_dict = checklist.__dict__
         checklist_fields = {k: v for k, v in checklist_dict.items() if k not in ('id', 'createdAt', 'updatedAt', 'roundupArea', '_sa_instance_state')}
 
+    # वरच्या get_property_records_by_village प्रमाणेच: खालील सगळं फक्त gram_panchayat_id
+    # वर अवलंबून आहे (या request मध्ये बदलत नाही) - म्हणून loop च्या बाहेर एकदाच आणतो,
+    # आधी प्रत्येक मालमत्तेला पुन्हा पुन्हा query होत होतं. आउटपुट अगदी तसंच राहतं.
+    weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
+    settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
+    water_slab_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    from location_management import helpers
+    image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
+    gp_image_exists = bool(image_path and os.path.exists(image_path))
+
+    _construction_type_exact_cache = {}
+
+    def _construction_type_by_exact_name(name):
+        if name not in _construction_type_exact_cache:
+            _construction_type_exact_cache[name] = db.query(models.ConstructionType).filter(
+                models.ConstructionType.name == name
+            ).first()
+        return _construction_type_exact_cache[name]
+
+    _construction_type_like_cache = {}
+
+    def _construction_type_by_like_name(name):
+        if name not in _construction_type_like_cache:
+            _construction_type_like_cache[name] = db.query(models.ConstructionType).filter(
+                models.ConstructionType.name.like(f"%{name}%")
+            ).first()
+        return _construction_type_like_cache[name]
+
+    # calculate_depreciation_rate प्रत्येक कॉलला नवीन DB session उघडतो - (वर्ष, प्रकार) ची
+    # जोडी थोडीच असते, म्हणून एकदाच काढून ठेवतो.
+    _depreciation_rate_cache = {}
+
+    def _cached_depreciation_rate(year, type_name, ref_year=None):
+        key = (year, type_name, ref_year)
+        if key not in _depreciation_rate_cache:
+            _depreciation_rate_cache[key] = calculate_depreciation_rate(year, type_name, ref_year)
+        return _depreciation_rate_cache[key]
+
+    # round_tax_amount सारखाच नियम, फक्त राउंडिंग मोड प्रत्येक गा.पं. साठी एकदाच आणतो.
+    _rounding_mode_cache = {}
+
+    def _round_tax(value, prop_gram_panchayat_id):
+        if prop_gram_panchayat_id not in _rounding_mode_cache:
+            _rounding_mode_cache[prop_gram_panchayat_id] = get_tax_rounding_mode(db, prop_gram_panchayat_id)
+        if _rounding_mode_cache[prop_gram_panchayat_id] == "ceil":
+            return math.ceil(value)
+        return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
     # Structure response by villages
     response_data = {}
-    
+
     for village in villages:
         village_properties = []
-        properties = db.query(models.Property).filter(models.Property.village_id == village.id).all()
-        
+        # owners/constructions/construction_type एकाच वेळी आणतो (आधी प्रत्येक मालमत्तेला
+        # 3+ वेगळ्या query - N+1).
+        properties = (
+            db.query(models.Property)
+            .options(
+                selectinload(models.Property.owners),
+                selectinload(models.Property.constructions).selectinload(models.Construction.construction_type),
+            )
+            .filter(models.Property.village_id == village.id)
+            .all()
+        )
+
         for prop in properties:
             owner_ids = [o.id for o in prop.owners]
             property_types = [c.construction_type.name for c in prop.constructions]
@@ -1089,23 +1151,18 @@ def get_property_records_by_gram_panchayat(
                 vacant_construction_type = None
 
                 if prop.vacantLandType:
-                    vacant_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == prop.vacantLandType).first()
+                    vacant_construction_type = _construction_type_by_exact_name(prop.vacantLandType)
                     if vacant_construction_type:
                         khali_jaga_rate = getattr(vacant_construction_type, 'bandhmastache_dar', 0)
                     else:
-                        similar_construction = db.query(models.ConstructionType).filter(models.ConstructionType.name.like(f"%{prop.vacantLandType}%")).first()
+                        similar_construction = _construction_type_by_like_name(prop.vacantLandType)
                         if similar_construction:
                             khali_jaga_rate = getattr(similar_construction, 'bandhmastache_dar', 0)
 
-                khali_construction_type = db.query(models.ConstructionType).filter(
-                    models.ConstructionType.name == prop.vacantLandType
-                ).first()
-                weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
+                khali_construction_type = _construction_type_by_exact_name(prop.vacantLandType)
                 capital_value = 0
                 house_tax = 0
                 if khali_area > 0 and khali_construction_type:
-                    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-
                     if userFormulaPreference:
                         formula1 = userFormulaPreference.capitalFormula1
                         formula2 = userFormulaPreference.capitalFormula2
@@ -1116,7 +1173,7 @@ def get_property_records_by_gram_panchayat(
                     AreaInMeter = khali_area_m
                     AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
                     ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
-                    depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
+                    depreciationRate = _cached_depreciation_rate(datetime.now().year, khali_construction_type.name)
 
                     usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
 
@@ -1126,7 +1183,7 @@ def get_property_records_by_gram_panchayat(
                         capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
                     capital_value = round(capital_value, 2)
 
-                    house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(prop, 'gram_panchayat_id', None))
+                    house_tax = _round_tax((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, getattr(prop, 'gram_panchayat_id', None))
 
                 # Always emit a khaliJaga entry when vacantLandType is set, even if the
                 # computed area is exactly 0, so reports show "0" instead of omitting the row.
@@ -1146,7 +1203,6 @@ def get_property_records_by_gram_panchayat(
                     "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
                 }]
 
-            weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
             constructionType = [
                 {
                     "type": c.construction_type.name,
@@ -1158,17 +1214,13 @@ def get_property_records_by_gram_panchayat(
                     "usage": getattr(c, 'bharank', None),
                     "capitalValue": c.capitalValue,
                     "houseTax": c.houseTax,
-                    "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name, assessment_year),
+                    "depreciation_rate": _cached_depreciation_rate(c.constructionYear, c.construction_type.name, assessment_year),
                     "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
                     "taxRates": getattr(c.construction_type, 'rate', 0),
                 }
                 for c in prop.constructions
             ]
             owner = prop.owners[0] if prop.owners else None
-
-            settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
-            water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
-            water_slab_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
 
             def get_tax_by_area(area, field):
                 if not settings:
@@ -1259,6 +1311,7 @@ def get_property_records_by_gram_panchayat(
                 "aadharNumber": owner.aadhaarNumber if owner else None,
                 "ownerName": owner.name if owner else None,
                 "ownerWifeName":owner.wifeName if owner else None,
+                "owners": [{"name": o.name, "wifeName": o.wifeName} for o in prop.owners],
                 "mobileNumber": owner.mobileNumber if owner else None,
                 "roadName": prop.streetName,
                 "cityWardGatNumber": prop.citySurveyOrGatNumber,
@@ -1334,10 +1387,8 @@ def get_property_records_by_gram_panchayat(
             qr_path = os.path.join("uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id), str(prop.gram_panchayat_id),str(prop.village_id), str(prop.anuKramank), "qrcode.png")
             response["QRcodeURL"] = _build_qrcode_url(prop, qr_path)  # missing file -> made on request
 
-            from location_management import helpers
-            image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
-            if image_path and os.path.exists(image_path):
-                response["bank_qr_code"] = f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
+            if gp_image_exists:
+                response["bank_qr_code"]= f"{backend_url}/location/districts/{district_id}/talukas/{taluka_id}/gram-panchayats/{gram_panchayat_id}/image"
 
             # Set signature_image only if a digital signature has been uploaded
             response["signature_image"] = (
@@ -1365,13 +1416,14 @@ def get_property_records_by_gram_panchayat(
             # आजी/माजी सैनिक टीप - प्रत्येक मालमत्तेच्या स्वतःच्या exServiceman टिकवरून.
             response['exServicemanTip'] = bool(getattr(prop, 'exServiceman', False))
             village_properties.append(response)
-            # sort_order नुसार क्रम (32, 32/1, 32/2, 33 ...) - वर get_property_records_by_village
-            # मध्ये लिहिलेलं कारण इथेही लागू: "Insert" ने घातलेल्या मालमत्तेचा मजकूर काहीही
-            # असो, sort_order नेच योग्य जागा ठरते.
-            village_properties = sorted(
-                village_properties,
-                key=lambda r: (r.get("sort_order") if r.get("sort_order") is not None else float("inf")),
-            )
+        # sort_order नुसार क्रम (32, 32/1, 32/2, 33 ...) - वर get_property_records_by_village
+        # मध्ये लिहिलेलं कारण इथेही लागू: "Insert" ने घातलेल्या मालमत्तेचा मजकूर काहीही
+        # असो, sort_order नेच योग्य जागा ठरते. (आधी हे प्रत्येक मालमत्तेनंतर पूर्ण यादी
+        # पुन्हा sort करत होतं; stable sort असल्याने शेवटी एकदाच केल्याने क्रम तोच.)
+        village_properties = sorted(
+            village_properties,
+            key=lambda r: (r.get("sort_order") if r.get("sort_order") is not None else float("inf")),
+        )
         # अ.क्र. (srNo) आता या क्रमवारीनंतरचा चालू क्रमांक (1,2,3...) दाखवतो, प्रत्येक
         # गावासाठी स्वतंत्रपणे 1 पासून सुरू होतो - जतन केलेला anuKramank (आयडी) बदलत नाही.
         for idx, r in enumerate(village_properties, start=1):
