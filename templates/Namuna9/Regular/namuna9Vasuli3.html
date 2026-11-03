@@ -13,6 +13,7 @@
             border: none;
             font-size: 15px;
             padding: 2px 4px;
+            white-space: nowrap;
         }
         .center { text-align: center; }
         .left { text-align: left; }
@@ -24,6 +25,17 @@
         .main-table {
             border-collapse: collapse;
         }
+        /* पानावर जास्त ओळी मावाव्यात म्हणून: नावाचा कॉलम रुंद (नाव एका ओळीत), रिकामे
+           सुट/बाकी/शेरा कॉलम अरुंद, आणि ओळींमधली जागा कमी. पान-विभाजन (namuna9_pagination.py
+           मधला namuna9Vasuli3.html profile) याच रुंदींवर मोजलेलं आहे. */
+        .main-table th, .main-table td {
+            padding: 1px 3px;
+            line-height: 1.25;
+        }
+        .main-table .col-name { width: 30%; }
+        .main-table .col-occ { width: 12%; }
+        .main-table .col-blank { width: 3%; }
+        .main-table .col-shera { width: 7%; }
         @media print {
             @page {
                 size: A4 landscape;
@@ -158,7 +170,8 @@
     <div id="mainContent">
     {% for page in pages %}
     <div class="print-page"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
-    <!-- Top section repeats on every page -->
+    <!-- Top section: फक्त पहिल्या पानावर (मथळा + GP/village/taluka/jilha) -->
+    {% if loop.first %}
     <table class="report-top">
         <tr>
             <td colspan="3" class="center bold" style="font-size:22px;">नमुना ९</td>
@@ -176,36 +189,37 @@
             <td>जिल्हा : {{jilha}}</td>
         </tr>
     </table>
+    {% endif %}
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
             <tr>
                 <th rowspan="3" style="min-width:40px;">अ.क्र.</th>
                 <th rowspan="3" style="min-width:56px;">मिळकत नंबर</th>
-                <th rowspan="3" style="min-width:80px;">मालकाचे नाव</th>
-                <th rowspan="3" style="min-width:56px;">‍‍‍‍भोगवटदाराचे नाव</th>
+                <th rowspan="3" class="col-name">मालकाचे नाव</th>
+                <th rowspan="3" class="col-occ">‍‍‍‍भोगवटदाराचे नाव</th>
                 <th colspan="3">वसुली</th>
                 <th rowspan="3" style="min-width:48px;">एकुण</th>
                 <th rowspan="2" colspan="4" style="min-width:48px;">सुट</th>
                 <th rowspan="2" colspan="4" style="min-width:105px;">बाकी</th>
-                <th rowspan="3" >सुट मजुर करणा-या आदेशासह शेरा</th>
+                <th rowspan="3" class="col-shera">सुट मजुर करणा-या आदेशासह शेरा</th>
 
             </tr>
             <tr>
-                <th colspan="4">पाणीकर</th>
+                <th colspan="3">पाणीकर</th>
             </tr>
             <tr>
                 <th style="min-width:40px;">मागील</th>
-                <th style="min-width:40px;">दंड</th>
-                <th style="min-width:40px;">चालु</th>
-                <th style="min-width:40px;">घर</th>
-                <th style="min-width:40px;">दिवा</th>
-                <th style="min-width:40px;">आरोग्य</th>
-                <th style="min-width:40px;">सफाई</th>
-                <th style="min-width:40px;">घर</th>
-                <th style="min-width:40px;">दिवा</th>
-                <th style="min-width:40px;">आरोग्य</th>
-                <th style="min-width:40px;">सफाई</th>
+                <th style="min-width:40px;">चालू</th>
+                <th style="min-width:40px;">एकूण</th>
+                <th class="col-blank">घर</th>
+                <th class="col-blank">दिवा</th>
+                <th class="col-blank">आरोग्य</th>
+                <th class="col-blank">सफाई</th>
+                <th class="col-blank">घर</th>
+                <th class="col-blank">दिवा</th>
+                <th class="col-blank">आरोग्य</th>
+                <th class="col-blank">सफाई</th>
             </tr>
         </thead>
         <tbody>
@@ -216,10 +230,10 @@
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
                 <td>{{ row.occupant }}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.saWaterTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removePurnaYekun != 'true' %}{{ row.totalSaWaterTax | blankzero(blankZero) }}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalSaWaterTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removePurnaYekun != 'true' %}{{ row.vasuliTotalSaWaterTax | blankzero(blankZero) }}{% endif %}</td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -234,23 +248,43 @@
         </tbody>
         <tfoot>
         <tr>
-            <td colspan="2"></td>
-            <td style="font-weight:normal; text-align:right;">या पानाची बेरीज</td>
             <td></td>
-            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='saWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removePurnaYekun != 'true' %}{{ (page | sum(attribute='totalSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td></td>
+            <td style="font-weight:normal; text-align:right;">गोषवारा</td>
+            <td></td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='vasuliDhakitSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='vasuliSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='vasuliTotalSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removePurnaYekun != 'true' %}{{ (page | sum(attribute='vasuliTotalSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
         </tr>
         {% if loop.last %}
         <tr>
-            <td colspan="2"></td>
+            <td></td>
+            <td></td>
             <td style="font-weight:bold; text-align:right;">एकूण बेरीज (सर्व पाने)</td>
             <td></td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='saWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
-            <td>{% if removePurnaYekun != 'true' %}{{ (data | sum(attribute='totalSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='vasuliDhakitSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='vasuliSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='vasuliTotalSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removePurnaYekun != 'true' %}{{ (data | sum(attribute='vasuliTotalSaWaterTax')) | blankzero(blankZero) }}{% endif %}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
         </tr>
         {% endif %}
         </tfoot>

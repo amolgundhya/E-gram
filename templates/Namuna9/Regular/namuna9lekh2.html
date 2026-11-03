@@ -16,8 +16,9 @@
       th,
       td {
         border: 1px solid #000;
-        padding: 2px 6px;
-        font-size: 15px;
+        padding: 1px 5px;
+        font-size: 13px;
+        line-height: 1.4;
       }
       .no-border {
         border: none !important;
@@ -57,8 +58,11 @@
         body {
           margin: 0;
         }
+        /* एक मालमत्ता (दोन प्रती) = एक A4 पान - margin कमी, नाहीतर खालचा भाग पुढच्या पानावर जातो */
         .outer-border {
+          margin: 6mm auto;
           page-break-after: always;
+          page-break-inside: avoid;
         }
         .outer-border:last-of-type {
           page-break-after: auto;
@@ -360,7 +364,7 @@
             नमुना ९ क<br />
             नियम ३२ (१) पहा<br />
             करांची मागणी पावती<br />
-            <span style="font-size: 15px"
+            <span style="font-size: 13px"
               >साल : {{ record.yearSlap or '' }}</span
             >
           </td>
@@ -382,10 +386,7 @@
           </td>
         </tr>
         <tr>
-          <td style="border: none">
-            घर क्रमांक : {{ record.houseNumber or '' }}
-          </td>
-          <td style="border: none">यांजकडून पुढील रक्कम वसुलीयोग्य आहे</td>
+          <td colspan="2" style="border: none">यांजकडून पुढील रक्कम वसुलीयोग्य आहे</td>
         </tr>
       </table>
       <table style="margin-top: 2px; width: 100%">
@@ -449,7 +450,7 @@
           </td>
         </tr>
       </table>
-      <div style="font-size: 13px; margin-top: 4px">
+      <div style="font-size: 12px; margin-top: 4px; padding: 0 4px; line-height: 1.3">
         वरील रक्कम मुंबई ग्रामपंचायत अधिनियम १९५८ चे कलम १२९ अन्वये येणे झालेली
         आहे. सन {{ year or '' }} बद्दल वर दर्शविलेली रक्कम तुमचे कडून येणे झालेली आहे.
         आणि जर सदरहू रक्कम नोटीस बजावण्याच्या तारखेपासून ३० दिवसांचे आंत नोटीस
@@ -457,11 +458,11 @@
         दर्शविल्यास खर्चासहित वसुलीबाबत जंगम मालमत्ता जप्त करण्याचे वारंट
         काढण्यात येईल.
       </div>
-      <div style="margin-top: 10px; font-size: 13px">
-        <span class="right">ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी</span>
+      <div style="margin-top: 6px; font-size: 12px; text-align: right; padding: 0 4px">
+        ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी
       </div>
       {% if copy == 1 %}
-      <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0"></div>
+      <div style="border-bottom: 1px dashed #000; margin: 6px 0"></div>
       {% endif %} {% endfor %}
     </div>
     {% endfor %}
