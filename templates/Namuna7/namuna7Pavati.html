@@ -354,9 +354,11 @@
         style="display: flex; justify-content: space-between; margin-top: 10px"
       >
         <span>नाव (श्री/श्रीमती) : {{ownername}} </span>
-        <span>‍‍‍‍भोगवटदाराचे नाव: {{occupant}} </span>
         <span style="margin-right: 100px">यांचे कडून :</span>
       </div>
+      {% if occupant and occupant|trim != 'स्वतः' %}
+      <div style="margin-top: 6px">भोगवटदाराचे नाव : {{occupant}}</div>
+      {% endif %}
       <div style="margin-top: 20px">पुढील कारणास्तव : {{reason}}</div>
       <div style="margin-top: 20px">प्राप्त रक्कम : {{receivedMoney}}</div>
       <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0"></div>
@@ -447,9 +449,11 @@
         style="display: flex; justify-content: space-between; margin-top: 10px"
       >
         <span>नाव (श्री/श्रीमती) : {{ownername}} </span>
-        <span>‍‍‍‍भोगवटदाराचे नाव: {{occupant}} </span>>
         <span style="margin-right: 100px">यांचे कडून :</span>
       </div>
+      {% if occupant and occupant|trim != 'स्वतः' %}
+      <div style="margin-top: 6px">भोगवटदाराचे नाव : {{occupant}}</div>
+      {% endif %}
       <div style="margin-top: 20px">पुढील कारणास्तव : {{reason}}</div>
       <div style="margin-top: 20px">प्राप्त रक्कम : {{receivedMoney}}</div>
       <div style="border-bottom: 1px solid #000; margin: 8px 0 8px 0"></div>
