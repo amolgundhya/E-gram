@@ -240,6 +240,39 @@ def get_namuna7_print(item_id: int, db: Session = Depends(get_db)):
     item = db.query(Namuna7).filter(Namuna7.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Namuna7 not found")
+    return _build_namuna7_print(db, item)
+
+@router.get("/prints/by-date/", response_model=List[Namuna7PrintResponse])
+def get_namuna7_prints_by_date(
+    from_date: str = Query(..., description="Start date in YYYY-MM-DD format"),
+    to_date: str = Query(..., description="End date in YYYY-MM-DD format"),
+    village_id: int = Query(None, description="Village ID to filter by"),
+    district_id: int = Query(..., description="District ID"),
+    taluka_id: int = Query(..., description="Taluka ID"),
+    gram_panchayat_id: int = Query(..., description="Gram Panchayat ID"),
+    db: Session = Depends(get_db)
+):
+    # "पूर्ण दाखवा" - दिलेल्या कालावधीतील सर्व पावत्या पूर्ण पावती स्वरूपात (View & Print)
+    try:
+        from_dt = datetime.strptime(from_date, "%Y-%m-%d")
+        to_dt = datetime.strptime(to_date, "%Y-%m-%d") + timedelta(days=1)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+    query = db.query(Namuna7).filter(
+        Namuna7.createdAt >= from_dt, Namuna7.createdAt < to_dt, Namuna7.is_deleted == False
+    )
+    if village_id is not None:
+        query = query.filter(Namuna7.villageId == village_id)
+    if district_id:
+        query = query.filter(Namuna7.district_id == district_id)
+    if taluka_id:
+        query = query.filter(Namuna7.taluka_id == taluka_id)
+    if gram_panchayat_id:
+        query = query.filter(Namuna7.gram_panchayat_id == gram_panchayat_id)
+    items = query.order_by(Namuna7.createdAt, Namuna7.receiptNumber).all()
+    return [_build_namuna7_print(db, item) for item in items]
+
+def _build_namuna7_print(db: Session, item: Namuna7) -> Namuna7PrintResponse:
     owner = db.query(Owner).filter(Owner.id == item.userId).first()
     occupant = getattr(owner, "occupantName", "") or ""
     village = db.query(Village).filter(Village.id == item.villageId).first()
