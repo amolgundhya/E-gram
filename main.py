@@ -238,8 +238,55 @@ def ensure_namuna9_property_data_columns():
                     conn.exec_driver_sql(f'ALTER TABLE namuna9_property_data ADD COLUMN "{col}" {coltype} DEFAULT 0')
     except Exception as e:
         print("[Migration] Could not ensure namuna9_property_data columns:", e)
+    # हटवलेल्या मालमत्तेचे रो (namuna9_model.Namuna9PropertyData.property_deleted_at)
+    try:
+        with engine.begin() as conn:
+            cols = {c[1] for c in conn.exec_driver_sql("PRAGMA table_info(namuna9_property_data)").fetchall()}
+            if "property_deleted_at" not in cols:
+                conn.exec_driver_sql('ALTER TABLE namuna9_property_data ADD COLUMN "property_deleted_at" DATETIME')
+    except Exception as e:
+        print("[Migration] Could not add namuna9_property_data.property_deleted_at:", e)
 
 ensure_namuna9_property_data_columns()
+
+# नमुना-9 total मध्ये दंड दोनदा धरला जात होता (ekunGhar मध्ये आधीच + total मध्ये पुन्हा) -
+# सूत्र आता बरोबर आहे; आधीच साठवलेले रो फक्त एकदाच दुरुस्त करतो. फक्त ज्यांचा total =
+# बरोबर total + नेमका एक दंड आहे तेच (इतर कोणताही फरक असलेल्या रोला हात लावत नाही);
+# प्रत्येक बदल (जुना -> नवीन) लॉग होतो. थकित/चालू/दंड/वसुली/पावत्या बदलत नाहीत.
+MIGRATION_FLAG_NAMUNA9_DAND_ONCE = "namuna9_total_dand_once"
+
+def fix_namuna9_total_dand_twice():
+    from datetime import datetime
+    try:
+        with engine.begin() as conn:
+            conn.exec_driver_sql(
+                "CREATE TABLE IF NOT EXISTS migration_flags (name TEXT PRIMARY KEY, applied_at TEXT)"
+            )
+            if conn.exec_driver_sql(
+                "SELECT 1 FROM migration_flags WHERE name = ?", (MIGRATION_FLAG_NAMUNA9_DAND_ONCE,)
+            ).fetchone():
+                return
+            rows = conn.exec_driver_sql(
+                "SELECT id, namuna9_id, property_id, total, dand, "
+                "COALESCE(shaktiGhar,0)+COALESCE(chaluGhar,0)+COALESCE(dand,0)"
+                "+COALESCE(shaktiDiva,0)+COALESCE(chaluDiva,0)+COALESCE(shaktiAarogyaKar,0)+COALESCE(chaluAarogyaKar,0)"
+                "+COALESCE(shaktiSapanikar,0)+COALESCE(chaluSapanikar,0)+COALESCE(shaktiVpanikar,0)+COALESCE(chaluVpanikar,0)"
+                "+COALESCE(shaktiCleaningTax,0)+COALESCE(chaluCleaningTax,0)+COALESCE(noticeFee,0)+COALESCE(warrantFee,0) "
+                "FROM namuna9_property_data WHERE COALESCE(dand,0) > 0"
+            ).fetchall()
+            for row_id, namuna9_id, property_id, total, dand, correct in rows:
+                correct = round(correct, 2)
+                if round(total or 0, 2) == round(correct + dand, 2):
+                    conn.exec_driver_sql("UPDATE namuna9_property_data SET total = ? WHERE id = ?", (correct, row_id))
+                    _safe_print(f"[Migration] namuna9 total (दंड एकदाच): namuna9_id={namuna9_id} property_id={property_id} {total} -> {correct}")
+            conn.exec_driver_sql(
+                "INSERT INTO migration_flags (name, applied_at) VALUES (?, ?)",
+                (MIGRATION_FLAG_NAMUNA9_DAND_ONCE, datetime.now().isoformat()),
+            )
+    except Exception as e:
+        _safe_print(f"[Migration] Could not fix namuna9 total (dand twice): {e}")
+
+fix_namuna9_total_dand_twice()
 
 # Ensure new columns exist for properties (SQLite simple migration)
 def ensure_properties_columns():

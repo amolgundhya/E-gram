@@ -327,6 +327,8 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
           
             try:
                 db_property = models.Property(**property_dict, owners=owners, constructions=constructions)
+                # हटवलेल्या मालमत्तेचा id पुन्हा कधीच नाही (नमुना-9 रो/पावत्या उचलू नयेत).
+                db_property.id = next_property_id(db)
                 db_property.created_at = datetime.now()
                 db_property.sort_order = compute_property_sort_order(
                     db, db_property.village_id, db_property.malmattaKramank, insert_after_anu_kramank,
@@ -1711,6 +1713,40 @@ def delete_owner_photo(owner_id: int, db: Session = Depends(database.get_db)):
         db.commit()
 
     return {"message": "Photo removed successfully"}
+
+
+def next_property_id(db):
+    # properties.id ला AUTOINCREMENT नाही, म्हणून SQLite सर्वात मोठा id हटवल्यावर तोच id
+    # पुढच्या नवीन मालमत्तेला पुन्हा देतो - आणि ती हटवलेल्या मालमत्तेचे नमुना-9 रो / पावत्या /
+    # थकित यादी (namuna9.property_ids) / इतिहास "उचलते". टेबल पुन्हा बनवण्याऐवजी (live DB वर
+    # धोकादायक) नवीन id इथे ठरवतो: कुठेही कधी वापरलेल्या सर्वात मोठ्या id पेक्षा एक जास्त.
+    from sqlalchemy import func
+    from namuna9 import namuna9_model
+    from namuna8.mastertab.transfer_apis import PropertyTransferLogDB
+    from namuna8.property_owner_history_model import PropertyOwnerHistory
+    highest = 0
+    for column in (models.Property.id, namuna9_model.Namuna9PropertyData.property_id,
+                   namuna9_model.Namuna9Receipt.property_id, PropertyTransferLogDB.property_id,
+                   PropertyOwnerHistory.property_id):
+        highest = max(highest, db.query(func.max(column)).scalar() or 0)
+    for (property_ids,) in db.query(namuna9_model.Namuna9.property_ids).all():
+        for pid in property_ids or []:
+            try:
+                highest = max(highest, int(pid))
+            except (TypeError, ValueError):
+                pass
+    return highest + 1
+
+
+def mark_namuna9_rows_property_deleted(db, property_id):
+    # हटवलेल्या मालमत्तेचे सर्व वर्षांचे नमुना-9 रो काढत नाही (पावत्यांची वसुली याच रोवर
+    # आहे; पावत्या कधीच पूर्ण हटवत नाही) - फक्त property_deleted_at लावतो. id पुन्हा
+    # कधीच दिला जात नाही (next_property_id), त्यामुळे हे रो नवीन मालमत्तेला कधी लागत नाहीत.
+    from namuna9 import namuna9_model
+    return db.query(namuna9_model.Namuna9PropertyData).filter(
+        namuna9_model.Namuna9PropertyData.property_id == property_id,
+        namuna9_model.Namuna9PropertyData.property_deleted_at.is_(None),
+    ).update({namuna9_model.Namuna9PropertyData.property_deleted_at: datetime.now()}, synchronize_session=False)
 
 
 def sync_namuna9_current_year(db, db_property, commit=True):
@@ -3341,10 +3377,12 @@ def delete_property(anu_kramank: int,village_id:int, db: Session = Depends(datab
     for construction in list(prop.constructions):
         db.delete(construction)
     db.commit()
+    # सर्व वर्षांचे नमुना-9 रो "हटवलेली मालमत्ता" म्हणून चिन्हांकित - मालमत्तेसोबतच commit.
+    namuna9_rows_marked = mark_namuna9_rows_property_deleted(db, prop.id)
     # Delete the property
     db.delete(prop)
     db.commit()
-    return {"message": f"Property {anu_kramank} deleted successfully."}
+    return {"message": f"Property {anu_kramank} deleted successfully.", "namuna9_rows_marked": namuna9_rows_marked}
 
 class HolderNoAssignment(BaseModel):
     anuKramank: int
