@@ -534,12 +534,6 @@
   @page {
     size: A4 landscape;
     margin: 6mm;
-    {% if pageNumber %}
-    @bottom-center {
-      content: "पृष्ठ " counter(page) " / " counter(pages);
-      font-size: 10px;
-    }
-    {% endif %}
   }
   html, body {
     width: 100%;
@@ -582,3 +576,5 @@
   }
 }
 </style>
+<script src="/report_assets/page_numbers.js"></script>
+<script src="/report_assets/report_share.js"></script>

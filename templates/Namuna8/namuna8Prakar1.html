@@ -51,12 +51,6 @@
                 size: A4 landscape;
                 margin-left: 4mm;
                 margin-right: 4mm;
-                {% if pageNumber %}
-                @bottom-center {
-                    content: "पृष्ठ " counter(page) " / " counter(pages);
-                    font-size: 10px;
-                }
-                {% endif %}
             }
             #toolbar {
                 display: none !important;
@@ -494,5 +488,7 @@
         <!-- Totals will be inserted here by JS -->
     </div>
 </div>
+    <script src="/report_assets/page_numbers.js"></script>
+    <script src="/report_assets/report_share.js"></script>
 </body>
 </html>
