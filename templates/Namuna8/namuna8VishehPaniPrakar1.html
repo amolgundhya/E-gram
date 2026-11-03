@@ -214,6 +214,13 @@
         };
     </script>
     <div id="mainContent">
+    {# "पूर्ण प्रिंट करा" (सर्व गावं) मध्ये data = [{villageName, records}, ...] येतं - प्रत्येक गावासाठी हाच रजिस्टर
+       त्या गावाच्या शीर्षकासह छापतो (आधी वेगळा *copy.html होता, त्यात आधार/मोबाईल/घरकुल नव्हते). एका गावासाठी data = records. #}
+    {% set villages = data if (data and data[0].records is defined) else [{'records': data}] %}
+    {% for v in villages %}
+    {% set data = v.records %}
+    {% if v.villageName is defined %}{% set gramPanchayat, village, taluka, jilha, yearFrom, yearTo, tip = data[0].gramPanchayat, data[0].village, data[0].taluka, data[0].jilha, data[0].yearFrom, data[0].yearTo, data[0].tip %}{% endif %}
+    {% if not loop.first %}<div style="break-before: page; page-break-before: always;"></div>{% endif %}
     <!-- Main Data Table -->
     <table class="main-table" style="margin-top:0; width:100%;">
         <!-- Page Header - Repeats on every page -->
@@ -310,7 +317,7 @@
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
                 <td style="width: 300px;">{{ row.ownerName | default('') }}{% if row.aadharCard and row.aadharNumber %}<div style="font-size: 9px; line-height: 1.15;">आधार :<br><span style="white-space: nowrap;">{{ row.aadharNumber }}</span></div>{% endif %}{% if row.mobileNumberAdd and row.mobileNumber %}<div style="font-size: 9px; line-height: 1.15;">मो. <span style="white-space: nowrap;">{{ row.mobileNumber }}</span></div>{% endif %}</td>
-                <td>{{ row.occupantName | default('') }}{% if row.gharkul %}<div style="font-size: 9px; line-height: 1.15; overflow-wrap: anywhere;">घरकुल : {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear }}){% endif %}</div>{% endif %}</td>
+                <td>{{ row.occupantName | default('') }}{% if row.gharkul %}<div style="font-size: 9px; line-height: 1.15; overflow-wrap: anywhere;">घरकुल : {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}</div>{% endif %}</td>
                 <td>
                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
                         {{ row.constructionType[0].type | default('') }}<br>
@@ -475,6 +482,7 @@
         </tbody>
     </table>
 
+    {% endfor %}
     <!-- Footer Summary - Outside main content to avoid repetition -->
     <table class="footer-summary" id="footerSummary" style="width: 100%; border-collapse: collapse; font-size: 15px; font-weight: bold; margin-top: 20px;">
         <tr>

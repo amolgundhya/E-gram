@@ -406,6 +406,47 @@
       };
     </script>
     <div id="mainContent">
+      {# "एकूण कर" ओळ शेवटच्या मालमत्तेसोबत एकाच break-inside: avoid block मध्ये - ती एकटीच नव्या पानावर जाऊ नये #}
+      {% set footer_summary %}
+    <table
+      class="footer-summary"
+      id="footerSummary"
+      style="
+        width: 100%;
+        border-collapse: collapse;
+        border: 2px solid #000;
+        font-size: 15px;
+        margin-top: 20px;
+        font-weight: bold;
+      "
+    >
+      <tr>
+        <td style="border: 1px solid #000; text-align: left; width: 15%">
+          एकूण कर :
+        </td>
+        <td
+          id="footerHouseTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+        <td
+          id="footerLightingTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+        <td
+          id="footerHealthTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+        <td
+          id="footerWaterTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+        <td
+          id="footerTotalTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+      </tr>
+    </table>
+      {% endset %}
       <!-- Header Section: Place this at the top of your HTML file -->
       {% set num_records = data|length %} {% set num_pages = (num_records // 3)
       + (1 if num_records % 3 else 0) %} {% for page in range(num_pages) %}
@@ -490,6 +531,7 @@
         </style>
         {% for i in range(3) %} {% set idx = page * 3 + i %} {% if idx <
         num_records %} {% set row = data[idx] %}
+        {% if idx == num_records - 1 %}<div class="last-record-with-total" style="break-inside: avoid; page-break-inside: avoid">{% endif %}
         <div
           class="record-table-wrapper"
           data-house-tax="{{ row.totalHouseTax | default('0') }}"
@@ -681,50 +723,12 @@
             </tr>
           </table>
         </div>
+        {% if idx == num_records - 1 %}{{ footer_summary }}</div>{% endif %}
         {% endif %} {% endfor %}
       </div>
       {% endfor %}
     </div>
 
-    <!-- Footer Summary - Outside main content to avoid repetition -->
-    <table
-      class="footer-summary"
-      id="footerSummary"
-      style="
-        width: 100%;
-        border-collapse: collapse;
-        border: 2px solid #000;
-        font-size: 15px;
-        margin-top: 20px;
-        font-weight: bold;
-      "
-    >
-      <tr>
-        <td style="border: 1px solid #000; text-align: left; width: 15%">
-          एकूण कर :
-        </td>
-        <td
-          id="footerHouseTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-        <td
-          id="footerLightingTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-        <td
-          id="footerHealthTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-        <td
-          id="footerWaterTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-        <td
-          id="footerTotalTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-      </tr>
-    </table>
     <style>
       @media print {
         @page {
