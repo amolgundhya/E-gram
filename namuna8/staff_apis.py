@@ -1,12 +1,21 @@
+import io
 import os
 import re
 import time
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from openpyxl import Workbook
+from openpyxl.drawing.image import Image as XLImage
+from openpyxl.styles import Font, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from PIL import Image as PILImage
 from database import get_db
 from namuna8.staff_model import GramPanchayatStaff
 from namuna8 import staff_schemas as schemas
+from namuna8 import namuna8_model
+from Yadi.ReportCreationUsingJinja.yadi_xlsx_export import workbook_to_bytes
 
 router = APIRouter(prefix="/gp_staff", tags=["gp_staff"])
 
@@ -20,6 +29,96 @@ def list_staff(gram_panchayat_id: int = Query(...), db: Session = Depends(get_db
     return db.query(GramPanchayatStaff).filter(
         GramPanchayatStaff.gram_panchayat_id == gram_panchayat_id
     ).order_by(GramPanchayatStaff.id).all()
+
+
+# Excel export - सर्व फिल्ड + फोटो (इमेज असेल तर सेलमध्ये लहान फोटो, PDF असेल तर "PDF").
+EXPORT_COLUMNS = [
+    ("sr", "अ.क्र.", 7),
+    ("photo", "फोटो", 14),
+    ("name", "ग्रामपंचायत अधिकाऱ्याचे नांव", 30),
+    ("designation", "पद", 20),
+    ("mobileNumber", "मोबाईल नंबर", 16),
+    ("tenure", "कार्यकाळ", 16),
+    ("duration", "कालावधी", 16),
+    ("email", "मेल", 26),
+    ("remarks", "शेरा", 30),
+]
+EXPORT_PHOTO_PX = 80
+
+
+def _staff_photo_for_excel(photo_path):
+    """फोटो फाईल असेल तर Excel मध्ये टाकण्यासारखी लहान PNG इमेज परत करतो, नाहीतर None."""
+    if not photo_path or photo_path.lower().endswith('.pdf') or not os.path.exists(photo_path):
+        return None
+    try:
+        with PILImage.open(photo_path) as src:
+            img = src.convert("RGB")
+        img.thumbnail((EXPORT_PHOTO_PX, EXPORT_PHOTO_PX))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        return XLImage(buf)
+    except Exception:
+        return None
+
+
+@router.get("/export-xlsx")
+def export_staff_xlsx(gram_panchayat_id: int = Query(...), db: Session = Depends(get_db)):
+    rows = db.query(GramPanchayatStaff).filter(
+        GramPanchayatStaff.gram_panchayat_id == gram_panchayat_id
+    ).order_by(GramPanchayatStaff.id).all()
+
+    # Master मध्ये सेट केलेला export पासवर्ड (गाव पंचायतीनुसार) - नसेल तर पासवर्डशिवाय export (इतर एक्सपोर्ट्स प्रमाणेच).
+    password = None
+    checklist = db.query(namuna8_model.Namuna8SettingChecklist).filter(
+        namuna8_model.Namuna8SettingChecklist.gram_panchayat_id == gram_panchayat_id
+    ).first()
+    if checklist and getattr(checklist, 'exportPassword', None):
+        password = checklist.exportPassword
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "अधिकारी व कर्मचारी"
+    thin = Side(style="thin", color="999999")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    header_font = Font(bold=True)
+    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    cell_align = Alignment(vertical="center", wrap_text=True)
+
+    for col_idx, (_, label, width) in enumerate(EXPORT_COLUMNS, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=label)
+        cell.font = header_font
+        cell.alignment = center
+        cell.border = border
+        ws.column_dimensions[get_column_letter(col_idx)].width = width
+    ws.freeze_panes = "A2"
+
+    for sr, obj in enumerate(rows, start=1):
+        row_idx = sr + 1
+        for col_idx, (key, _, _) in enumerate(EXPORT_COLUMNS, start=1):
+            if key == "sr":
+                value = sr
+            elif key == "photo":
+                value = None
+            else:
+                value = getattr(obj, key, None) or None
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.alignment = center if key in ("sr", "photo") else cell_align
+            cell.border = border
+
+        img = _staff_photo_for_excel(obj.photo)
+        if img is not None:
+            ws.add_image(img, f"B{row_idx}")
+            ws.row_dimensions[row_idx].height = EXPORT_PHOTO_PX * 0.75 + 6  # px -> points
+        elif obj.photo and obj.photo.lower().endswith('.pdf'):
+            ws.cell(row=row_idx, column=2, value="PDF")
+
+    xlsx_bytes = workbook_to_bytes(wb, password=password)
+    return StreamingResponse(
+        io.BytesIO(xlsx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="gp_staff.xlsx"'},
+    )
 
 
 @router.post("/", response_model=schemas.StaffRead)
