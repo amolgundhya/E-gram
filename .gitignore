@@ -33,3 +33,6 @@ Thumbs.db # Windows specific
 build/
 dist/
 main.spec
+# रनटाइमला तयार होणाऱ्या फाईल्स (logs, QR)
+*_logs.txt
+reports/namuna9_qr/
