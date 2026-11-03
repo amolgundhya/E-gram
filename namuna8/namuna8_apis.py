@@ -2524,13 +2524,21 @@ def get_properties_by_owner_village(
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
 
+    # properties_by_village प्रमाणेच: मालक/बांधकाम एकाच batch मध्ये आणि कर सेटिंग्ज एकदाच
+    # (आधी प्रत्येक मालमत्तेला ~5 query).
     properties = (
         db.query(models.Property)
+        .options(
+            selectinload(models.Property.owners),
+            selectinload(models.Property.constructions).selectinload(models.Construction.construction_type),
+        )
         .join(models.Property.owners)
         .filter(models.Owner.village_id == village_id)
         .all()
     )
-    return [build_property_response(p, db, gram_panchayat_id) for p in properties]
+    tax_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
+    return [build_property_response(p, db, gram_panchayat_id, tax_settings, water_settings, tax_settings) for p in properties]
 
 
 @router.get("/properties_by_village/", response_model=List[schemas.PropertyRead])
