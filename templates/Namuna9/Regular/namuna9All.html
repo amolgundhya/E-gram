@@ -14,6 +14,24 @@
             font-size: 15px;
             padding: 2px 4px;
         }
+        .report-top td.qr-side {
+            width: 170px;
+            vertical-align: top;
+            white-space: nowrap;
+            padding: 0;
+        }
+        .qr-box {
+            display: inline-block;
+            text-align: center;
+            margin: 0 4px;
+            font-size: 11px;
+            line-height: 1.1;
+        }
+        .qr-box img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+        }
         .center { text-align: center; }
         .left { text-align: left; }
         .right { text-align: right; }
@@ -208,18 +226,42 @@
     <div id="mainContent">
     {% for page in pages %}
     <div class="print-page" data-page-no="{{ loop.index }}"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
-    <!-- Top section repeats on every page -->
-    <div style="position:relative;">
+    <!-- Top section: फक्त पहिल्या पानावर (मथळा + GP/village/taluka/jilha) -->
+    {% if loop.first %}
+    <!-- QR मथळ्याच्या उजवीकडे स्वतःच्या कॉलममध्ये (आधी position:absolute होता -
+         त्याचं "घर कर/पाणी कर" लेबल खालच्या जिल्हा ओळीवर येऊन मजकूर झाकत होतं).
+         डावीकडे तेवढ्याच रुंदीचा रिकामा कॉलम, म्हणजे मथळा पानाच्या मध्यभागीच राहतो.
+         QR 64px - मथळ्याच्या 3 ओळींच्या उंचीत मावतो, त्यामुळे मथळ्याची उंची (आणि
+         namuna9_pagination मधला 'top') QR असो-नसो तेवढीच राहते. -->
     <table class="report-top">
         <tr>
-            <td colspan="3" class="center bold" style="font-size:22px;">नमुना ९</td>
+            <td class="qr-side" rowspan="3"></td>
+            <td class="center bold" style="font-size:22px;">नमुना ९</td>
+            <td class="qr-side right" rowspan="3">
+                {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+                {% if houseTaxQrUrl %}
+                <span class="qr-box">
+                    <img src="{{ houseTaxQrUrl }}" /><br>
+                    <span>घर कर</span>
+                </span>
+                {% endif %}
+                {% if waterTaxQrUrl %}
+                <span class="qr-box">
+                    <img src="{{ waterTaxQrUrl }}" /><br>
+                    <span>पाणी कर</span>
+                </span>
+                {% endif %}
+                {% endif %}
+            </td>
         </tr>
         <tr>
-            <td colspan="3" class="center" style="font-size:15px;">नियम 22 (9), 32 (4), 5 (6) व ( 7 ) पाहा</td>
+            <td class="center" style="font-size:15px;">नियम 22 (9), 32 (4), 5 (6) व ( 7 ) पाहा</td>
         </tr>
         <tr>
-            <td colspan="3" class="center" style="font-size:15px;">सन {{selectedYear}} या वर्षाची आकारणी केलेल्या करांची मागणी नोंदवही</td>
+            <td class="center" style="font-size:15px;">सन {{selectedYear}} या वर्षाची आकारणी केलेल्या करांची मागणी नोंदवही</td>
         </tr>
+    </table>
+    <table class="report-top">
         <tr>
             <td >ग्रामपंचायत : {{gramPanchayat}}</td>
             <td >गाव/मोहल्ला : {{village}} </td>
@@ -227,23 +269,7 @@
             <td >जिल्हा : {{jilha}}</td>
         </tr>
     </table>
-    {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
-    <div style="position:absolute; top:0; right:0; text-align:center; white-space:nowrap;">
-        {% if houseTaxQrUrl %}
-        <span style="display:inline-block; text-align:center; margin:0 6px;">
-            <img src="{{ houseTaxQrUrl }}" style="width:80px; height:80px; object-fit:contain;" /><br>
-            <span style="font-size:11px;">घर कर</span>
-        </span>
-        {% endif %}
-        {% if waterTaxQrUrl %}
-        <span style="display:inline-block; text-align:center; margin:0 6px;">
-            <img src="{{ waterTaxQrUrl }}" style="width:80px; height:80px; object-fit:contain;" /><br>
-            <span style="font-size:11px;">पाणी कर</span>
-        </span>
-        {% endif %}
-    </div>
     {% endif %}
-    </div>
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <colgroup>
@@ -265,13 +291,16 @@
                 <th rowspan="3" class="col-property">मिळकत नंबर</th>
                 <th rowspan="3" class="col-name-header">ज्या व्यक्तीकडुन कर येणे असेल त्या व्यक्तीचे नाव</th>
                 <th rowspan="3" class="col-occupant">‍‍‍‍भोगवटदाराचे नाव</th>
+                <th colspan="16">मागणी</th>
+                <th rowspan="3" style="min-width:48px;">एकूण कर</th>
+                <th rowspan="3" style="min-width:80px;">पावती क्रमांक व तारीख</th>
+            </tr>
+            <tr>
                 <th colspan="4">घरकर</th>
                 <th colspan="3">दिवाकर</th>
                 <th colspan="3">आरोग्यकर</th>
                 <th colspan="3">पाणीकर</th>
                 <th colspan="3">सफाई कर</th>
-                <th rowspan="3" style="min-width:48px;">एकूण कर</th>
-                <th rowspan="3" style="min-width:80px;">पावती क्रमांक व तारीख</th>
             </tr>
             <tr>
                 <th style="min-width:32px;">मागील</th>
@@ -325,7 +354,7 @@
              पानावर खाली सर्व पानांची एकूण बेरीज (data, संपूर्ण) सुद्धा. -->
         <tfoot>
         <tr>
-            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:left;">या पानाची बेरीज</td>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
             <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>

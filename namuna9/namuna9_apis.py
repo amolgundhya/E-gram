@@ -9,7 +9,7 @@ from namuna8 import namuna8_model
 from namuna8.mastertab import mastertabmodels as settingModels
 from sqlalchemy.exc import IntegrityError
 from namuna8.namuna8_apis import build_property_response
-from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no
+from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no, _build_qrcode_url
 from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode
 from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text
@@ -984,6 +984,15 @@ def get_namuna9_table_data_custom(
     ).all()
     saved_data_map = {data.property_id: data for data in saved_property_data}
 
+    # वसुली - या सालच्या (delete न केलेल्या) पावत्यांमधून प्रत्यक्ष भरलेली रक्कम,
+    # मालमत्तेनुसार. नमुना-9 पान 2 च्या "वसुली" कॉलमसाठी (मागणी नव्हे).
+    receipts_by_property = {}
+    for rcpt in db.query(namuna9_model.Namuna9Receipt).filter(
+        namuna9_model.Namuna9Receipt.namuna9_id == rec.id,
+        namuna9_model.Namuna9Receipt.is_deleted == False,
+    ).all():
+        receipts_by_property.setdefault(rcpt.property_id, []).append(rcpt)
+
     # Thakit setup
     does_thakit = getattr(rec, 'doesThakit', False)
     thakit_values = getattr(rec, 'thakitValues', None)
@@ -1229,7 +1238,24 @@ def get_namuna9_table_data_custom(
             ekunCleaningTax = 0
             totalHouseTax = 0
             total = warrantFee + noticeFee  # Only fees remain, no taxes
-        
+
+        prop_receipts = receipts_by_property.get(prop.id, [])
+        def _paid(field):
+            return round(sum((getattr(r, field) or 0) for r in prop_receipts), 2)
+        vasuliDhakitHouseTax = _paid('vasuliGhar')
+        vasuliDandHouseTax = _paid('vasuliDand')
+        vasuliHouseTax = _paid('vasuliChaluGhar')
+        vasuliDhakitLightingTax = _paid('vasuliDiva')
+        vasuliLightingTax = _paid('vasuliChaluDiva')
+        vasuliDhakitHealthTax = _paid('vasuliAarogyaKar')
+        vasuliHealthTax = _paid('vasuliChaluAarogyaKar')
+        vasuliDhakitSaWaterTax = _paid('vasuliSapanikar')
+        vasuliSaWaterTax = _paid('vasuliChaluSapanikar')
+        vasuliDhakitViWaterTax = _paid('vasuliVpanikar')
+        vasuliViWaterTax = _paid('vasuliChaluVpanikar')
+        vasuliDhakitCleaningTax = _paid('vasuliCleaningTax')
+        vasuliCleaningTax = _paid('vasuliChaluCleaningTax')
+
         row = {
             "id": str(prop.anuKramank),
             "srNo": idx,
@@ -1238,8 +1264,10 @@ def get_namuna9_table_data_custom(
             "taluka": taluka_name_ic if taluka_name_ic else None,
             "jilha": district_name_ic if district_name_ic else None,
             "village": prop.village.name if hasattr(prop, 'village') and prop.village else None,
-            "ownerName": ', '.join([_owner_display_name(o) for o in prop_data.get('owners', [])]),
-            "occupant" : ', '.join([o.get('occupantName', '') for o in prop_data.get('owners', [])]),
+            # फक्त मालकाचे नाव - भोगवटदार या रिपोर्ट्समध्ये स्वतंत्र "भोगवटदाराचे नाव"
+            # कॉलममध्ये (occupant) आधीच छापला जातो, इथे जोडला तर तेच नाव दोनदा येतं.
+            "ownerName": ', '.join([o.get('name', '') or '' for o in prop_data.get('owners', [])]),
+            "occupant" :', '.join([o.get('occupantName', '') for o in prop_data.get('owners', [])]),
             "propertyNumber": prop_data.get('malmattaKramank', ''),
             # Map table columns into your field names
             "dhakitHouseTax": round(shaktiGhar, 2),
@@ -1280,6 +1308,39 @@ def get_namuna9_table_data_custom(
                 - (max(0,warrantFee) or 0)
                 - (max(0,noticeFee) or 0)
             , 2),
+            # वसुली - पावत्यांमधून प्रत्यक्ष भरलेली रक्कम
+            "vasuliDhakitHouseTax": vasuliDhakitHouseTax,
+            "vasuliDandHouseTax": vasuliDandHouseTax,
+            "vasuliHouseTax": vasuliHouseTax,
+            "vasuliTotalHouseTax": round(vasuliDhakitHouseTax + vasuliDandHouseTax + vasuliHouseTax, 2),
+            "vasuliDhakitLightingTax": vasuliDhakitLightingTax,
+            "vasuliLightingTax": vasuliLightingTax,
+            "vasuliTotalLightingTax": round(vasuliDhakitLightingTax + vasuliLightingTax, 2),
+            "vasuliDhakitHealthTax": vasuliDhakitHealthTax,
+            "vasuliHealthTax": vasuliHealthTax,
+            "vasuliTotalHealthTax": round(vasuliDhakitHealthTax + vasuliHealthTax, 2),
+            "vasuliDhakitSaWaterTax": vasuliDhakitSaWaterTax,
+            "vasuliSaWaterTax": vasuliSaWaterTax,
+            "vasuliTotalSaWaterTax": round(vasuliDhakitSaWaterTax + vasuliSaWaterTax, 2),
+            "vasuliDhakitViWaterTax": vasuliDhakitViWaterTax,
+            "vasuliViWaterTax": vasuliViWaterTax,
+            "vasuliTotalViWaterTax": round(vasuliDhakitViWaterTax + vasuliViWaterTax, 2),
+            "vasuliDhakitCleaningTax": vasuliDhakitCleaningTax,
+            "vasuliCleaningTax": vasuliCleaningTax,
+            "vasuliTotalCleaningTax": round(vasuliDhakitCleaningTax + vasuliCleaningTax, 2),
+            # वसुली प्रिंट्समधला "एकुण" - totaltaxwithoutnoticwarrant / totaltaxwithoutspanivpaninoticewaraant चे वसुली रूप
+            "vasuliTotalTax": round(
+                vasuliDhakitHouseTax + vasuliDandHouseTax + vasuliHouseTax
+                + vasuliDhakitLightingTax + vasuliLightingTax
+                + vasuliDhakitHealthTax + vasuliHealthTax
+                + vasuliDhakitSaWaterTax + vasuliSaWaterTax
+                + vasuliDhakitViWaterTax + vasuliViWaterTax
+                + vasuliDhakitCleaningTax + vasuliCleaningTax, 2),
+            "vasuliTotalTaxWithoutPani": round(
+                vasuliDhakitHouseTax + vasuliDandHouseTax + vasuliHouseTax
+                + vasuliDhakitLightingTax + vasuliLightingTax
+                + vasuliDhakitHealthTax + vasuliHealthTax
+                + vasuliDhakitCleaningTax + vasuliCleaningTax, 2),
             "pavatiSRKivyaTarik": 0
         }
         rows.append(row)
@@ -1490,10 +1551,17 @@ def get_property_records_by_village_regular(
         occupant_name = ""
         owner_names_plain = ""
         parent_gp_name = None
+        property_qr_url = None
         try:
             prop = properties_by_id.get(r.get('property_id'))
             if prop:
                 anu_kramank = display_sr_no_map.get(prop.anuKramank, prop.anuKramank)
+                # मालमत्ता QR - नमुना-8/डिजिटल नेम प्लेटवरचाच /namuna8/property_qrcode. हा
+                # Bank Scanner setting वर अवलंबून नाही, नेहमी दिसतो (घर/पाणी कर QR फक्त setting चालू असेल तर).
+                property_qr_url = _build_qrcode_url(prop, os.path.join(
+                    "uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id),
+                    str(prop.gram_panchayat_id), str(prop.village_id), str(prop.anuKramank), "qrcode.png"
+                ))
                 village_name = village_name_once
                 gp_name = gp_name_once
                 parent_gp_name = parent_gp_name_once
@@ -1530,6 +1598,7 @@ def get_property_records_by_village_regular(
             "signature_image": signature_image,
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
+            "propertyQrUrl": property_qr_url,
             "houseNumber": r.get('malmattaKramank', ''),
             "exServicemanTip": bool(getattr(prop, 'exServiceman', False)) if prop else False,
             "कराचे नाव": {
@@ -1631,6 +1700,15 @@ def get_property_records_by_village_visheshpani(
         f"{backend_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water"
         if show_bank_scanner and gram_panchayat and gram_panchayat.water_tax_qr_url else None
     )
+    # अ.क्र. - regular ९क/९क2 प्रमाणेच (एकदाच sort करून {anuKramank: srNo} map). आधी
+    # इथे anuKramank पाठवलाच जात नव्हता, त्यामुळे विशेष पाणी ९क/९क2 वर अ.क्र. रिकामा.
+    village_property_rows_sorted = sorted(
+        db.query(namuna8_model.Property.anuKramank, namuna8_model.Property.sort_order)
+        .filter(namuna8_model.Property.village_id == int(villageId))
+        .all(),
+        key=lambda row: (row.sort_order if row.sort_order is not None else float("inf")),
+    )
+    display_sr_no_map = {row.anuKramank: idx for idx, row in enumerate(village_property_rows_sorted, start=1)}
     mapped = []
     from datetime import datetime
     for r in table_rows:
@@ -1666,11 +1744,19 @@ def get_property_records_by_village_visheshpani(
         # Resolve gram panchayat and occupant like regular
         gp_name = None
         village_name = None
+        anu_kramank = None
         occupant_name = ""
         owner_names_plain = ""
+        property_qr_url = None
         try:
             prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == r.get('property_id')).first()
             if prop:
+                anu_kramank = display_sr_no_map.get(prop.anuKramank, prop.anuKramank)
+                # मालमत्ता QR - regular ९क प्रमाणेच, नेहमी दिसतो (setting वर अवलंबून नाही).
+                property_qr_url = _build_qrcode_url(prop, os.path.join(
+                    "uploaded_images", "qrcode", str(prop.district_id), str(prop.taluka_id),
+                    str(prop.gram_panchayat_id), str(prop.village_id), str(prop.anuKramank), "qrcode.png"
+                ))
                 v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop.village_id).first()
                 if v:
                     village_name = getattr(v, 'name', None)
@@ -1689,6 +1775,7 @@ def get_property_records_by_village_visheshpani(
         mapped.append({
             "gramPanchayat": gp_name or "",
             "village": village_name or "",
+            "anuKramank": anu_kramank,
             "taluka": taluka_name_ic or "",
             "district": district_name_ic or "",
             "yearSlap": yearslap,
@@ -1700,6 +1787,7 @@ def get_property_records_by_village_visheshpani(
             "signature_image": signature_image,
             "houseTaxQrUrl": houseTaxQrUrl,
             "waterTaxQrUrl": waterTaxQrUrl,
+            "propertyQrUrl": property_qr_url,
             "houseNumber": r.get('malmattaKramank', ''),
             "recoverableAmounts": {
                 "arrears": {"Thakit": thakit, "Dand": {"Dand1": r.get('dand', 0), "Dand2": 0, "Dand3": 0, "Dand4": 0, "Dand5": 0, "Dand6": 0, "Dand7": 0}},
