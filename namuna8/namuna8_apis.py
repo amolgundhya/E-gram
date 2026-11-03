@@ -375,7 +375,10 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 raise e
             # Build response with constructionType name
             response = build_property_response(db_property, db, property_data.gram_panchayat_id)
-          
+            # नवीन मालमत्तेचा नमुना-9 रो सहसा अजून नसतो (मग काहीच होत नाही); पण हटवलेल्या
+            # मालमत्तेचा id पुन्हा मिळाला असेल तर तिचा जुना रो याच transaction मध्ये जुळवतो.
+            response["namuna9Sync"] = sync_namuna9_current_year(db, db_property, commit=False)
+
             try:
                 # Use get_property_record to get accurate total tax
                 # Match update method signature: (anuKramank, village_id, district_id, taluka_id, gram_panchayat_id, db)
@@ -948,8 +951,10 @@ def update_namuna8_entry(
 
     db.commit()
     db.refresh(db_property)
+    namuna9_sync = sync_namuna9_current_year(db, db_property)
     # Build response with constructionType name
     response = build_property_response(db_property, db, db_property.gram_panchayat_id)
+    response["namuna9Sync"] = namuna9_sync
     # --- QR CODE GENERATION (after update, using calculated values) ---
     try:
         # Use get_property_record to get accurate total tax
@@ -1395,7 +1400,27 @@ def bulk_update_properties(update: schemas.BulkEditUpdateRequest, db: Session = 
         db.rollback()
         logging.exception("bulk_update commit failed for property_ids=%s", update.property_ids)
         raise HTTPException(status_code=500, detail="Bulk update failed while committing changes")
-    return {"message": f"Updated {updated_count} properties successfully."}
+    # पाणी सुविधा / कर लागू नाही / दिवा-आरोग्य / सफाई बदलले की नमुना-9 चालू मागणीही बदलते.
+    namuna9_updated = 0
+    namuna9_overpaid = []
+    namuna9_errors = []
+    for prop_id in update.property_ids:
+        prop = db.query(models.Property).filter(models.Property.id == prop_id).first()
+        result = sync_namuna9_current_year(db, prop) if prop else None
+        if not result:
+            continue
+        if result.get("error"):
+            namuna9_errors.append({"malmattaKramank": prop.malmattaKramank, "error": result["error"]})
+            continue
+        namuna9_updated += 1 if result["updated"] else 0
+        if result["overpaid"]:
+            namuna9_overpaid.append({"malmattaKramank": prop.malmattaKramank, "overpaid": result["overpaid"]})
+    return {
+        "message": f"Updated {updated_count} properties successfully.",
+        "namuna9_updated": namuna9_updated,
+        "namuna9_overpaid": namuna9_overpaid,
+        "namuna9_errors": namuna9_errors,
+    }
 
 # @router.get("/property_report_list/")
 # def get_property_report_list(village: str, db: Session = Depends(database.get_db)):
@@ -1635,6 +1660,22 @@ def delete_owner_photo(owner_id: int, db: Session = Depends(database.get_db)):
         db.commit()
 
     return {"message": "Photo removed successfully"}
+
+
+def sync_namuna9_current_year(db, db_property, commit=True):
+    # नमुना-8 मधला कर-बदल गावाच्या चालू (सर्वात नवीन) नमुना-9 वर्षात - चालू = मागणी - वसुली
+    # (तपशील namuna9/current_year_sync.py). commit=True (PUT/bulk_update) वेळी नमुना-8 सेव्ह
+    # आधीच commit झालेलं असतं, म्हणून इथे त्रुटी आली तरी सेव्ह फेल करत नाही - फक्त लॉग करून
+    # response मध्ये {"error": ...} देतो. commit=False (POST) वेळी त्रुटी कॉलरकडे जाते.
+    from namuna9 import current_year_sync
+    if not commit:
+        return current_year_sync.sync_property(db, db_property, commit=False)
+    try:
+        return current_year_sync.sync_property(db, db_property)
+    except Exception as e:
+        db.rollback()
+        logging.exception("namuna9 current-year sync failed for property_id=%s", getattr(db_property, "id", None))
+        return {"error": str(e)}
 
 
 def build_property_response(db_property, db, gram_panchayat_id: int, tax_settings=None, water_settings=None, water_slab_settings=None):
@@ -3029,6 +3070,7 @@ def recalculate_all_property_taxes(
     taluka_id: int = Query(..., description="Taluka ID"),
     gram_panchayat_id: int = Query(..., description="Gram Panchayat ID"),
     dry_run: bool = Query(False, description="true = फक्त पूर्वावलोकन, काहीही बदलत नाही"),
+    include_namuna9: bool = Query(False, description="true = चालू नमुना-9 वर्षाचे रो सुद्धा (चालू = मागणी - वसुली) अद्ययावत करा"),
     db: Session = Depends(database.get_db)
 ):
     # Validate location hierarchy - check if the three fields match the actual data
@@ -3056,7 +3098,8 @@ def recalculate_all_property_taxes(
     # प्रत्यक्षात काहीच जतन होत नव्हतं.)
     from namuna8 import tax_recalculation
     try:
-        return tax_recalculation.run_recalculation(db, district_id, taluka_id, gram_panchayat, dry_run=dry_run)
+        return tax_recalculation.run_recalculation(db, district_id, taluka_id, gram_panchayat, dry_run=dry_run,
+                                                   include_namuna9=include_namuna9)
     except tax_recalculation.RecalculationBusy:
         raise HTTPException(status_code=409, detail="कर पुन्हा मोजण्याची प्रक्रिया आधीच चालू आहे - ती संपेपर्यंत थांबा.")
     except tax_recalculation.RecalculationFailed as e:
