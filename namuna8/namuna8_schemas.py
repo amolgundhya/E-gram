@@ -138,6 +138,9 @@ class PropertyRead(PropertyBase):
     vpanikar: Optional[float] = None
     qrcode: Optional[str] = None
     sort_order: Optional[float] = None
+    # PUT/POST नंतर चालू नमुना-9 वर्षाचा रो जुळवल्याचा निकाल (namuna9/current_year_sync.py):
+    # None किंवा {"yearslap", "updated", "overpaid": [...]} / {"error"}.
+    namuna9Sync: Optional[dict] = None
 
     class Config:
         orm_mode = True
