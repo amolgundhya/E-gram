@@ -55,7 +55,7 @@ backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 # (बदला व सेट करा) आणि get_table_data दोन्हीकडे सुसंगत राहावं म्हणून हीच पद्धत वापरतो.
 def _compute_thakit_source_amounts(db: Session, source_rec, property_id: int, gram_panchayat_id):
     saved = db.query(namuna9_model.Namuna9PropertyData).filter(
-        namuna9_model.Namuna9PropertyData.namuna9_id == source_rec.id,
+        namuna9_model.Namuna9PropertyData.namuna9_id == source_rec.id, namuna9_model.Namuna9PropertyData.property_deleted_at.is_(None),
         namuna9_model.Namuna9PropertyData.property_id == property_id
     ).first()
     if saved:
@@ -565,7 +565,7 @@ def get_table_data(
             # त्यात मागच्या वर्षातले receipt/मॅन्युअल बदल दिसत नाहीत. घरकरात दंड धरतो
             # (शिल्लक बाकी प्रमाणेच); बाकी कर-प्रकारांत फक्त शक्ती+चालू.
             thakit_saved_rows = query_all_in_chunks(
-                db.query(namuna9_model.Namuna9PropertyData).filter(namuna9_model.Namuna9PropertyData.namuna9_id == true_prev_rec.id),
+                db.query(namuna9_model.Namuna9PropertyData).filter(namuna9_model.Namuna9PropertyData.namuna9_id == true_prev_rec.id, namuna9_model.Namuna9PropertyData.property_deleted_at.is_(None)),
                 namuna9_model.Namuna9PropertyData.property_id,
                 thakit_property_ids
             )
@@ -623,7 +623,7 @@ def get_table_data(
     
     # Fetch saved property data from database
     saved_property_data = db.query(namuna9_model.Namuna9PropertyData).filter(
-        namuna9_model.Namuna9PropertyData.namuna9_id == rec.id
+        namuna9_model.Namuna9PropertyData.namuna9_id == rec.id, namuna9_model.Namuna9PropertyData.property_deleted_at.is_(None)
     ).all()
     
     # Create a map of property_id to saved data
@@ -783,22 +783,20 @@ def get_table_data(
             ekunVpanikar = round(max(shaktiVpanikar + chaluVpanikar, 0), 2)
             ekunCleaningTax = round(max(shaktiCleaningTax + chaluCleaningTax, 0), 2)
         
-        # Total reflects ekun columns + fees + dand, avoiding double-count of shakti/chalu
-        if saved_data and saved_data.total is not None:
-            total = max(saved_data.total, 0)  # Ensure total is not negative
-        else:
-            total = (
-                    (ekunGhar or 0) +
-                    (ekunDiva or 0) +
-                    (ekunAarogyaKar or 0) +
-                    (ekunSapanikar or 0) +
-                    (ekunVpanikar or 0) +
-                    (ekunCleaningTax or 0) +
-                    (warrantFee or 0) +
-                    (noticeFee or 0) +
-                    (dand or 0)
-            )
-            total = round(total, 2)
+        # एकूण = थकित + दंड + चालू एकदाच: दंड ekunGhar मध्ये आधीच आहे, म्हणून total = सर्व
+        # एकूण + फी. साठवलेला saved_data.total वापरत नाही - जुन्या रो मध्ये दंड दोनदा
+        # धरलेला असू शकतो; स्क्रीनवरच्या (computeRowTotalWithEdits) एकूणसारखाच इथेही मोजतो.
+        total = (
+                (ekunGhar or 0) +
+                (ekunDiva or 0) +
+                (ekunAarogyaKar or 0) +
+                (ekunSapanikar or 0) +
+                (ekunVpanikar or 0) +
+                (ekunCleaningTax or 0) +
+                (warrantFee or 0) +
+                (noticeFee or 0)
+        )
+        total = round(max(total, 0), 2)
         
         # Final override: If karLaguNahi is True, set ALL taxes to 0 (this ensures automatic update from namuna8)
         if karLaguNahi:
@@ -987,7 +985,7 @@ def get_namuna9_table_data_custom(
         return []
     # Fetch saved property data for this Namuna9 record (to mirror table-data behavior)
     saved_property_data = db.query(namuna9_model.Namuna9PropertyData).filter(
-        namuna9_model.Namuna9PropertyData.namuna9_id == rec.id
+        namuna9_model.Namuna9PropertyData.namuna9_id == rec.id, namuna9_model.Namuna9PropertyData.property_deleted_at.is_(None)
     ).all()
     saved_data_map = {data.property_id: data for data in saved_property_data}
 
@@ -1021,7 +1019,7 @@ def get_namuna9_table_data_custom(
         # get_table_data प्रमाणेच - मागच्या सालच्या स्वतःच्या साठवलेल्या आकड्यांवरून
         # (दंडासकट घरकरात) थकित काढतो, ताजी recalculation नाही.
         thakit_saved_rows = query_all_in_chunks(
-            db.query(namuna9_model.Namuna9PropertyData).filter(namuna9_model.Namuna9PropertyData.namuna9_id == true_prev_rec.id),
+            db.query(namuna9_model.Namuna9PropertyData).filter(namuna9_model.Namuna9PropertyData.namuna9_id == true_prev_rec.id, namuna9_model.Namuna9PropertyData.property_deleted_at.is_(None)),
             namuna9_model.Namuna9PropertyData.property_id,
             thakit_property_ids
         )

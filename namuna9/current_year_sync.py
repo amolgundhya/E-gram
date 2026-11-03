@@ -93,7 +93,8 @@ def current_demand(db, prop, ctx):
 
 
 def _ekun_total(row, chalu):
-    """एकूण व total - _adjust_property_data_for_receipt / bulk-update सारखंच सूत्र."""
+    """एकूण व total - _adjust_property_data_for_receipt / bulk-update सारखंच सूत्र
+    (दंड फक्त एकूण घरात, total मध्ये पुन्हा नाही)."""
     ekun = {
         "Ghar": (row.shaktiGhar or 0) + chalu["Ghar"] + (row.dand or 0),
         "Diva": (row.shaktiDiva or 0) + chalu["Diva"],
@@ -103,7 +104,7 @@ def _ekun_total(row, chalu):
         "CleaningTax": (row.shaktiCleaningTax or 0) + chalu["CleaningTax"],
     }
     ekun = {k: round(v, 2) for k, v in ekun.items()}
-    total = round(sum(ekun.values()) + (row.noticeFee or 0) + (row.warrantFee or 0) + (row.dand or 0), 2)
+    total = round(sum(ekun.values()) + (row.noticeFee or 0) + (row.warrantFee or 0), 2)
     return ekun, total
 
 
@@ -154,6 +155,7 @@ def sync_property(db, prop, ctx=None, commit=True):
     row = db.query(namuna9_model.Namuna9PropertyData).filter(
         namuna9_model.Namuna9PropertyData.namuna9_id == rec.id,
         namuna9_model.Namuna9PropertyData.property_id == prop.id,
+        namuna9_model.Namuna9PropertyData.property_deleted_at.is_(None),
     ).first()
     if row is None:
         return None
@@ -180,7 +182,8 @@ def plan_properties(db, properties, ctx):
     rows = {}
     if rec_ids:
         for row in db.query(namuna9_model.Namuna9PropertyData).filter(
-                namuna9_model.Namuna9PropertyData.namuna9_id.in_(rec_ids)).all():
+                namuna9_model.Namuna9PropertyData.namuna9_id.in_(rec_ids),
+                namuna9_model.Namuna9PropertyData.property_deleted_at.is_(None)).all():
             rows[(row.namuna9_id, row.property_id)] = row
     out = []
     for prop in properties:
