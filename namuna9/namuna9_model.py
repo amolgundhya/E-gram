@@ -89,7 +89,12 @@ class Namuna9PropertyData(Base):
     
     createdAt = Column(DateTime(timezone=True), server_default=func.now())
     updatedAt = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
+    # नमुना-8 मधून मालमत्ता हटवल्यावर तिचे सर्व वर्षांचे रो काढत नाही (पावत्यांची वसुली
+    # याच रो वर आहे, पावत्या कधीच पूर्ण हटवत नाही) - फक्त हे सेट करतो. सेट असलेले रो
+    # table-data / थकित / नमुना-9 sync कुठेही वापरत नाहीत.
+    property_deleted_at = Column(DateTime, nullable=True)
+
     # Relationship
     namuna9 = relationship("Namuna9", back_populates="property_data")
 
