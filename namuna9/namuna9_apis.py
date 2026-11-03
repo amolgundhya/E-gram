@@ -826,6 +826,14 @@ def get_table_data(
             "property_id": prop.id,  # Use actual property ID, not anuKramank
             "malmattaKramank": prop_data.get('malmattaKramank', ''),
             "ownerNames": owner_names,
+            # स्क्रीनवरच्या स्वतंत्र "भोगवटदार" कॉलमसाठी (ownerNames मध्ये भोगवटदार अजून
+            # जोडलेला आहे - फ्रंटएंडमध्ये हा कॉलम आल्यावर ownerNames फक्त मालकाचे नाव करायचं).
+            "ownerNamesPlain": ', '.join([o.get('name', '') or '' for o in prop_data.get('owners', [])]),
+            "occupantNames": ', '.join([
+                (o.get('occupantName') or '').strip()
+                for o in prop_data.get('owners', [])
+                if (o.get('occupantName') or '').strip()
+            ]),
             "shaktiGhar": round(max(shaktiGhar, 0), 2),
             "dand": round(max(dand, 0), 2),
             "chaluGhar": round(max(chaluGhar, 0), 2),
