@@ -5,6 +5,7 @@ from fastapi import APIRouter , Request
 from fastapi.responses import JSONResponse
 import httpx
 from namuna9.namuna9_sort import sort_rows_by_owner_name, is_true
+from namuna9.namuna9_pagination import paginate_by_height
 
 router = APIRouter()
 # Load templates from the 'templates' folder (adjust path as needed)
@@ -25,26 +26,8 @@ SutSahaEnv = Environment(loader=FileSystemLoader(namuna9_template_sutsaha_dir))
 visheshPaniEnv = Environment(loader=FileSystemLoader(namuna9_template_viseshpani_dir))
 visheshPaniSafaiEnv = Environment(loader=FileSystemLoader(namuna9_template_viseshpaniSafai_dir))
 
-# गोषवारा (A4 landscape, सध्याचे fonts/widths): दर पानावर किती मालमत्ता-ओळी मावतात -
-# याच आकड्यावर आधीच हे रिपोर्ट्स tune केलेले आहेत. गोषवारा आता प्रत्येक पानावर त्याच
-# पानाच्या ओळींची बेरीज दाखवतो (आणि शेवटच्या पानावर सर्व पानांची एकूण बेरीज सुद्धा) -
-# त्यासाठी रो सर्व्हरवरच याच आकड्यानुसार पानांत वाटतो.
-# प्रत्येक पानावर आता report-top मथळा सुद्धा repeat होतो, त्यामुळे जागा आधीपेक्षा
-# जास्त लागते - 6 हा आकडा गुंज (2176 ओळी) च्या प्रत्यक्ष डेटावर (सर्वात लांब/रांगेत
-# मोडणारी मालक-नावे धरून) हेडलेस प्रिंट-टू-पीडीएफ ने तपासून निवडला आहे: त्यावर एकही
-# पान physically दोन शीटवर overflow होत नाही (सर्व namuna9All.html आणि सर्वात जास्त
-# कॉलम असलेला namuna9AllVisheshPaniSafai.html variant दोन्हीवर 0 overflow, तर 7+ वर
-# काही पानांचा तfoot टेबल-स्पॅनमुळे दोन शीटवर duplicate होत होता).
-NAMUNA9_ROWS_PER_PAGE = 6
-
-
-def paginate_rows(data, rows_per_page=NAMUNA9_ROWS_PER_PAGE):
-    """data ला rows_per_page च्या स्थिर तुकड्यांत (पानांत) वाटतो - रिकामी यादी
-    असली तरी किमान एक (रिकामं) पान परत करतो, जेणेकरून टेम्प्लेट नेहमी निदान
-    मथळा + रिकामी गोषवारा दाखवेल."""
-    if not data:
-        return [[]]
-    return [data[i:i + rows_per_page] for i in range(0, len(data), rows_per_page)]
+# गोषवारा रिपोर्ट्सचे पान-विभाजन आता ओळींच्या अंदाजे उंचीनुसार (आधी ठराविक 6 ओळी/पान) -
+# बघा namuna9/namuna9_pagination.py.
 
 
 def apply_name_sort(data, requestData):
@@ -363,7 +346,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -535,7 +518,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -701,7 +684,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -867,7 +850,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -951,7 +934,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1029,7 +1012,7 @@ async def prakar1(request: Request):
         data = apply_name_sort(data, requestData)
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1449,7 +1432,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1534,7 +1517,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1619,7 +1602,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1788,7 +1771,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1957,7 +1940,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2126,7 +2109,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2211,7 +2194,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2461,7 +2444,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2630,7 +2613,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2795,7 +2778,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2877,7 +2860,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_rows(data),
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',

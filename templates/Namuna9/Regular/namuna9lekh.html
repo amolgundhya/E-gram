@@ -361,11 +361,11 @@
       {% for copy in [1, 2] %}
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div class="bold">अनुक्रमांक : {{ record.anuKramank or '' }}</div>
+          <div class="bold">
+            <div class="main-title">ग्रामपंचायत {{ record.gramPanchayat or '' }}</div>
+            अनुक्रमांक : {{ record.anuKramank or '' }}
+          </div>
           <div>
-            <div class="bold main-title center">
-              सरपंच {{ record.gramPanchayat or '' }}
-            </div>
             <div class="center subtitle">
               नमुना ९ लेख<br />
               मागणी लेख नमुना <br />

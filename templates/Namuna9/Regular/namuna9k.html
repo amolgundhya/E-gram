@@ -6,7 +6,7 @@
     <style>
         body { font-family: 'Mangal', Arial, sans-serif; margin: 0; padding: 0; }
         table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #000; padding: 2px 6px; font-size: 15px; }
+        th, td { border: 1px solid #000; padding: 1px 5px; font-size: 13px; line-height: 1.4; }
         .no-border { border: none !important; }
         .center { text-align: center; }
         .right { text-align: right; }
@@ -32,8 +32,11 @@
             body {
                 margin: 0;
             }
+            /* एक मालमत्ता (दोन प्रती) = एक A4 पान - margin कमी, नाहीतर दुसरी प्रत पुढच्या पानावर जाते */
             .outer-border {
+                margin: 6mm auto;
                 page-break-after: always;
+                page-break-inside: avoid;
             }
             .outer-border:last-of-type {
                 page-break-after: auto;
@@ -165,43 +168,52 @@
     {% for record in data %}
     <div class="outer-border">
         {% for copy in [1,2] %}
+        {# मथळा: डावीकडे ग्रामपंचायत/गाव व तालुका/जिल्हा, मध्ये नमुना ९ क, उजवीकडे QR.
+           मालमत्ता QR नेहमी; घर कर / पाणी कर QR फक्त Master setting (Bank Scanner) चालू असेल तर. #}
         <table class="header-table" style="width:100%;">
             <tr>
-                <td class="center bold">ग्रामपंचायत<br>{{ record.gramPanchayat or '' }}<br>गाव/मोहल्ला : {{ record.village or '' }}</td>
-                <td class="center bold">तालुका<br>{{ record.taluka or '' }}</td>
-                <td class="center bold">जिल्हा<br>{{ record.district or '' }}</td>
-                <td class="center bold" style="width: 34%; ">
+                <td class="bold" style="width: 24%; font-size: 13px; line-height: 1.6; vertical-align: middle;">
+                    ग्रामपंचायत : {{ record.gramPanchayat or '' }}<br>
+                    गाव/मोहल्ला : {{ record.village or '' }}
+                </td>
+                <td class="bold" style="width: 18%; font-size: 13px; line-height: 1.6; vertical-align: middle;">
+                    तालुका : {{ record.taluka or '' }}<br>
+                    जिल्हा : {{ record.district or '' }}
+                </td>
+                <td class="center bold" style="font-size: 13px; vertical-align: middle;">
                     नमुना ९ क<br>
                     नियम ३२ (५) पहा<br>
                     करांची मागणी पावती<br>
-                    <span style="font-size: 15px;">साल : {{ record.yearSlap or '' }}</span>
+                    साल : {{ record.yearSlap or '' }}
                 </td>
-                <td class="center bold" style="width: 33%; ">
-                    मागणीची पावती क्र : {{ record.propertyNumber or '' }}<br>
-                    दिनांक : {{ record.currentDate or '' }}
-                </td>
-                {% if record.houseTaxQrUrl or record.waterTaxQrUrl %}
-                {% if record.houseTaxQrUrl %}
-                <td class="center bold" style="text-align:center;">
-                    <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img src="{{ record.houseTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                <td style="vertical-align: middle; white-space: nowrap; text-align: right;">
+                    {% set qrs = [] %}
+                    {% if record.propertyQrUrl %}{% set _ = qrs.append((record.propertyQrUrl, 'मालमत्ता')) %}{% endif %}
+                    {% if record.houseTaxQrUrl %}{% set _ = qrs.append((record.houseTaxQrUrl, 'घर कर')) %}{% endif %}
+                    {% if record.waterTaxQrUrl %}{% set _ = qrs.append((record.waterTaxQrUrl, 'पाणी कर')) %}{% endif %}
+                    {% for qr_url, qr_label in qrs %}
+                    <div style="display: inline-block; text-align: center; margin-left: 6px; vertical-align: top;">
+                        <div style="border: 1px solid #000; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <img src="{{ qr_url }}" style="width: 62px; height: 62px; object-fit: contain;" />
+                        </div>
+                        <div class="bold" style="font-size: 10px; margin-top: 2px;">{{ qr_label }}</div>
                     </div>
-                    <div style="font-size:10px; margin-top:2px;">घर कर</div>
+                    {% else %}
+                    <div style="display: inline-block; border: 1px solid #000; width: 80px; height: 80px;"></div>
+                    {% endfor %}
                 </td>
-                {% endif %}
-                {% if record.waterTaxQrUrl %}
-                <td class="center bold" style="text-align:center;">
-                    <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img src="{{ record.waterTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
-                    </div>
-                    <div style="font-size:10px; margin-top:2px;">पाणी कर</div>
-                </td>
-                {% endif %}
-                {% else %}
-                <td>
-                    <div class="center bold" style="border: 1px solid #000; width: 100px; height: 100px; margin: 0 auto; overflow:hidden;"></div>
-                </td>
-                {% endif %}
+            </tr>
+        </table>
+        <table class="header-table" style="width:100%;">
+            <tr>
+                <td class="bold" style="width: 38%;">अनुक्रमांक : {{ record.anuKramank or '' }}</td>
+                <td class="bold" style="width: 34%;">मालमत्ता क्र. : {{ record.propertyNumber or '' }}</td>
+                <td class="bold">मागणीची पावती क्र. : {{ record.propertyNumber or '' }}</td>
+            </tr>
+            <tr>
+                <td class="bold">मालकाचे नाव : {{ record.ownerName or '' }}</td>
+                <td class="bold">भोगवटदार : {{ record.occupantName or '' }}</td>
+                <td class="bold">दिनांक : {{ record.currentDate or '' }}</td>
             </tr>
         </table>
         {% if record.exServicemanTip %}
@@ -209,19 +221,6 @@
             (टीप: आजी / माजी सैनिकांना ग्रामपंचायत मालमत्ता करातून सूट देण्याबाबत शासन परिपत्रक व्हीपीएम-2020/प्र.क्र.93/पंरा-4, दि. 18 ऑगस्ट 2020 नुसार.)
         </div>
         {% endif %}
-        <table style="margin-top: 2px; width:100%;">
-            <tr>
-                <td class="bold" style="border:none;">अनुक्रमांक : {{ record.anuKramank or '' }}</td>
-                <td class="bold" style="border:none;">मालमत्ता क्रमांक : {{ record.propertyNumber or '' }}</td>
-            </tr>
-            <tr>
-                <td colspan="2" class="bold" style="border:none;">
-                    श्री {{ record.ownerName or '' }}
-                    {% if record.occupantName and record.occupantName != 'स्वतः' %}<br>भोगवटदार : {{ record.occupantName }}{% endif %}
-                </td>
-
-            </tr>
-        </table>
         <table style="margin-top: 2px; width:100%;">
             <tr class="center bold">
                 <td rowspan="3">कराचे नाव</td>
@@ -294,17 +293,17 @@
     <td colspan="6" style="border:none;">दिनांक : {{ record.currentDate or '' }}</td>
 </tr>
         </table>
-        <div style="font-size: 13px; margin-top: 4px;">
+        <div style="font-size: 12px; margin-top: 3px; padding: 0 4px; line-height: 1.3;">
             हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या आता करावा. अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये आपल्यावर मागणी बजावाण्यात येईल
         </div>
-        <div style="margin-top: 10px; font-size: 13px;">
+        <div style="margin-top: 4px; font-size: 12px; padding: 0 4px; text-align: right;">
             {% if record.signature_image %}
             <img src="{{ record.signature_image }}" style="height: 35px; object-fit: contain; display: block; margin-left: auto;" alt="स्वाक्षरी" />
             {% endif %}
             <span class="right">ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी</span>
         </div>
         {% if copy == 1 %}
-        <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
+        <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
         {% endif %}
         {% endfor %}
     </div>

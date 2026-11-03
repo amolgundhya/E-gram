@@ -29,14 +29,47 @@
             #toolbar {
                 display: none !important;
             }
+            /* शिल्लक बाकी (Balance) कॉलम फक्त स्क्रीनवर, प्रिंटमध्ये नाही */
+            .balance-col {
+                display: none !important;
+            }
             body {
                 margin: 0;
             }
+            /* दोन्ही प्रती (copy) एकाच A4 पानावर बसाव्यात म्हणून compact मांडणी */
             .outer-border {
-                page-break-after: always;
-            }
-            .outer-border:last-of-type {
+                zoom: 1 !important;
+                width: 100%;
+                margin: 0;
+                padding: 2mm 3mm;
                 page-break-after: auto;
+                page-break-inside: avoid;
+            }
+            /* शेवटच्या पावतीनंतर रिकामे पान येऊ नये म्हणून break पुढच्या पावतीच्या आधी */
+            .outer-border + .outer-border {
+                page-break-before: always;
+            }
+            .receipt-copy {
+                page-break-inside: avoid;
+            }
+            th, td {
+                font-size: 13px;
+                padding: 2px 5px;
+                line-height: 1.35;
+            }
+            .qr-box {
+                width: 62px !important;
+                height: 62px !important;
+            }
+            .qr-img {
+                width: 62px !important;
+                height: 62px !important;
+            }
+            .receipt-footer {
+                font-size: 11px !important;
+            }
+            .copy-separator {
+                margin: 4mm 0 !important;
             }
         }
     </style>
@@ -138,48 +171,54 @@
     {% for record in data %}
     <div class="outer-border">
         {% for copy in [1,2] %}
+        <div class="receipt-copy">
         <table class="header-table" style="width:100%;">
             <tr>
-                <td class="center bold">ग्रामपंचायत : {{ record.grampanchayat or 'ग्रामपंचायत' }}</td>
-                <td class="center bold">जिल्हा<br>{{ record.district or '' }}</td>
-                <td class="center bold">तालुका<br>{{ record.taluka or '' }}</td>
-                <td class="center bold" style="width: 34%; ">
-                    कर वसुलीची पावती<br>
-                    नमुना क्र. १०
+                <td class="bold" style="width: 36%; vertical-align: middle;">
+                    <table style="width:100%;">
+                        <tr>
+                            <td style="width: 55%;">ग्रामपंचायत : {{ record.grampanchayat or '' }}</td>
+                            <td>तालुका : {{ record.taluka or '' }}</td>
+                        </tr>
+                        <tr>
+                            <td>गाव : {{ record.village or '' }}</td>
+                            <td>जिल्हा : {{ record.district or '' }}</td>
+                        </tr>
+                    </table>
                 </td>
-                <td class="center bold" style="width: 33%; ">
-                    पावती बुक नं : {{ record.pa_book_kramank or '' }}<br>
-                    पावती नं : {{ record.pavti_kramank or '' }}<br>
-                    सन : {{ record.yearslap or record.yearslap or '' }}
+                <td class="center bold" style="width: 28%; vertical-align: middle;">
+                    कर वसुलीची पावती<br>
+                    नमुना क्र. १०<br>
+                    सन : {{ record.yearslap or '' }}
                 </td>
                 {% if record.QRcodeURL or record.houseTaxQrUrl or record.waterTaxQrUrl %}
                 {% if record.QRcodeURL %}
                 <td class="center bold" style="text-align:center;">
-                    <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img src="{{ record.QRcodeURL }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img class="qr-img" src="{{ record.QRcodeURL }}" style="width: 80px; height: 80px; object-fit: contain;" />
                     </div>
                     <div style="font-size:10px; margin-top:2px;">मालमत्ता QR</div>
                 </td>
                 {% endif %}
                 {% if record.houseTaxQrUrl %}
                 <td class="center bold" style="text-align:center;">
-                    <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img src="{{ record.houseTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img class="qr-img" src="{{ record.houseTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
                     </div>
                     <div style="font-size:10px; margin-top:2px;">घर कर</div>
                 </td>
                 {% endif %}
                 {% if record.waterTaxQrUrl %}
                 <td class="center bold" style="text-align:center;">
-                    <div style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img src="{{ record.waterTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img class="qr-img" src="{{ record.waterTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
                     </div>
                     <div style="font-size:10px; margin-top:2px;">पाणी कर</div>
                 </td>
                 {% endif %}
                 {% else %}
                 <td>
-                    <div class="center bold" style="border: 1px solid #000; width: 100px; height: 100px; margin: 0 auto; overflow:hidden;"></div>
+                    <div class="center bold qr-box" style="border: 1px solid #000; width: 100px; height: 100px; margin: 0 auto; overflow:hidden;"></div>
                 </td>
                 {% endif %}
             </tr>
@@ -191,23 +230,14 @@
         {% endif %}
         <table style="margin-top: 2px; width:100%;">
             <tr>
-                <td style="border:none;">गाव : {{ record.village or 'गाव' }}</td>
+                <td style="border:none; width: 36%;">अनुक्रमांक : {{ record.anuKramank or '' }}</td>
+                <td style="border:none; width: 34%;">मालमत्ता नंबर : {{ record.malmatta_kramank or '' }}</td>
+                <td style="border:none;">पावती बुक नं : {{ record.pa_book_kramank or '' }}</td>
             </tr>
             <tr>
-                <td colspan="2" style="border:none;">
-                    अनुक्रमांक : {{ record.anuKramank or '' }}
-                </td>
-                <td colspan="2" style="border:none;">
-                    मालमत्ता नंबर : {{ record.malmatta_kramank or '' }}
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2" class="bold" style="border:none;">
-                    श्री/सौ : {{ record.owner_name or 'मालकाचे नाव' }}
-                </td>
-                <td colspan="2" class="bold" style="border:none;">
-                    भोगवटदार : {{ record.occupant or 'भोगवटदाराचे नाव' }}
-                </td>
+                <td class="bold" style="border:none;">श्री/सौ : {{ record.owner_name or 'मालकाचे नाव' }}</td>
+                <td class="bold" style="border:none;">भोगवटदार : {{ record.occupant or 'भोगवटदाराचे नाव' }}</td>
+                <td style="border:none;">पावती नं : {{ record.pavti_kramank or '' }}</td>
             </tr>
         </table>
         <table style="margin-top: 2px; width:100%;">
@@ -218,7 +248,7 @@
             <tr class="center bold">
                 <td rowspan="3">कराचे नाव</td>
                 <td colspan="4">मिळालेली वसुली</td>
-                <td rowspan="3">शिल्लक बाकी<br>(Balance)</td>
+                <td rowspan="3" class="balance-col">शिल्लक बाकी<br>(Balance)</td>
             </tr>
             <tr class="center bold">
                 <td colspan="2">थकित (रुपये = पै.)</td>
@@ -247,75 +277,76 @@
         <td class="right"></td>
         <td class="right"></td>
         <td class="right"></td>
-        <td class="right"></td>
+        <td class="right balance-col"></td>
     {% elif tax == 'एकूण देय रक्कम' %}
         <td class="right">{{ thakit_total }}</td>
         <td class="right">{{ dand_total }}</td>
         <td class="right">{{ chalu_total }}</td>
         <td class="right">{{ ekun_total }}</td>
-        <td class="right">{{ record.remainingTotal if record.remainingTotal is not none else 0 }}</td>
+        <td class="right balance-col">{{ record.remainingTotal if record.remainingTotal is not none else 0 }}</td>
     {% elif tax == 'सूट नंतर एकूण देय रक्कम' %}
         <td class="right">{{ thakit_total }}</td>
         <td class="right">{{ dand_total }}</td>
         <td class="right">{{ chalu_total }}</td>
         <td class="right">{{ ekun_total }}</td>
-        <td class="right">{{ record.remainingTotal if record.remainingTotal is not none else 0 }}</td>
+        <td class="right balance-col">{{ record.remainingTotal if record.remainingTotal is not none else 0 }}</td>
     {% else %}
         {% if loop.index == 1 %}
             <td class="right">{{ record.vasuliGhar or 0 }}</td>
             <td class="right">{{ record.vasuliDand or 0 }}</td>
             <td class="right">{{ record.vasuliChaluGhar or 0 }}</td>
             <td class="right">{{ (record.vasuliGhar or 0) + (record.vasuliDand or 0) + (record.vasuliChaluGhar or 0) }}</td>
-            <td class="right">{{ record.remainingGhar if record.remainingGhar is not none else 0 }}</td>
+            <td class="right balance-col">{{ record.remainingGhar if record.remainingGhar is not none else 0 }}</td>
         {% elif loop.index == 2 %}
             <td class="right">{{ record.vasuliDiva or 0 }}</td>
             <td class="right">0</td>
             <td class="right">{{ record.vasuliChaluDiva or 0 }}</td>
             <td class="right">{{ (record.vasuliDiva or 0) + (record.vasuliChaluDiva or 0) }}</td>
-            <td class="right">{{ record.remainingDiva if record.remainingDiva is not none else 0 }}</td>
+            <td class="right balance-col">{{ record.remainingDiva if record.remainingDiva is not none else 0 }}</td>
         {% elif loop.index == 3 %}
             <td class="right">{{ record.vasuliAarogyaKar or 0 }}</td>
             <td class="right">0</td>
             <td class="right">{{ record.vasuliChaluAarogyaKar or 0 }}</td>
             <td class="right">{{ (record.vasuliAarogyaKar or 0) + (record.vasuliChaluAarogyaKar or 0) }}</td>
-            <td class="right">{{ record.remainingAarogyaKar if record.remainingAarogyaKar is not none else 0 }}</td>
+            <td class="right balance-col">{{ record.remainingAarogyaKar if record.remainingAarogyaKar is not none else 0 }}</td>
         {% elif loop.index == 4 %}
             <td class="right">{{ record.vasuliSapanikar or 0 }}</td>
             <td class="right">0</td>
             <td class="right">{{ record.vasuliChaluSapanikar or 0 }}</td>
             <td class="right">{{ (record.vasuliSapanikar or 0) + (record.vasuliChaluSapanikar or 0) }}</td>
-            <td class="right">{{ record.remainingSapanikar if record.remainingSapanikar is not none else 0 }}</td>
+            <td class="right balance-col">{{ record.remainingSapanikar if record.remainingSapanikar is not none else 0 }}</td>
         {% elif loop.index == 5 %}
             <td class="right">{{ record.vasuliVpanikar or 0 }}</td>
             <td class="right">0</td>
             <td class="right">{{ record.vasuliChaluVpanikar or 0 }}</td>
             <td class="right">{{ (record.vasuliVpanikar or 0) + (record.vasuliChaluVpanikar or 0) }}</td>
-            <td class="right">{{ record.remainingVpanikar if record.remainingVpanikar is not none else 0 }}</td>
+            <td class="right balance-col">{{ record.remainingVpanikar if record.remainingVpanikar is not none else 0 }}</td>
         {% elif loop.index == 6 %}
             <td class="right">{{ record.vasuliCleaningTax or 0 }}</td>
             <td class="right">0</td>
             <td class="right">{{ record.vasuliChaluCleaningTax or 0 }}</td>
             <td class="right">{{ (record.vasuliCleaningTax or 0) + (record.vasuliChaluCleaningTax or 0) }}</td>
-            <td class="right">{{ record.remainingCleaningTax if record.remainingCleaningTax is not none else 0 }}</td>
+            <td class="right balance-col">{{ record.remainingCleaningTax if record.remainingCleaningTax is not none else 0 }}</td>
         {% else %}
             <td class="right">0</td>
             <td class="right">0</td>
             <td class="right">0</td>
             <td class="right">0</td>
-            <td class="right">0</td>
+            <td class="right balance-col">0</td>
         {% endif %}
     {% endif %}
 </tr>
 {% endfor %}
 
         </table>
-        <div style="font-size: 13px; margin-top: 4px; display: flex; justify-content: space-between;">
+        <div class="receipt-footer" style="font-size: 13px; margin-top: 4px; display: flex; justify-content: space-between;">
             <span>दिनांक : {{ record.pavti_date or '' }}</span>
             <span><b>रक्कम अक्षरी : रुपये {{ ekun_total | marathi_words }} फक्त</b></span>
             <span>सही सरपंच / ग्रामपंचायत अधिकारी</span>
         </div>
+        </div>
         {% if copy == 1 %}
-        <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
+        <div class="copy-separator" style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
         {% endif %}
         {% endfor %}
     </div>
