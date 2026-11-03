@@ -29,13 +29,21 @@
                 size: A4 landscape;
             }
             /* आडव्या A4 पानात पूर्ण टेबल बसावे - नाहीतर min-width मुळे उजवीकडचा
-               (शेरा) कॉलम व त्याची रेषा पानाबाहेर कापली जाते. */
-            #mainContent { zoom: 1 !important; }
+               (शेरा) कॉलम व त्याची रेषा पानाबाहेर कापली जाते. एवढं करूनही टेबल रुंद
+               राहिला तर खालचा beforeprint script #mainContent लहान करतो. */
             .main-table { width: 100% !important; font-size: 10px !important; }
             .main-table th, .main-table td {
                 min-width: 0 !important;
                 padding: 1px 2px;
             }
+        }
+        /* beforeprint मध्ये रुंदी मोजताना प्रिंटसारखेच नियम */
+        body.print-measure .main-table { width: 100% !important; font-size: 10px !important; }
+        body.print-measure .main-table th, body.print-measure .main-table td {
+            min-width: 0 !important;
+            padding: 1px 2px;
+        }
+        @media print {
             #toolbar {
                 display: none !important;
             }
@@ -142,6 +150,21 @@
                 }, 100);
             }, 50);
         }
+        // 1040px = A4 landscape छापील रुंदी (297mm - दोन्ही बाजूचे default margin).
+        const PRINT_WIDTH_PX = 1040;
+        window.addEventListener('beforeprint', function() {
+            const content = document.getElementById('mainContent');
+            content.style.zoom = 1;
+            document.body.classList.add('print-measure');
+            const prevWidth = content.style.width;
+            content.style.width = PRINT_WIDTH_PX + 'px';
+            const t = content.querySelector('.main-table');
+            const needed = t ? t.scrollWidth : 0;
+            content.style.width = prevWidth;
+            document.body.classList.remove('print-measure');
+            content.style.zoom = needed > PRINT_WIDTH_PX ? (PRINT_WIDTH_PX / needed) : 1;
+        });
+        window.addEventListener('afterprint', updateZoom);
         function exitPage() {
             window.close();
         }
