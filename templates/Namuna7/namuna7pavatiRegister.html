@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <title>घोषवारा प्रकरण 1</title>
     <style>
-        body { font-family: 'Mangal', Arial, sans-serif; }
+        body { font-family: 'Mangal', Arial, sans-serif; margin: 0; width: 100%; }
+        #mainContent { width: 100%; box-sizing: border-box; padding: 0 8px; }
         table { border-collapse: collapse; width: 100%; font-size: 13px; }
         .header-table td { border: none; padding: 2px 4px; }
         .center { text-align: center; }
@@ -45,7 +46,8 @@
         }
         @media print {
             @page {
-                size: A4;
+                size: A4 landscape;
+                margin: 8mm;
             }
             #toolbar {
                 display: none !important;
