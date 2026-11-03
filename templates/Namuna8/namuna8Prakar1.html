@@ -13,10 +13,10 @@
         .bold { font-weight: bold; }
         th, td { border: 1px solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
         th { background: #f0f0f0; }
-        /* शौचालय/घरकुल/व्दार: @page डावा/उजवा margin 4mm केल्याने वाचलेली जागा (~47px) एवढीच या
-           3 column ची एकूण रुंदी (22/23/24 क्रमांकाच्या div ने ठरते - टेबल overflow असताना Chrome td/th वरची width मानत नाही), म्हणून बाकी 21 column ची रुंदी व फॉन्ट Aditya च्या प्रिंटसारखेच राहतात */
-        .extra-col { font-size: 8px; line-height: 1.1; padding: 0 1px; overflow-wrap: anywhere; }
-        th.extra-col-title { writing-mode: vertical-rl; }
+        /* शौचालय/घरकुल/व्दार: या 3 column ची रुंदी 22/23/24 क्रमांकाच्या div ने ठरते (टेबल overflow असताना
+           Chrome td/th वरची width मानत नाही). आधी ती ~47px होती आणि मजकूर एक-एक अक्षर तुटून वाचता येत नव्हता -
+           आता वाचता येईल एवढी रुंदी; त्यासाठी लागणारी जागा खालच्या @media print मधल्या लहान फॉन्टमधून मिळते */
+        .extra-col { font-size: 9px; line-height: 1.15; padding: 0 2px; overflow-wrap: anywhere; }
         .footer-summary {
             border: 3px solid #000;
             font-size: 13px;
@@ -200,6 +200,13 @@
         };
     </script>
     <div id="mainContent">
+    {# "पूर्ण प्रिंट करा" (सर्व गावं) मध्ये data = [{villageName, records}, ...] येतं - प्रत्येक गावासाठी हाच रजिस्टर
+       त्या गावाच्या शीर्षकासह छापतो (आधी वेगळा *copy.html होता, त्यात आधार/मोबाईल/घरकुल नव्हते). एका गावासाठी data = records. #}
+    {% set villages = data if (data and data[0].records is defined) else [{'records': data}] %}
+    {% for v in villages %}
+    {% set data = v.records %}
+    {% if v.villageName is defined %}{% set gramPanchayat, village, taluka, jilha, yearFrom, yearTo, tip = data[0].gramPanchayat, data[0].village, data[0].taluka, data[0].jilha, data[0].yearFrom, data[0].yearTo, data[0].tip %}{% endif %}
+    {% if not loop.first %}<div style="break-before: page; page-break-before: always;"></div>{% endif %}
     <!-- Main Data Table -->
     <table class="main-table" style="margin-top:0; width:100%;">
         <!-- Page Header - Repeats on every page -->
@@ -243,9 +250,9 @@
                 <th rowspan="2">भांडवली मुल्य (रु.)</th>
                 <th rowspan="2">कराचे दर (पैसे)</th>
                 <th colspan="7">कराची रक्कम (रु.)</th>
-                <th rowspan="2" class="extra-col extra-col-title">शौचालय</th>
-                <th rowspan="2" class="extra-col extra-col-title">घरकुल</th>
-                <th rowspan="2" class="extra-col extra-col-title">व्दार</th>
+                <th rowspan="2" class="extra-col">शौचालय</th>
+                <th rowspan="2" class="extra-col">घरकुल</th>
+                <th rowspan="2" class="extra-col">व्दार</th>
             </tr>
             <tr>
                 <th rowspan="1" style="width: 100px;">जमीन</th>
@@ -281,9 +288,9 @@
                 <th rowspan="1"></th>
                 <th rowspan="1"></th>
                 <th rowspan="1">21</th>
-                <th rowspan="1" class="extra-col"><div style="width: 11px;">22</div></th>
-                <th rowspan="1" class="extra-col"><div style="width: 16px;">23</div></th>
-                <th rowspan="1" class="extra-col"><div style="width: 11px;">24</div></th>
+                <th rowspan="1" class="extra-col"><div style="width: 38px;">22</div></th>
+                <th rowspan="1" class="extra-col"><div style="width: 64px;">23</div></th>
+                <th rowspan="1" class="extra-col"><div style="width: 38px;">24</div></th>
             </tr>
         </thead>
         
@@ -483,6 +490,7 @@
         </tbody>
     </table>
     
+    {% endfor %}
     <!-- Footer Summary - Outside table to avoid repetition -->
     <div class="footer-summary" id="footerSummary">
         <!-- Totals will be inserted here by JS -->
