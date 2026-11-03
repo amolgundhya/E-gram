@@ -110,24 +110,45 @@ async def verticalreport_csv(request: Request):
         if not isinstance(data, list):
             data = [data]
 
+        # गोषवारा स्क्रीनवरील कॉलम्स जसेच्या तसे (Excel Export = स्क्रीनवरील माहिती)
         columns = [
             ("srNo", "अ.क्र."),
-            ("propertyNumber", "मालमत्ता क्रमांक"),
-            ("ownerName", "मालमत्ता धारकाचे नाव"),
-            ("occupantName", "भोगवटदाराचे नाव"),
-            ("village", "गाव"),
-            ("mobileNumber", "मोबाईल क्रमांक"),
-            ("total_arearinfoot", "एकूण क्षेत्रफळ (चौ.फु.)"),
-            ("totalareainmeters", "एकूण क्षेत्रफळ (चौ.मी.)"),
-            ("totalCapitalValue", "भांडवली मूल्य"),
-            ("totalHouseTax", "घरपट्टी"),
+            ("propertyNumber", "मा.क्र."),
+            ("totalHouseTax", "घर कर"),
+            ("lightingTax", "दिवा कर"),
+            ("healthTax", "आ. कर"),
+            ("sapanikar", "सां.पाणी कर"),
+            ("vpanikar", "वि.पाणी कर"),
+            ("cleaningTax", "सफाई कर"),
+            ("totaltax", "एकूण कर"),
         ]
+        tax_keys = [key for key, _ in columns[2:]]
+
+        def _num(value):
+            try:
+                return float(value or 0)
+            except (TypeError, ValueError):
+                return 0.0
 
         buffer = io.StringIO()
         writer = csv.writer(buffer)
         writer.writerow([label for _, label in columns])
+        totals = {key: 0.0 for key in tax_keys}
         for row in data:
-            writer.writerow([row.get(key, "") for key, _ in columns])
+            values = []
+            for key, _ in columns:
+                value = row.get(key, "")
+                if key == "propertyNumber":
+                    # "2/2", "3/1" सारखे क्रमांक Excel तारीख म्हणून दाखवतो - text म्हणून ठेवा
+                    value = f'="{value}"' if value not in (None, "") else ""
+                elif key in totals:
+                    totals[key] += _num(value)
+                values.append(value)
+            writer.writerow(values)
+        writer.writerow(["", "एकूण"] + [
+            int(totals[key]) if totals[key].is_integer() else round(totals[key], 2)
+            for key in tax_keys
+        ])
 
         # utf-8-sig BOM so Excel renders Marathi/Devanagari text correctly
         csv_bytes = io.BytesIO(buffer.getvalue().encode("utf-8-sig"))
