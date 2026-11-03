@@ -624,6 +624,8 @@ app.mount("/reports", StaticFiles(directory="reports"), name="reports")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/uploaded_images", StaticFiles(directory="uploaded_images"), name="uploaded_images")
 app.mount("/ReportImages", StaticFiles(directory="ReportImages"), name="ReportImages")
+# रिपोर्ट्सचं shared JS (पान क्रमांक) - templates/_assets; फोल्डर नसला तरी backend चालू व्हावा म्हणून check_dir=False
+app.mount("/report_assets", StaticFiles(directory="templates/_assets", check_dir=False), name="report_assets")
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 # @app.get("/")
