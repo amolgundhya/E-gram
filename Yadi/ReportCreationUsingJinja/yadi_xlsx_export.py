@@ -10,6 +10,7 @@ import io
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 from openpyxl.utils import get_column_letter
+from Utility.benefit_year import financial_year_full
 
 SHEET1_COLUMNS = [
     ("srNo", "अ.क्र.", "int"),
@@ -195,10 +196,10 @@ def build_namuna8_register_workbook(properties: list) -> Workbook:
             "applyToiletTax": prop.get("applyToiletTax"),
             "taxNotApplicable": prop.get("taxNotApplicable"),
             "toilet": prop.get("toilet"),
-            "toiletBenefitYear": prop.get("toiletBenefitYear"),
+            "toiletBenefitYear": financial_year_full(prop.get("toiletBenefitYear")),
             "gharkul": prop.get("gharkul"),
             "gharkulYojana": prop.get("gharkulYojana"),
-            "gharkulBenefitYear": prop.get("gharkulBenefitYear"),
+            "gharkulBenefitYear": financial_year_full(prop.get("gharkulBenefitYear")),
             "waterFacility1": prop.get("waterFacility1"),
             "waterFacility2": prop.get("waterFacility2"),
             "house": prop.get("house"),
