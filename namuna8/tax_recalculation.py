@@ -9,10 +9,14 @@
 #  - सर्व बदल एकाच transaction मध्ये - commit आधी नमुना-8 प्रिंटचा डेटा (तोच
 #    property_records_by_village) प्रत्येक मालमत्तेसाठी अपेक्षित घरपट्टीशी जुळतो का ते
 #    तपासतो; एकही चूक/अपवाद आला तर संपूर्ण rollback (all-or-nothing).
-#  - फक्त constructions.capitalValue / constructions.houseTax बदलतात. पावत्या
-#    (namuna9_receipts), नमुना-9 (namuna9 / namuna9_property_data - चालू वा जुनी
-#    कोणतीही वर्षं), मालमत्तेचं क्षेत्रफळ, मालक, QR फाईल्स - काहीच बदलत नाही. (QR
-#    /namuna8/property_qrcode मागितल्यावर मजकूर बदलला असेल तर आपोआप नवीन बनतो.)
+#  - constructions.capitalValue / constructions.houseTax बदलतात. पावत्या
+#    (namuna9_receipts), जुनी नमुना-9 वर्षं, मालमत्तेचं क्षेत्रफळ, मालक, QR फाईल्स - काहीच
+#    बदलत नाही. (QR /namuna8/property_qrcode मागितल्यावर मजकूर बदलला असेल तर आपोआप नवीन बनतो.)
+#  - include_namuna9=True (पर्याय) असेल तरच, त्याच transaction मध्ये प्रत्येक गावाच्या फक्त
+#    चालू (सर्वात नवीन) नमुना-9 वर्षाचे आधीच जतन झालेले रो: चालू = आत्ताची मागणी - चालू
+#    वसुली, एकूण/total पुन्हा (namuna9/current_year_sync.py - नमुना-8 सेव्हसारखंच). थकित,
+#    दंड, फी, वसुली रकमा बदलत नाहीत; वसुली मागणीपेक्षा जास्त असेल तर चालू 0 व "जादा वसुली".
+#    पूर्वावलोकनात हे बदल पर्याय निवडला नसतानाही दाखवतो.
 #  - आधी/नंतर अहवाल: बदललेल्या मालमत्ता, एकूण घरपट्टी आधी/नंतर आणि मालमत्तावार Excel.
 import json
 import os
@@ -32,6 +36,7 @@ from namuna8.mastertab import mastertabmodels as settingModels
 from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate, get_assessment_year
 from namuna8.calculations.construction_tax import compute_construction_values
 from namuna8.recordresponses.property_record_response import get_property_records_by_village
+from namuna9 import current_year_sync
 
 BACKUP_DIR_NAME = "backups_before_tax_recalc"
 REPORT_DIR_NAME = "tax_recalc_reports"
@@ -115,16 +120,47 @@ def _money(v):
     return round(float(v or 0), 2)
 
 
-def run_recalculation(db, district_id, taluka_id, gram_panchayat, dry_run=False):
+def run_recalculation(db, district_id, taluka_id, gram_panchayat, dry_run=False, include_namuna9=False):
     if not _RUN_LOCK.acquire(blocking=False):
         raise RecalculationBusy()
     try:
-        return _run(db, district_id, taluka_id, gram_panchayat, dry_run)
+        return _run(db, district_id, taluka_id, gram_panchayat, dry_run, include_namuna9)
     finally:
         _RUN_LOCK.release()
 
 
-def _run(db, district_id, taluka_id, gram_panchayat, dry_run):
+def _namuna9_summary(n9_plans, prop_rows):
+    """चालू नमुना-9 वर्षाच्या बदलांचा सारांश + नमुना-8 प्रिंटच्या (नंतरच्या) घरपट्टीशी तुलना."""
+    tax_after = {r["property"].id: r["tax_after"] for r in prop_rows}
+    chalu_before = chalu_after = 0.0
+    overpaid, mismatch_n8, years = [], [], set()
+    for prop, rec, row, p in n9_plans:
+        years.add(rec.yearslap)
+        chalu_before += sum(h["old"] for h in p["heads"].values())
+        chalu_after += sum(h["new"] for h in p["heads"].values())
+        if p["overpaid"]:
+            overpaid.append({"malmattaKramank": prop.malmattaKramank, "yearslap": rec.yearslap, "heads": p["overpaid"]})
+        n8 = round(tax_after.get(prop.id, 0), 2)
+        if not prop.karLaguNahi and p["heads"]["Ghar"]["demand"] != n8:
+            mismatch_n8.append({"malmattaKramank": prop.malmattaKramank, "namuna9": p["heads"]["Ghar"]["demand"], "namuna8": n8})
+    return {
+        "years": sorted(years),
+        "rows_total": len(n9_plans),
+        "rows_changed": sum(1 for _, _, _, p in n9_plans if p["changed"]),
+        "chalu_total_before": _money(chalu_before),
+        "chalu_total_after": _money(chalu_after),
+        "overpaid": overpaid,
+        "mismatch_namuna8": mismatch_n8,
+        "examples": [
+            {"malmattaKramank": prop.malmattaKramank, "yearslap": rec.yearslap,
+             "ghar_before": p["heads"]["Ghar"]["old"], "ghar_after": p["heads"]["Ghar"]["new"],
+             "total_before": p["old_total"], "total_after": p["new_total"]}
+            for prop, rec, row, p in n9_plans if p["changed"]
+        ][:10],
+    }
+
+
+def _run(db, district_id, taluka_id, gram_panchayat, dry_run, include_namuna9=False):
     gram_panchayat_id = gram_panchayat.id
     started = datetime.now()
     stamp = started.strftime("%Y%m%d_%H%M%S")
@@ -194,6 +230,12 @@ def _run(db, district_id, taluka_id, gram_panchayat, dry_run):
             "cap_before": print_cap_before, "cap_after": print_cap_after,
         })
 
+    # नमुना-9 चालू वर्ष - फक्त मोजणी (पूर्वावलोकनासाठी नेहमी; लागू फक्त include_namuna9 ने).
+    n9_plans = current_year_sync.plan_properties(db, properties, current_year_sync.demand_context(db, gram_panchayat_id))
+    n9_summary = _namuna9_summary(n9_plans, prop_rows)
+    n9_summary["included"] = bool(include_namuna9)
+    n9_apply = bool(include_namuna9) and n9_summary["rows_changed"] > 0
+
     summary = {
         "dry_run": bool(dry_run),
         "gram_panchayat": gram_panchayat.name,
@@ -208,11 +250,12 @@ def _run(db, district_id, taluka_id, gram_panchayat, dry_run):
         "total_capital_value_before": _money(sum(r["cap_before"] for r in prop_rows)),
         "total_capital_value_after": _money(sum(r["cap_after"] for r in prop_rows)),
         "skipped": skipped,
+        "namuna9": n9_summary,
         "backup_path": None,
         "started_at": started.isoformat(timespec="seconds"),
     }
 
-    if not dry_run and plan:
+    if not dry_run and (plan or n9_apply):
         # 2) बॅकअप - जमला नाही तर इथेच थांबतो (DB ला हात लावलेला नाही).
         try:
             summary["backup_path"] = backup_database(stamp)
@@ -233,6 +276,11 @@ def _run(db, district_id, taluka_id, gram_panchayat, dry_run):
                     mismatches.append("%s: अपेक्षित %s, प्रिंट %s" % (p.malmattaKramank, r["tax_after"], got))
             if mismatches:
                 raise RuntimeError("पडताळणी अयशस्वी (%d मालमत्ता) - उदा. %s" % (len(mismatches), "; ".join(mismatches[:5])))
+            if n9_apply:
+                for _prop, _rec, row, p in n9_plans:
+                    if p["changed"]:
+                        current_year_sync.apply_plan(row, p)
+                db.flush()
             db.commit()
         except Exception as e:
             db.rollback()
@@ -244,7 +292,7 @@ def _run(db, district_id, taluka_id, gram_panchayat, dry_run):
     try:
         os.makedirs(report_dir(), exist_ok=True)
         file_name = "tax_recalc_%s%d_%s.xlsx" % ("preview_" if dry_run else "", gram_panchayat_id, stamp)
-        build_report_workbook(summary, prop_rows, cons_rows).save(os.path.join(report_dir(), file_name))
+        build_report_workbook(summary, prop_rows, cons_rows, n9_plans).save(os.path.join(report_dir(), file_name))
         summary["report_file"] = file_name
     except Exception as e:
         summary["report_file"] = None
@@ -276,7 +324,7 @@ def _sheet(wb, title, columns, first=False):
     return ws
 
 
-def build_report_workbook(summary, prop_rows, cons_rows):
+def build_report_workbook(summary, prop_rows, cons_rows, n9_plans=()):
     wb = Workbook()
     ws = _sheet(wb, "सारांश", [("तपशील", 42), ("मूल्य", 60)], first=True)
     lines = [
@@ -294,7 +342,12 @@ def build_report_workbook(summary, prop_rows, cons_rows):
         ("एकूण भांडवली मूल्य - आधी", summary["total_capital_value_before"]),
         ("एकूण भांडवली मूल्य - नंतर", summary["total_capital_value_after"]),
         ("DB बॅकअप", summary.get("backup_path") or "-"),
-        ("टीप", "पावत्या व नमुना-9 (कोणतंही वर्ष) बदललेले नाहीत. कर लागू नाही असलेल्या मालमत्तांची प्रिंट/नमुना-9 घरपट्टी 0 च राहते."),
+        ("नमुना-9 चालू वर्ष", ("समाविष्ट" if summary["namuna9"]["included"] else "समाविष्ट नाही (फक्त माहितीसाठी)")
+                              + " - " + (", ".join(summary["namuna9"]["years"]) or "-")),
+        ("नमुना-9 बदलणारे रो", "%s / %s" % (summary["namuna9"]["rows_changed"], summary["namuna9"]["rows_total"])),
+        ("नमुना-9 एकूण चालू - आधी / नंतर", "%s / %s" % (summary["namuna9"]["chalu_total_before"], summary["namuna9"]["chalu_total_after"])),
+        ("नमुना-9 जादा वसुली (मागणीपेक्षा जास्त)", len(summary["namuna9"]["overpaid"])),
+        ("टीप", "पावत्या, वसुली, थकित, दंड/फी व जुनी नमुना-9 वर्षं बदललेली नाहीत. कर लागू नाही असलेल्या मालमत्तांची प्रिंट/नमुना-9 घरपट्टी 0 च राहते."),
     ]
     for r, (k, v) in enumerate(lines, start=2):
         ws.cell(row=r, column=1, value=k).font = _HEAD_FONT
@@ -336,4 +389,23 @@ def build_report_workbook(summary, prop_rows, cons_rows):
             if r["changed"]:
                 cell.fill = _CHANGED_FILL
     ws.auto_filter.ref = "A1:%s%d" % (get_column_letter(len(cols)), max(len(cons_rows) + 1, 1))
+
+    if n9_plans:
+        cols = [("गाव", 8), ("वर्ष", 11), ("मालमत्ता क्रमांक", 14), ("घरपट्टी मागणी", 12), ("घरपट्टी वसुली", 12),
+                ("चालू घर - आधी", 12), ("चालू घर - नंतर", 12), ("इतर चालू - आधी", 12), ("इतर चालू - नंतर", 12),
+                ("एकूण - आधी", 12), ("एकूण - नंतर", 12), ("जादा वसुली", 34), ("बदल", 8)]
+        ws = _sheet(wb, "नमुना-9 चालू वर्ष", cols)
+        for row, (prop, rec, _r, p) in enumerate(n9_plans, start=2):
+            h = p["heads"]
+            other_old = sum(v["old"] for k, v in h.items() if k != "Ghar")
+            other_new = sum(v["new"] for k, v in h.items() if k != "Ghar")
+            extra = ", ".join("%s: वसुली %s > मागणी %s" % (o["head"], o["paid"], o["demand"]) for o in p["overpaid"])
+            values = [prop.village_id, rec.yearslap, prop.malmattaKramank, h["Ghar"]["demand"], h["Ghar"]["paid"],
+                      h["Ghar"]["old"], h["Ghar"]["new"], _money(other_old), _money(other_new),
+                      p["old_total"], p["new_total"], extra, "होय" if p["changed"] else ""]
+            for i, v in enumerate(values, start=1):
+                cell = ws.cell(row=row, column=i, value=v)
+                if p["changed"] or extra:
+                    cell.fill = _CHANGED_FILL
+        ws.auto_filter.ref = "A1:%s%d" % (get_column_letter(len(cols)), len(n9_plans) + 1)
     return wb
