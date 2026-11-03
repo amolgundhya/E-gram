@@ -133,6 +133,24 @@
                 }, 100);
             }, 50);
         }
+        // प्रिंटमध्ये टेबल A4 landscape पेक्षा रुंद असेल तर Chrome ठराविक मर्यादेपर्यंतच लहान
+        // करतो, उरलेली उजवी बाजू (शेरा कॉलम, उजवी रेघ) कापली जाते. म्हणून प्रिंटच्या आधी
+        // टेबलची खरी रुंदी मोजून तेवढंच लहान करतो (Chrome च्या मर्यादेइतकंच, त्यामुळे ओळींची
+        // उंची/पान-विभाजन बदलत नाही). 1040px = A4 landscape (297mm - दोन्ही बाजूचे default margin).
+        const PRINT_WIDTH_PX = 1040;
+        window.addEventListener('beforeprint', function() {
+            const content = document.getElementById('mainContent');
+            content.style.zoom = 1;
+            let widest = 0;
+            document.querySelectorAll('.print-page').forEach(function(p) {
+                if (p.style.display === 'none') return;
+                const t = p.querySelector('.main-table');
+                if (t) widest = Math.max(widest, t.scrollWidth);
+            });
+            const needed = widest + 16; // body margin
+            content.style.zoom = needed > PRINT_WIDTH_PX ? (PRINT_WIDTH_PX / needed) : 1;
+        });
+        window.addEventListener('afterprint', updateZoom);
         function exitPage() {
             window.close();
         }
