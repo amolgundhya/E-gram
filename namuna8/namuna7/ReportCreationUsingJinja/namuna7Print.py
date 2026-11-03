@@ -97,8 +97,10 @@ async def receipt_all(request : Request):
         if requestData.get("village_id"):
             params["village_id"] = requestData.get("village_id")
 
+        # installer/दुसऱ्या port वरही चालावं म्हणून ज्या backend ला request आला तोच (127.0.0.1:8000 hard-code नाही)
+        base_url = str(request.base_url).rstrip('/')
         async with httpx.AsyncClient() as client:
-            response = await client.get(f'{localhost}/namuna7/prints/by-date/', params=params)
+            response = await client.get(f'{base_url}/namuna7/prints/by-date/', params=params)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
