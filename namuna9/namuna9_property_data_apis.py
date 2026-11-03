@@ -357,8 +357,8 @@ def _adjust_property_data_for_receipt(db: Session, namuna9_id: int, property_id:
     """Adjust a property's थकित/चालू/दंड/fee ledger row by the given per-field
     deltas (positive = restore/add back, negative = subtract as collected).
     Used to keep receipts (भरणा) and the tax ledger in sync on
-    create/edit/delete, without touching एकूण - that's always recomputed
-    live from shakti+chalu+dand elsewhere, never stored. Silently no-ops if
+    create/edit/delete, also undoing the stored vasuli totals and recomputing
+    the stored एकूण/total the same way /property-data/collect does. Silently no-ops if
     the property has no ledger row yet (nothing to adjust against) - this
     only affects receipts created from now on, not historical ones.
     """
@@ -374,8 +374,23 @@ def _adjust_property_data_for_receipt(db: Session, namuna9_id: int, property_id:
         if delta:
             current = getattr(row, prop_field, 0) or 0
             setattr(row, prop_field, round(max(current + delta, 0), 2))
+            # /property-data/collect ने याच रो वर वसुली रक्कम जमा केली होती -
+            # पावती डिलीट/एडिट झाल्यावर ती पण उलटी करतो, नाहीतर वसुली दुप्पट दिसते.
+            current_vasuli = getattr(row, vasuli_field, 0) or 0
+            setattr(row, vasuli_field, round(max(current_vasuli - delta, 0), 2))
             changed = True
     if changed:
+        # एकूण/total पण DB मध्ये साठवलेले आहेत - collect प्रमाणेच पुन्हा मोजतो,
+        # नाहीतर चालू परत आला तरी एकूण जुनाच (कमी) दिसतो.
+        row.ekunGhar = (row.shaktiGhar or 0) + (row.chaluGhar or 0) + (row.dand or 0)
+        row.ekunDiva = (row.shaktiDiva or 0) + (row.chaluDiva or 0)
+        row.ekunAarogyaKar = (row.shaktiAarogyaKar or 0) + (row.chaluAarogyaKar or 0)
+        row.ekunSapanikar = (row.shaktiSapanikar or 0) + (row.chaluSapanikar or 0)
+        row.ekunVpanikar = (row.shaktiVpanikar or 0) + (row.chaluVpanikar or 0)
+        row.ekunCleaningTax = (row.shaktiCleaningTax or 0) + (row.chaluCleaningTax or 0)
+        row.total = (row.ekunGhar + row.ekunDiva + row.ekunAarogyaKar + row.ekunSapanikar +
+                     row.ekunVpanikar + row.ekunCleaningTax + (row.noticeFee or 0) +
+                     (row.warrantFee or 0))  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
         db.commit()
 
 
@@ -601,8 +616,11 @@ def list_receipts(
     to_date: Optional[str] = None,
     receipt_id: Optional[int] = None,
     show_all: bool = False,
+    search: Optional[str] = None,
     db: Session = Depends(database.get_db)
 ):
+    # search: मालकाचे नाव / भोगवटदाराचे नाव / मालमत्ता क्रमांक यापैकी कशातही (case-insensitive,
+    # भाग-जुळणी) शोधतो. नसेल तर आधीसारखंच सर्व पावत्या परत.
     # Validate hierarchy
     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
     if not district:
@@ -710,8 +728,13 @@ def list_receipts(
                     pass
             village = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop.village_id).first()
             rec.village = getattr(village, 'name', None) if village else None
+            try:
+                rec.occupant = getattr(prop.owners[0], 'occupantName', None) if prop.owners else None
+            except Exception:
+                rec.occupant = None
         else:
             rec.village = None
+            rec.occupant = None
 
         # शिल्लक थकबाकी - थकित (shakti*) + चालू (chalu*) दोन्ही मिळून, तक्ता/प्रिंट प्रमाणेच
         ledger_row = db.query(namuna9_model.Namuna9PropertyData).filter(
@@ -732,6 +755,15 @@ def list_receipts(
             )
 
     db.commit()
+
+    term = (search or '').strip().lower()
+    if term:
+        results = [
+            r for r in results
+            if term in (r.owner_name or '').lower()
+            or term in (getattr(r, 'occupant', None) or '').lower()
+            or term in str(r.malmatta_kramank or '').lower()
+        ]
 
     print(f"[DEBUG] Show All Mode: {show_all}")
     print(f"[DEBUG] Total receipts returned: {len(results)}")
