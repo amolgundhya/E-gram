@@ -143,35 +143,14 @@
     /* ROW 3 - पूर्ण रुंदीत, बटणांच्या मध्ये न अडकता खालच्या भागात 3 ओळी. मोठ्या QR
        मुळे उरलेली जागा कमी झालीच आहे; उरलेल्या जागेत मजकूर वरतीच (flex-start) ठेवतो,
        जेणेकरून मधल्या रांगेखालची पोकळी वाढणार नाही. */
-    /* खालचा भाग: [घर कर QR] | मजकूर (bottom-row) | [पाणी कर QR]. Bank QR नसतील तर
-       फक्त bottom-row, पूर्ण रुंदीत - आधीसारखाच. */
+    /* खालचा भाग: फक्त मजकूर (bottom-row), पूर्ण रुंदीत. घर कर / पाणी कर QR आणि
+       मोबाईल क्र. प्लेटवर नाहीत - मोठ्या QR च्या मजकुरात, स्कॅन केल्यावर दिसतात
+       (क्लायंट विनंती, नोव्हें 2026). */
     .bottom-area {
       flex: 1 1 auto;
       min-height: 0;
       display: flex;
       gap: 0.06in;
-    }
-    .bank-qr {
-      flex: 0 0 auto;
-      width: 0.75in;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.02in;
-    }
-    .bank-qr img {
-      width: 0.7in;
-      height: 0.7in;
-      object-fit: contain;
-      print-color-adjust: exact; -webkit-print-color-adjust: exact;
-    }
-    .bank-qr .bank-label {
-      font-weight: 700;
-      color: #000;
-      font-size: 8pt;
-      line-height: 1.1;
-      white-space: nowrap;
     }
     .bottom-row {
       flex: 1 1 auto;
@@ -572,35 +551,14 @@
       </div>
 
       <div class="bottom-area">
-        {% if houseTaxQrUrl or waterTaxQrUrl %}
-        <div class="bank-qr">
-          {% if houseTaxQrUrl %}
-          <img src="{{ houseTaxQrUrl }}" alt="घर कर QR" />
-          <div class="bank-label">घर कर</div>
-          {% endif %}
-        </div>
-        {% endif %}
       <div class="bottom-row">
         <div class="owner-name">{{p.owner_name}}</div>
         <div class="id-occ-line">
           अ.क्र. {{p.sr_no}} / <span class="nowrap-group">मालमत्ता क्र. {{p.malmatta_kramank}}</span> | भोगवटदार: {{p.occupant_name}}
         </div>
-        {# खाली जागा व चतुःसीमा (पूर्व/पश्चिम/उत्तर/दक्षिण) प्लेटवर दाखवत नाही - क्लायंट विनंती #}
-        {% if p.mobile_number %}
-        <div class="info-line">
-          <span class="nowrap-group">मोबाईल क्र. : {{ p.mobile_number }}</span>
-        </div>
-        {% endif %}
+        {# मोबाईल, खाली जागा व चतुःसीमा (दिशा) प्लेटवर नाहीत - मोठ्या QR मध्ये (क्लायंट विनंती) #}
         <div class="tagline">{{p.tagline}}</div>
       </div>
-        {% if houseTaxQrUrl or waterTaxQrUrl %}
-        <div class="bank-qr">
-          {% if waterTaxQrUrl %}
-          <img src="{{ waterTaxQrUrl }}" alt="पाणी कर QR" />
-          <div class="bank-label">पाणी कर</div>
-          {% endif %}
-        </div>
-        {% endif %}
       </div>
     </div>
     {% endfor %}
@@ -703,7 +661,7 @@
           guard++;
         }
 
-        // शेवटचा उपाय (मोबाईल/खाली जागा/बँक QR मुळे जागा कमी झाल्यावर): तरीही बसत नसेल
+        // शेवटचा उपाय (लांब नाव / भोगवटदार मुळे जागा कमी झाल्यावर): तरीही बसत नसेल
         // तर सगळा मजकूर एकत्र थोडा थोडा लहान (किमान 6pt) - मजकूर कापला जाऊ नये म्हणून.
         // नाव/दुसऱ्या ओळीची 2-ओळींची मर्यादा काढतो, म्हणजे लहान झालेला मजकूर पूर्ण दिसतो.
         if (bottomRow.scrollHeight > bottomRow.clientHeight + 1) {

@@ -368,7 +368,7 @@
 <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
     <tr>
         <td style="text-align: left; border-right: 1px solid #000;">{% if toilet == 'आहे' %}शौचालय : {% if toiletBenefitYear %}सन {{ toiletBenefitYear|financial_year_full }} शौचालयाचा लाभ मिळालेला आहे.{% else %}शौचालयाचा लाभ मिळालेला आहे.{% endif %}{% else %}शौचालय : {{toilet|default('')}}{% if toiletBenefitYear and toilet != 'नाही' %} ({{ toiletBenefitYear|financial_year_full }}){% endif %}{% endif %} </td>
-        <td style="text-align: left; border-right: 1px solid #000;">{% if dwarNaav %}व्दार : {{dwarNaav}}{% endif %}</td>
+        <td style="text-align: left; border-right: 1px solid #000;">व्दार : {{dwarNaav|default('', true)}}</td>
         {% if boundaryMarking %}
         <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
         {% else %}

@@ -25,9 +25,6 @@ import sqlite3
 import threading
 from datetime import datetime
 
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill
-from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import selectinload
 
 import database
@@ -306,12 +303,15 @@ def _run(db, district_id, taluka_id, gram_panchayat, dry_run, include_namuna9=Fa
 
 
 # ---------------- Excel ----------------
-_HEAD_FONT = Font(bold=True)
-_HEAD_FILL = PatternFill("solid", fgColor="DDEBF7")
-_CHANGED_FILL = PatternFill("solid", fgColor="FFF2CC")
+# openpyxl (numpy सकट) फक्त रिपोर्ट बनवताना लोड करतो - main.py चा auto-register हे
+# मॉड्यूल सर्व्हर सुरू होतानाच import करतो, त्यामुळे वरती import केल्यास स्टार्टअप मंदावतो.
 
 
 def _sheet(wb, title, columns, first=False):
+    from openpyxl.styles import Font, Alignment, PatternFill
+    from openpyxl.utils import get_column_letter
+    _HEAD_FONT = Font(bold=True)
+    _HEAD_FILL = PatternFill("solid", fgColor="DDEBF7")
     ws = wb.active if first else wb.create_sheet()
     ws.title = title
     for i, (name, width) in enumerate(columns, start=1):
@@ -325,6 +325,11 @@ def _sheet(wb, title, columns, first=False):
 
 
 def build_report_workbook(summary, prop_rows, cons_rows, n9_plans=()):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill
+    from openpyxl.utils import get_column_letter
+    _HEAD_FONT = Font(bold=True)
+    _CHANGED_FILL = PatternFill("solid", fgColor="FFF2CC")
     wb = Workbook()
     ws = _sheet(wb, "सारांश", [("तपशील", 42), ("मूल्य", 60)], first=True)
     lines = [

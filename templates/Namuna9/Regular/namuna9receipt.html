@@ -192,30 +192,34 @@
                     सन : {{ record.yearslap or '' }}
                 </td>
                 {% if record.QRcodeURL or record.houseTaxQrUrl or record.waterTaxQrUrl %}
+                <td class="center bold" style="vertical-align: middle;">
+                    <div style="display:flex; justify-content:center; align-items:flex-start; gap:14px; padding-left:60px;">
                 {% if record.QRcodeURL %}
-                <td class="center bold" style="text-align:center;">
-                    <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img class="qr-img" src="{{ record.QRcodeURL }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    <div style="text-align:center;">
+                        <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                            <img class="qr-img" src="{{ record.QRcodeURL }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                        </div>
+                        <div style="font-size:10px; margin-top:2px;">मालमत्ता QR</div>
                     </div>
-                    <div style="font-size:10px; margin-top:2px;">मालमत्ता QR</div>
-                </td>
                 {% endif %}
                 {% if record.houseTaxQrUrl %}
-                <td class="center bold" style="text-align:center;">
-                    <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img class="qr-img" src="{{ record.houseTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    <div style="text-align:center;">
+                        <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                            <img class="qr-img" src="{{ record.houseTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                        </div>
+                        <div style="font-size:10px; margin-top:2px;">घर कर</div>
                     </div>
-                    <div style="font-size:10px; margin-top:2px;">घर कर</div>
-                </td>
                 {% endif %}
                 {% if record.waterTaxQrUrl %}
-                <td class="center bold" style="text-align:center;">
-                    <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img class="qr-img" src="{{ record.waterTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    <div style="text-align:center;">
+                        <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                            <img class="qr-img" src="{{ record.waterTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                        </div>
+                        <div style="font-size:10px; margin-top:2px;">पाणी कर</div>
                     </div>
-                    <div style="font-size:10px; margin-top:2px;">पाणी कर</div>
-                </td>
                 {% endif %}
+                    </div>
+                </td>
                 {% else %}
                 <td>
                     <div class="center bold qr-box" style="border: 1px solid #000; width: 100px; height: 100px; margin: 0 auto; overflow:hidden;"></div>
@@ -279,54 +283,54 @@
         <td class="right"></td>
         <td class="right balance-col"></td>
     {% elif tax == 'एकूण देय रक्कम' %}
-        <td class="right">{{ thakit_total }}</td>
-        <td class="right">{{ dand_total }}</td>
-        <td class="right">{{ chalu_total }}</td>
-        <td class="right">{{ ekun_total }}</td>
-        <td class="right balance-col">{{ record.remainingTotal if record.remainingTotal is not none else 0 }}</td>
+        <td class="right">{{ (thakit_total) | amount }}</td>
+        <td class="right">{{ (dand_total) | amount }}</td>
+        <td class="right">{{ (chalu_total) | amount }}</td>
+        <td class="right">{{ (ekun_total) | amount }}</td>
+        <td class="right balance-col">{{ (record.remainingTotal if record.remainingTotal is not none else 0) | amount }}</td>
     {% elif tax == 'सूट नंतर एकूण देय रक्कम' %}
-        <td class="right">{{ thakit_total }}</td>
-        <td class="right">{{ dand_total }}</td>
-        <td class="right">{{ chalu_total }}</td>
-        <td class="right">{{ ekun_total }}</td>
-        <td class="right balance-col">{{ record.remainingTotal if record.remainingTotal is not none else 0 }}</td>
+        <td class="right">{{ (thakit_total) | amount }}</td>
+        <td class="right">{{ (dand_total) | amount }}</td>
+        <td class="right">{{ (chalu_total) | amount }}</td>
+        <td class="right">{{ (ekun_total) | amount }}</td>
+        <td class="right balance-col">{{ (record.remainingTotal if record.remainingTotal is not none else 0) | amount }}</td>
     {% else %}
         {% if loop.index == 1 %}
-            <td class="right">{{ record.vasuliGhar or 0 }}</td>
-            <td class="right">{{ record.vasuliDand or 0 }}</td>
-            <td class="right">{{ record.vasuliChaluGhar or 0 }}</td>
-            <td class="right">{{ (record.vasuliGhar or 0) + (record.vasuliDand or 0) + (record.vasuliChaluGhar or 0) }}</td>
-            <td class="right balance-col">{{ record.remainingGhar if record.remainingGhar is not none else 0 }}</td>
+            <td class="right">{{ (record.vasuliGhar or 0) | amount }}</td>
+            <td class="right">{{ (record.vasuliDand or 0) | amount }}</td>
+            <td class="right">{{ (record.vasuliChaluGhar or 0) | amount }}</td>
+            <td class="right">{{ ((record.vasuliGhar or 0) + (record.vasuliDand or 0) + (record.vasuliChaluGhar or 0)) | amount }}</td>
+            <td class="right balance-col">{{ (record.remainingGhar if record.remainingGhar is not none else 0) | amount }}</td>
         {% elif loop.index == 2 %}
-            <td class="right">{{ record.vasuliDiva or 0 }}</td>
+            <td class="right">{{ (record.vasuliDiva or 0) | amount }}</td>
             <td class="right">0</td>
-            <td class="right">{{ record.vasuliChaluDiva or 0 }}</td>
-            <td class="right">{{ (record.vasuliDiva or 0) + (record.vasuliChaluDiva or 0) }}</td>
-            <td class="right balance-col">{{ record.remainingDiva if record.remainingDiva is not none else 0 }}</td>
+            <td class="right">{{ (record.vasuliChaluDiva or 0) | amount }}</td>
+            <td class="right">{{ ((record.vasuliDiva or 0) + (record.vasuliChaluDiva or 0)) | amount }}</td>
+            <td class="right balance-col">{{ (record.remainingDiva if record.remainingDiva is not none else 0) | amount }}</td>
         {% elif loop.index == 3 %}
-            <td class="right">{{ record.vasuliAarogyaKar or 0 }}</td>
+            <td class="right">{{ (record.vasuliAarogyaKar or 0) | amount }}</td>
             <td class="right">0</td>
-            <td class="right">{{ record.vasuliChaluAarogyaKar or 0 }}</td>
-            <td class="right">{{ (record.vasuliAarogyaKar or 0) + (record.vasuliChaluAarogyaKar or 0) }}</td>
-            <td class="right balance-col">{{ record.remainingAarogyaKar if record.remainingAarogyaKar is not none else 0 }}</td>
+            <td class="right">{{ (record.vasuliChaluAarogyaKar or 0) | amount }}</td>
+            <td class="right">{{ ((record.vasuliAarogyaKar or 0) + (record.vasuliChaluAarogyaKar or 0)) | amount }}</td>
+            <td class="right balance-col">{{ (record.remainingAarogyaKar if record.remainingAarogyaKar is not none else 0) | amount }}</td>
         {% elif loop.index == 4 %}
-            <td class="right">{{ record.vasuliSapanikar or 0 }}</td>
+            <td class="right">{{ (record.vasuliSapanikar or 0) | amount }}</td>
             <td class="right">0</td>
-            <td class="right">{{ record.vasuliChaluSapanikar or 0 }}</td>
-            <td class="right">{{ (record.vasuliSapanikar or 0) + (record.vasuliChaluSapanikar or 0) }}</td>
-            <td class="right balance-col">{{ record.remainingSapanikar if record.remainingSapanikar is not none else 0 }}</td>
+            <td class="right">{{ (record.vasuliChaluSapanikar or 0) | amount }}</td>
+            <td class="right">{{ ((record.vasuliSapanikar or 0) + (record.vasuliChaluSapanikar or 0)) | amount }}</td>
+            <td class="right balance-col">{{ (record.remainingSapanikar if record.remainingSapanikar is not none else 0) | amount }}</td>
         {% elif loop.index == 5 %}
-            <td class="right">{{ record.vasuliVpanikar or 0 }}</td>
+            <td class="right">{{ (record.vasuliVpanikar or 0) | amount }}</td>
             <td class="right">0</td>
-            <td class="right">{{ record.vasuliChaluVpanikar or 0 }}</td>
-            <td class="right">{{ (record.vasuliVpanikar or 0) + (record.vasuliChaluVpanikar or 0) }}</td>
-            <td class="right balance-col">{{ record.remainingVpanikar if record.remainingVpanikar is not none else 0 }}</td>
+            <td class="right">{{ (record.vasuliChaluVpanikar or 0) | amount }}</td>
+            <td class="right">{{ ((record.vasuliVpanikar or 0) + (record.vasuliChaluVpanikar or 0)) | amount }}</td>
+            <td class="right balance-col">{{ (record.remainingVpanikar if record.remainingVpanikar is not none else 0) | amount }}</td>
         {% elif loop.index == 6 %}
-            <td class="right">{{ record.vasuliCleaningTax or 0 }}</td>
+            <td class="right">{{ (record.vasuliCleaningTax or 0) | amount }}</td>
             <td class="right">0</td>
-            <td class="right">{{ record.vasuliChaluCleaningTax or 0 }}</td>
-            <td class="right">{{ (record.vasuliCleaningTax or 0) + (record.vasuliChaluCleaningTax or 0) }}</td>
-            <td class="right balance-col">{{ record.remainingCleaningTax if record.remainingCleaningTax is not none else 0 }}</td>
+            <td class="right">{{ (record.vasuliChaluCleaningTax or 0) | amount }}</td>
+            <td class="right">{{ ((record.vasuliCleaningTax or 0) + (record.vasuliChaluCleaningTax or 0)) | amount }}</td>
+            <td class="right balance-col">{{ (record.remainingCleaningTax if record.remainingCleaningTax is not none else 0) | amount }}</td>
         {% else %}
             <td class="right">0</td>
             <td class="right">0</td>
