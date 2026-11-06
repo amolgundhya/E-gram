@@ -5,10 +5,6 @@ import time
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from openpyxl import Workbook
-from openpyxl.drawing.image import Image as XLImage
-from openpyxl.styles import Font, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
 from PIL import Image as PILImage
 from database import get_db
 from namuna8.staff_model import GramPanchayatStaff
@@ -50,6 +46,7 @@ def _staff_photo_for_excel(photo_path):
     if not photo_path or photo_path.lower().endswith('.pdf') or not os.path.exists(photo_path):
         return None
     try:
+        from openpyxl.drawing.image import Image as XLImage
         with PILImage.open(photo_path) as src:
             img = src.convert("RGB")
         img.thumbnail((EXPORT_PHOTO_PX, EXPORT_PHOTO_PX))
@@ -74,6 +71,11 @@ def export_staff_xlsx(gram_panchayat_id: int = Query(...), db: Session = Depends
     ).first()
     if checklist and getattr(checklist, 'exportPassword', None):
         password = checklist.exportPassword
+
+    # openpyxl फक्त export वेळीच लोड (सर्व्हर स्टार्टअप जलद).
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
 
     wb = Workbook()
     ws = wb.active

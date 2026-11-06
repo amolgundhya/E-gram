@@ -476,7 +476,7 @@
                 <td>{{ row.vpanikar | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{ (row.totaltax|default(0)|float -  (row.cleaningTax|default(0)|float)) }}</td>
-                <td>{{row.remarks|default('')}}{% if row.gharkul %}<div style="font-size: 9px; line-height: 1.15; overflow-wrap: anywhere;">घरकुल : {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}</div>{% endif %}</td>
+                <td>{{row.remarks|default('')}}</td>
             </tr>
             <tr class="record-row">
                 <td colspan="22" style="text-align:center; font-size:15px; font-weight:bold; border-top:none;padding: 3px;">
@@ -485,7 +485,7 @@
                     <span style="font-weight:bold;">पश्चिम:</span> <span style="padding-right: 20px;"> {{ row.boundaryWest | default('') }} </span>
                     <span style="font-weight:bold;">उत्तर:</span> <span style="padding-right: 20px;"> {{ row.boundaryNorth | default('') }} </span>
                     <span style="font-weight:bold;">दक्षिण:</span> <span style="padding-right: 20px;"> {{ row.boundarySouth | default('') }} </span>
-                    {% if row.dwarNaav %}<span style="font-weight:bold;">व्दार नांव:</span> <span style="padding-right: 20px;"> {{ row.dwarNaav }} </span>{% endif %}
+                    {% if row.dwarNaav %}<span style="font-weight:bold;">व्दार नांव:</span> <span style="padding-right: 20px;"> {{ row.dwarNaav }} </span>{% endif %}{% if row.toilet %}<span style="font-weight:bold;">शौचालय:</span> <span style="padding-right: 20px;"> {{ row.toilet }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %} </span>{% endif %}{% if row.gharkul %}<span style="font-weight:bold;">घरकुल:</span> <span style="padding-right: 20px;"> {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %} </span>{% endif %}
                 </td>
             </tr>
             {% endfor %}

@@ -7,6 +7,7 @@
         @media print {
             @page {
                 size: A4 landscape;
+                margin: 8mm;
             }
             #toolbar {
                 display: none !important;
@@ -443,7 +444,7 @@
 <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
     <tr>
         <td style="text-align: left; border-right: 1px solid #000;">{% if toilet == 'आहे' %}शौचालय : {% if toiletBenefitYear %}सन {{ toiletBenefitYear|financial_year_full }} शौचालयाचा लाभ मिळालेला आहे.{% else %}शौचालयाचा लाभ मिळालेला आहे.{% endif %}{% else %}शौचालय : {{toilet|default('')}}{% if toiletBenefitYear and toilet != 'नाही' %} ({{ toiletBenefitYear|financial_year_full }}){% endif %}{% endif %} </td>
-        <td style="text-align: left; border-right: 1px solid #000;">{% if dwarNaav %}व्दार : {{dwarNaav}}{% endif %}</td>
+        <td style="text-align: left; border-right: 1px solid #000;">व्दार : {{dwarNaav|default('', true)}}</td>
         {% if boundaryMarking %}
         <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
         {% else %}
@@ -496,5 +497,67 @@
 </table>
 
 </div>
+<script>
+    /*
+     * एका मालमत्तेचा नमुना-8 नेहमी एकाच A4 landscape पानावर: प्रिंटच्या आधी (beforeprint) प्रिंटच्या
+     * रुंदीवर उंची मोजून #mainContent ला zoom लावतो; प्रिंट झाल्यावर (afterprint) toolbar चा zoom परत.
+     * page_numbers.js च्या आधी - म्हणजे Windows 8 वर तो zoom लागल्यानंतरच पानं मोजतो.
+     * फक्त ES5 - Windows 8 वरच्या Chrome/Edge 109 मध्ये चालावं म्हणून.
+     */
+    (function () {
+        var PX_PER_MM = 96 / 25.4;
+        var PAGE_MARGIN_MM = 8;                                   // वरच्या @page margin प्रमाणे
+        var PAGE_W = (297 - 2 * PAGE_MARGIN_MM) * PX_PER_MM;
+        var PAGE_H = (210 - 2 * PAGE_MARGIN_MM) * PX_PER_MM;
+        var BODY_MARGIN = 16;                                     // body चा default 8px वर + खाली
+        // Windows 8 (Chrome/Edge 109) वर page_numbers.js "पृष्ठ 1 / 1" ची ओळ मजकुरात टाकतो;
+        // Windows 10/11 (Chrome 131+) वर क्रमांक पानाच्या margin मध्ये छापला जातो - जागा लागत नाही.
+        var PAGE_NO_ROOM = typeof window.CSSMarginRule !== 'undefined' ? 0 : 20;
+        var SAFETY = 0.95;                                        // प्रत्यक्ष प्रिंटमध्ये अक्षरांची रुंदी थोडी वेगळी
+
+        // दिलेल्या zoom वर मजकूर पानात मावतो का - body (zoom नसलेला) ची प्रत्यक्ष उंची/रुंदी मोजतो,
+        // कारण zoom लहान केला की टेबल रुंद होऊन ओळी कमी मोडतात (उंची zoom पेक्षाही कमी होते).
+        function fits(el, zoom) {
+            el.style.zoom = zoom;
+            var body = document.body;
+            var h = body.getBoundingClientRect().height;
+            var w = Math.max(body.scrollWidth, el.scrollWidth * zoom);
+            return h <= PAGE_H * SAFETY - BODY_MARGIN - PAGE_NO_ROOM && w <= PAGE_W - BODY_MARGIN + 1;
+        }
+
+        function fitToOnePage() {
+            var el = document.getElementById('mainContent');
+            var toolbar = document.getElementById('toolbar');
+            if (!el) return;
+            var de = document.documentElement;
+            var oldWidth = de.style.width;
+            var oldToolbar = toolbar ? toolbar.style.display : '';
+            var scale = 1;
+            try {
+                de.style.width = PAGE_W + 'px';                   // प्रिंटसारखी रुंदी
+                if (toolbar) toolbar.style.display = 'none';      // प्रिंटमध्ये toolbar नसतो
+                if (!fits(el, 1)) {
+                    var lo = 0.3, hi = 1;                         // मावणारा सर्वात मोठा zoom
+                    for (var i = 0; i < 10; i++) {
+                        var mid = (lo + hi) / 2;
+                        if (fits(el, mid)) lo = mid; else hi = mid;
+                    }
+                    scale = lo;
+                }
+            } finally {
+                de.style.width = oldWidth;
+                if (toolbar) toolbar.style.display = oldToolbar;
+            }
+            el.style.zoom = scale;
+        }
+
+        window.addEventListener('beforeprint', function () {
+            try { fitToOnePage(); } catch (e) { if (window.console) console.error('fit page:', e); }
+        });
+        window.addEventListener('afterprint', function () {
+            if (typeof updateZoom === 'function') updateZoom();
+        });
+    })();
+</script>
 <script src="/report_assets/page_numbers.js"></script>
 <script src="/report_assets/report_share.js"></script>

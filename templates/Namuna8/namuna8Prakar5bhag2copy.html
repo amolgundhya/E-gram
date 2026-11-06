@@ -572,9 +572,9 @@
                         border-right: 1px solid #000;
                       "
                     >
-                      शेरा : {{ row.remarks | default('') }}
+                      शेरा : {{ row.remarks | default('') }}{% if row.gharkul or row.toilet %}<div style="width: 0; min-width: 100%;">{% if row.gharkul %}घरकुल : {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}{% endif %}{% if row.gharkul and row.toilet %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{% if row.toilet %}शौचालय : {{ row.toilet }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}{% endif %}</div>{% endif %}
                     </td>
-                    <td style="text-align: left">शौचालय : {{ row.toilet | default('') }}</td>
+                    <td style="text-align: left">{% if row.dwarNaav %}व्दार नांव : {{ row.dwarNaav }}{% endif %}</td>
                     <td style="text-align: left; border-right: 1px solid #000">
                       चतुर्सिमा
                     </td>

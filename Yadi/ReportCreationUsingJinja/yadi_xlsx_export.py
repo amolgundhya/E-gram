@@ -7,10 +7,14 @@ Sheet 2 "बांधकाम तपशील": एक ओळ प्रति �
 पासवर्ड सेट असेल तरच msoffcrypto-tool ने .xlsx एन्क्रिप्ट करतो; नसेल तर साधा .xlsx.
 """
 import io
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment
-from openpyxl.utils import get_column_letter
+from typing import TYPE_CHECKING
 from Utility.benefit_year import financial_year_full
+
+if TYPE_CHECKING:
+    from openpyxl import Workbook
+
+# openpyxl (numpy सकट) मोठी लायब्ररी आहे - सर्व्हर सुरू होताना लोड न करता फक्त
+# Excel export करताना फंक्शनमध्येच import करतो (अॅप लवकर सुरू व्हावा म्हणून).
 
 SHEET1_COLUMNS = [
     ("srNo", "अ.क्र.", "int"),
@@ -90,11 +94,6 @@ SHEET2_COLUMNS = [
     ("usage", "वापर", "text"),
 ]
 
-HEADER_FONT = Font(bold=True)
-HEADER_ALIGN = Alignment(horizontal="center", vertical="center", wrap_text=True)
-TOTAL_FONT = Font(bold=True)
-
-
 def _num(value):
     try:
         if value is None or value == "":
@@ -119,16 +118,21 @@ def _remarks_with_ex_serviceman_note(prop):
 
 
 def _setup_header(ws, columns):
+    from openpyxl.styles import Font, Alignment
+    from openpyxl.utils import get_column_letter
+    header_font = Font(bold=True)
+    header_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
     for col_idx, (_, label, _) in enumerate(columns, start=1):
         cell = ws.cell(row=1, column=col_idx, value=label)
-        cell.font = HEADER_FONT
-        cell.alignment = HEADER_ALIGN
+        cell.font = header_font
+        cell.alignment = header_align
     last_col_letter = get_column_letter(len(columns))
     ws.auto_filter.ref = f"A1:{last_col_letter}1"
     ws.freeze_panes = "A2"
 
 
 def _autosize_columns(ws, columns, sample_rows=200):
+    from openpyxl.utils import get_column_letter
     for col_idx, (_, label, _) in enumerate(columns, start=1):
         letter = get_column_letter(col_idx)
         max_len = len(str(label))
@@ -139,7 +143,10 @@ def _autosize_columns(ws, columns, sample_rows=200):
         ws.column_dimensions[letter].width = min(max(max_len + 2, 10), 40)
 
 
-def build_namuna8_register_workbook(properties: list) -> Workbook:
+def build_namuna8_register_workbook(properties: list) -> "Workbook":
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+    TOTAL_FONT = Font(bold=True)
     wb = Workbook()
 
     # ---------------- Sheet 1: मालमत्ता ----------------
@@ -281,7 +288,7 @@ def build_namuna8_register_workbook(properties: list) -> Workbook:
     return wb
 
 
-def workbook_to_bytes(wb: Workbook, password: str = None) -> bytes:
+def workbook_to_bytes(wb: "Workbook", password: str = None) -> bytes:
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)

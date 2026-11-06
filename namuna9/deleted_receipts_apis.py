@@ -11,9 +11,6 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment
-from openpyxl.utils import get_column_letter
 
 import database
 from namuna9 import namuna9_model
@@ -224,6 +221,11 @@ def export_deleted_receipts_xlsx(
         ).first()
         if checklist and getattr(checklist, 'exportPassword', None):
             password = checklist.exportPassword
+
+    # openpyxl फक्त export वेळीच लोड (सर्व्हर स्टार्टअप जलद).
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment
+    from openpyxl.utils import get_column_letter
 
     wb = Workbook()
     ws = wb.active
