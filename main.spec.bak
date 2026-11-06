@@ -1,0 +1,41 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+
+a = Analysis(
+    ['main.py'],
+    pathex=['.'],
+    binaries=[],
+    # uploaded_images (युजरचे फोटो, ~190 MB) व reports (बनवलेले आउटपुट) exe मध्ये टाकत नाही:
+    # one-file exe प्रत्येक सुरुवातीला हे सगळं temp मध्ये उघडतो, पण अॅप ते कधीच वापरत नाही -
+    # सर्व path exe च्या फोल्डरमधले (cwd) वापरले जातात. त्यामुळे exe लहान व लवकर सुरू होतो.
+    datas=[('static', 'static'), ('ReportImages', 'ReportImages'), ('templates', 'templates')],
+    hiddenimports=['sqlalchemy.ext.declarative', 'namuna8', 'namuna9', 'namuna10', 'certificates', 'ferfar', 'location_management', 'reports', 'reportstab', 'LogBook', 'Ghoshawara', 'Yadi', 'JWTapi', 'Utility'],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[],
+    noarchive=False,
+    optimize=0,
+)
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.datas,
+    [],
+    name='main',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+)

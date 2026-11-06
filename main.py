@@ -537,6 +537,10 @@ try:
                 conn.exec_driver_sql(f'ALTER TABLE namuna9_receipts ADD COLUMN "{col}" {coltype}')
 except Exception as e:
     print("[Migration] Could not ensure namuna9_receipts:", e)
+# Create folders the app needs at startup (they may not exist on a new PC)
+import os as _os
+for _folder in ("reports", "uploaded_images"):
+    _os.makedirs(_folder, exist_ok=True)
 app = FastAPI()
 
 # Remove or comment out the old static mount
