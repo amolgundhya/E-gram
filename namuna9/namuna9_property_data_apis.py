@@ -3,11 +3,15 @@ from sqlalchemy.orm import Session
 import database
 from namuna9 import namuna9_model, namuna9_schemas
 from namuna9.namuna9_schemas import Namuna9PropertyDataCreate, Namuna9PropertyDataUpdate, Namuna9PropertyDataRead, Namuna9BulkPropertyDataUpdate, Namuna9Collect, Namuna9ReceiptCreate, Namuna9ReceiptRead
-from typing import List , Optional
+from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from location_management import models as location_models
 from namuna8 import namuna8_model
+from namuna8.recordresponses.property_record_response import compute_display_sr_no
+import os
+
+backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 
 router = APIRouter(
     prefix="/namuna9",
@@ -47,7 +51,7 @@ def create_property_data(property_data: Namuna9PropertyDataCreate, db: Session =
         existing.ekunSapanikar = (existing.shaktiSapanikar or 0) + (existing.chaluSapanikar or 0)
         existing.ekunVpanikar = (existing.shaktiVpanikar or 0) + (existing.chaluVpanikar or 0)
         existing.ekunCleaningTax = (existing.shaktiCleaningTax or 0) + (existing.chaluCleaningTax or 0)
-        existing.total = (existing.ekunGhar or 0) + (existing.ekunDiva or 0) + (existing.ekunAarogyaKar or 0) + (existing.ekunSapanikar or 0) + (existing.ekunVpanikar or 0) + (existing.ekunCleaningTax or 0) + (existing.noticeFee or 0) + (existing.warrantFee or 0) + (existing.dand or 0)
+        existing.total = (existing.ekunGhar or 0) + (existing.ekunDiva or 0) + (existing.ekunAarogyaKar or 0) + (existing.ekunSapanikar or 0) + (existing.ekunVpanikar or 0) + (existing.ekunCleaningTax or 0) + (existing.noticeFee or 0) + (existing.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
         db.commit()
         db.refresh(existing)
         return existing
@@ -66,7 +70,7 @@ def create_property_data(property_data: Namuna9PropertyDataCreate, db: Session =
     db_property_data.ekunSapanikar = (db_property_data.shaktiSapanikar or 0) + (db_property_data.chaluSapanikar or 0)
     db_property_data.ekunVpanikar = (db_property_data.shaktiVpanikar or 0) + (db_property_data.chaluVpanikar or 0)
     db_property_data.ekunCleaningTax = (db_property_data.shaktiCleaningTax or 0) + (db_property_data.chaluCleaningTax or 0)
-    db_property_data.total = (db_property_data.ekunGhar or 0) + (db_property_data.ekunDiva or 0) + (db_property_data.ekunAarogyaKar or 0) + (db_property_data.ekunSapanikar or 0) + (db_property_data.ekunVpanikar or 0) + (db_property_data.ekunCleaningTax or 0) + (db_property_data.noticeFee or 0) + (db_property_data.warrantFee or 0) + (db_property_data.dand or 0)
+    db_property_data.total = (db_property_data.ekunGhar or 0) + (db_property_data.ekunDiva or 0) + (db_property_data.ekunAarogyaKar or 0) + (db_property_data.ekunSapanikar or 0) + (db_property_data.ekunVpanikar or 0) + (db_property_data.ekunCleaningTax or 0) + (db_property_data.noticeFee or 0) + (db_property_data.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
     db.add(db_property_data)
     db.commit()
     db.refresh(db_property_data)
@@ -101,8 +105,8 @@ def update_property_data(property_data_id: int, property_data: Namuna9PropertyDa
         (db_property_data.ekunVpanikar or 0) +
         (db_property_data.ekunCleaningTax or 0) +
         (db_property_data.noticeFee or 0) +
-        (db_property_data.warrantFee or 0) +
-        (db_property_data.dand or 0)
+        (db_property_data.warrantFee or 0)
+        # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
     )
 
     db.commit()
@@ -150,7 +154,7 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
     print(f"Found Namuna9 record: villageId={namuna9_record.villageId}, yearslap={namuna9_record.yearslap}")
     
     # Merge multiple updates per property_id to avoid duplicate inserts in one transaction
-    merged_by_property: dict[int, dict] = {}
+    merged_by_property: Dict[int, dict] = {}
     for item in bulk_data.property_data:
         pid = item.property_id
         if pid not in merged_by_property:
@@ -182,7 +186,7 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
             existing.ekunSapanikar = (existing.shaktiSapanikar or 0) + (existing.chaluSapanikar or 0)
             existing.ekunVpanikar = (existing.shaktiVpanikar or 0) + (existing.chaluVpanikar or 0)
             existing.ekunCleaningTax = (existing.shaktiCleaningTax or 0) + (existing.chaluCleaningTax or 0)
-            existing.total = (existing.ekunGhar or 0) + (existing.ekunDiva or 0) + (existing.ekunAarogyaKar or 0) + (existing.ekunSapanikar or 0) + (existing.ekunVpanikar or 0) + (existing.ekunCleaningTax or 0) + (existing.noticeFee or 0) + (existing.warrantFee or 0) + (existing.dand or 0)
+            existing.total = (existing.ekunGhar or 0) + (existing.ekunDiva or 0) + (existing.ekunAarogyaKar or 0) + (existing.ekunSapanikar or 0) + (existing.ekunVpanikar or 0) + (existing.ekunCleaningTax or 0) + (existing.noticeFee or 0) + (existing.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
             updated_count += 1
         else:
             new_data = namuna9_model.Namuna9PropertyData(
@@ -198,7 +202,7 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
             new_data.ekunSapanikar = (new_data.shaktiSapanikar or 0) + (new_data.chaluSapanikar or 0)
             new_data.ekunVpanikar = (new_data.shaktiVpanikar or 0) + (new_data.chaluVpanikar or 0)
             new_data.ekunCleaningTax = (new_data.shaktiCleaningTax or 0) + (new_data.chaluCleaningTax or 0)
-            new_data.total = (new_data.ekunGhar or 0) + (new_data.ekunDiva or 0) + (new_data.ekunAarogyaKar or 0) + (new_data.ekunSapanikar or 0) + (new_data.ekunVpanikar or 0) + (new_data.ekunCleaningTax or 0) + (new_data.noticeFee or 0) + (new_data.warrantFee or 0) + (new_data.dand or 0)
+            new_data.total = (new_data.ekunGhar or 0) + (new_data.ekunDiva or 0) + (new_data.ekunAarogyaKar or 0) + (new_data.ekunSapanikar or 0) + (new_data.ekunVpanikar or 0) + (new_data.ekunCleaningTax or 0) + (new_data.noticeFee or 0) + (new_data.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
             db.add(new_data)
             created_count += 1
     
@@ -302,7 +306,7 @@ def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(data
     data.ekunSapanikar = (max(data.shaktiSapanikar,0) or 0) + (max(0,data.chaluSapanikar) or 0)
     data.ekunVpanikar = (max(0,data.shaktiVpanikar) or 0) + (max(0,data.chaluVpanikar) or 0)
     data.ekunCleaningTax = (max(0,data.shaktiCleaningTax) or 0) + (max(0,data.chaluCleaningTax) or 0)
-    data.total = (max(0,data.ekunGhar) or 0) + (max(0,data.ekunDiva) or 0) + (max(0,data.ekunAarogyaKar) or 0) + (max(0,data.ekunSapanikar) or 0) + (max(0,data.ekunVpanikar) or 0) + (max(0,data.ekunCleaningTax) or 0) + (max(0,data.noticeFee) or 0) + (max(0,data.warrantFee) or 0) + (max(0,data.dand) or 0)
+    data.total = (max(0,data.ekunGhar) or 0) + (max(0,data.ekunDiva) or 0) + (max(0,data.ekunAarogyaKar) or 0) + (max(0,data.ekunSapanikar) or 0) + (max(0,data.ekunVpanikar) or 0) + (max(0,data.ekunCleaningTax) or 0) + (max(0,data.noticeFee) or 0) + (max(0,data.warrantFee) or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
 
     db.commit()
     db.refresh(data)
@@ -327,6 +331,68 @@ def get_next_receipt_number(gram_panchayat_id: int, village_id: int = None, db: 
     next_number = (last.pavti_kramank + 1) if last else 1
     print(f"Last receipt number: {last.pavti_kramank if last else 'None'}, Next number: {next_number}")
     return {"nextNumber": next_number}
+
+# Maps each भरणा (collected) field on a receipt to the थकित/चालू/दंड/fee
+# field on that property's Namuna9PropertyData ledger row it pays down.
+VASULI_TO_PROPERTY_FIELD = {
+    'vasuliGhar': 'shaktiGhar',
+    'vasuliChaluGhar': 'chaluGhar',
+    'vasuliDiva': 'shaktiDiva',
+    'vasuliChaluDiva': 'chaluDiva',
+    'vasuliAarogyaKar': 'shaktiAarogyaKar',
+    'vasuliChaluAarogyaKar': 'chaluAarogyaKar',
+    'vasuliSapanikar': 'shaktiSapanikar',
+    'vasuliChaluSapanikar': 'chaluSapanikar',
+    'vasuliVpanikar': 'shaktiVpanikar',
+    'vasuliChaluVpanikar': 'chaluVpanikar',
+    'vasuliCleaningTax': 'shaktiCleaningTax',
+    'vasuliChaluCleaningTax': 'chaluCleaningTax',
+    'vasuliDand': 'dand',
+    'vasuliNoticeFee': 'noticeFee',
+    'vasuliWarrantFee': 'warrantFee',
+}
+
+
+def _adjust_property_data_for_receipt(db: Session, namuna9_id: int, property_id: int, vasuli_deltas: dict):
+    """Adjust a property's थकित/चालू/दंड/fee ledger row by the given per-field
+    deltas (positive = restore/add back, negative = subtract as collected).
+    Used to keep receipts (भरणा) and the tax ledger in sync on
+    create/edit/delete, also undoing the stored vasuli totals and recomputing
+    the stored एकूण/total the same way /property-data/collect does. Silently no-ops if
+    the property has no ledger row yet (nothing to adjust against) - this
+    only affects receipts created from now on, not historical ones.
+    """
+    row = db.query(namuna9_model.Namuna9PropertyData).filter(
+        namuna9_model.Namuna9PropertyData.namuna9_id == namuna9_id,
+        namuna9_model.Namuna9PropertyData.property_id == property_id
+    ).first()
+    if not row:
+        return
+    changed = False
+    for vasuli_field, prop_field in VASULI_TO_PROPERTY_FIELD.items():
+        delta = vasuli_deltas.get(vasuli_field) or 0
+        if delta:
+            current = getattr(row, prop_field, 0) or 0
+            setattr(row, prop_field, round(max(current + delta, 0), 2))
+            # /property-data/collect ने याच रो वर वसुली रक्कम जमा केली होती -
+            # पावती डिलीट/एडिट झाल्यावर ती पण उलटी करतो, नाहीतर वसुली दुप्पट दिसते.
+            current_vasuli = getattr(row, vasuli_field, 0) or 0
+            setattr(row, vasuli_field, round(max(current_vasuli - delta, 0), 2))
+            changed = True
+    if changed:
+        # एकूण/total पण DB मध्ये साठवलेले आहेत - collect प्रमाणेच पुन्हा मोजतो,
+        # नाहीतर चालू परत आला तरी एकूण जुनाच (कमी) दिसतो.
+        row.ekunGhar = (row.shaktiGhar or 0) + (row.chaluGhar or 0) + (row.dand or 0)
+        row.ekunDiva = (row.shaktiDiva or 0) + (row.chaluDiva or 0)
+        row.ekunAarogyaKar = (row.shaktiAarogyaKar or 0) + (row.chaluAarogyaKar or 0)
+        row.ekunSapanikar = (row.shaktiSapanikar or 0) + (row.chaluSapanikar or 0)
+        row.ekunVpanikar = (row.shaktiVpanikar or 0) + (row.chaluVpanikar or 0)
+        row.ekunCleaningTax = (row.shaktiCleaningTax or 0) + (row.chaluCleaningTax or 0)
+        row.total = (row.ekunGhar + row.ekunDiva + row.ekunAarogyaKar + row.ekunSapanikar +
+                     row.ekunVpanikar + row.ekunCleaningTax + (row.noticeFee or 0) +
+                     (row.warrantFee or 0))  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
+        db.commit()
+
 
 @router.post("/receipt", response_model=Namuna9ReceiptRead)
 def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database.get_db)):
@@ -361,7 +427,54 @@ def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database
                 owner_name = prop.owners[0].name
         except Exception:
             owner_name = None
-    
+
+    # डबल-क्लिक / झटपट पुन्हा-सबमिटने तीच पावती दोनदा सेव्ह होऊ नये (safety net) - फक्त
+    # नवीन पावतीसाठी, edit/delete ला लागू होत नाही. याच property + namuna9_id साठी,
+    # अगदी त्याच रकमा आणि त्याच तारखेची पावती गेल्या 10 सेकंदांत आधीच सेव्ह झाली असेल,
+    # तर नवीन रो न बनवता तीच परत करतो. कुठलाही DB constraint नाही आणि जुन्या पावत्यांना
+    # (उदा. आधीच सेव्ह झालेल्या डुप्लिकेट रो) हात लावत नाही - फक्त वाचून तुलना करतो.
+    try:
+        recent_cutoff = datetime.utcnow() - timedelta(seconds=10)
+        recent_candidates = db.query(namuna9_model.Namuna9Receipt).filter(
+            namuna9_model.Namuna9Receipt.property_id == payload.property_id,
+            namuna9_model.Namuna9Receipt.namuna9_id == payload.namuna9_id,
+            namuna9_model.Namuna9Receipt.is_deleted == False,
+        ).order_by(namuna9_model.Namuna9Receipt.id.desc()).limit(5).all()
+        for cand in recent_candidates:
+            cand_created = cand.createdAt
+            if cand_created is None:
+                continue
+            cand_created_naive = cand_created.replace(tzinfo=None) if cand_created.tzinfo else cand_created
+            if cand_created_naive < recent_cutoff:
+                break  # id नुसार उतरत्या क्रमाने आहेत - पुढच्या आणखी जुन्या असतील
+            same_amounts = (
+                (cand.vasuliGhar or 0) == (payload.vasuliGhar or 0) and
+                (cand.vasuliChaluGhar or 0) == (payload.vasuliChaluGhar or 0) and
+                (cand.vasuliDiva or 0) == (payload.vasuliDiva or 0) and
+                (cand.vasuliChaluDiva or 0) == (payload.vasuliChaluDiva or 0) and
+                (cand.vasuliAarogyaKar or 0) == (payload.vasuliAarogyaKar or 0) and
+                (cand.vasuliChaluAarogyaKar or 0) == (payload.vasuliChaluAarogyaKar or 0) and
+                (cand.vasuliSapanikar or 0) == (payload.vasuliSapanikar or 0) and
+                (cand.vasuliChaluSapanikar or 0) == (payload.vasuliChaluSapanikar or 0) and
+                (cand.vasuliVpanikar or 0) == (payload.vasuliVpanikar or 0) and
+                (cand.vasuliChaluVpanikar or 0) == (payload.vasuliChaluVpanikar or 0) and
+                (cand.vasuliCleaningTax or 0) == (payload.vasuliCleaningTax or 0) and
+                (cand.vasuliChaluCleaningTax or 0) == (payload.vasuliChaluCleaningTax or 0) and
+                (cand.vasuliDand or 0) == (payload.vasuliDand or 0) and
+                (cand.vasuliNoticeFee or 0) == (payload.vasuliNoticeFee or 0) and
+                (cand.vasuliWarrantFee or 0) == (payload.vasuliWarrantFee or 0) and
+                round(cand.total or 0, 2) == round(payload.total or 0, 2)
+            )
+            same_date = (
+                cand.pavti_date == pavti_dt or
+                (cand.pavti_date and pavti_dt and cand.pavti_date.date() == pavti_dt.date())
+            )
+            if same_amounts and same_date:
+                return cand
+    except Exception:
+        # ही तपासणी स्वतःच फेल झाली तरी सामान्य पावती सेव्ह होण्यात अडथळा येऊ नये.
+        pass
+
     rec = namuna9_model.Namuna9Receipt(
         namuna9_id=payload.namuna9_id,
         property_id=payload.property_id,
@@ -393,6 +506,13 @@ def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database
     db.add(rec)
     db.commit()
     db.refresh(rec)
+
+    # Note: unlike update/delete below, creating a receipt does NOT also
+    # adjust the थकित/चालू ledger here - the only caller of this endpoint
+    # (the "new भरणा entry" save flow in Namuna9.tsx) already does that
+    # itself via a separate POST to /property-data/collect right before
+    # this call. Adjusting here too would double-subtract the same amount.
+
     return rec
 
 # @router.get("/receipt/list", response_model=List[Namuna9ReceiptRead])
@@ -496,8 +616,11 @@ def list_receipts(
     to_date: Optional[str] = None,
     receipt_id: Optional[int] = None,
     show_all: bool = False,
+    search: Optional[str] = None,
     db: Session = Depends(database.get_db)
 ):
+    # search: मालकाचे नाव / भोगवटदाराचे नाव / मालमत्ता क्रमांक यापैकी कशातही (case-insensitive,
+    # भाग-जुळणी) शोधतो. नसेल तर आधीसारखंच सर्व पावत्या परत.
     # Validate hierarchy
     district = db.query(location_models.District).filter(location_models.District.id == district_id).first()
     if not district:
@@ -526,20 +649,26 @@ def list_receipts(
 
     # ---------------- FILTER START ----------------
 
-    # Always filter by selected village
-    prop_ids_subq = db.query(namuna8_model.Property.id).filter(
-        namuna8_model.Property.village_id == village_id
-    ).subquery()
-
-    base_q = db.query(namuna9_model.Namuna9Receipt).filter(
-        namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id,
-        namuna9_model.Namuna9Receipt.property_id.in_(prop_ids_subq)
-    )
-
     if show_all:
-        # Only filter by village, ignore date + receipt filters
+        # सर्व दाखवा spans every गाव/मोहल्ला (area) under this gram panchayat,
+        # not just the currently selected village - so payments collected
+        # across different areas can be shown grouped by area.
+        base_q = db.query(namuna9_model.Namuna9Receipt).filter(
+            namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id,
+            namuna9_model.Namuna9Receipt.is_deleted == False
+        )
         q = base_q
     else:
+        # Otherwise stay scoped to the selected village, as before.
+        prop_ids_subq = db.query(namuna8_model.Property.id).filter(
+            namuna8_model.Property.village_id == village_id
+        ).subquery()
+
+        base_q = db.query(namuna9_model.Namuna9Receipt).filter(
+            namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id,
+            namuna9_model.Namuna9Receipt.property_id.in_(prop_ids_subq),
+            namuna9_model.Namuna9Receipt.is_deleted == False
+        )
         q = base_q
 
         # Filter by receipt id if provided
@@ -583,21 +712,58 @@ def list_receipts(
 
     # ---------------- FILTER END ----------------
 
-    # Fill snapshot missing
+    # Fill snapshot missing, and attach the property's गाव/मोहल्ला (area) name so
+    # a सर्व दाखवा search spanning multiple areas can be grouped by area on
+    # the frontend.
     for rec in results:
-        if (not rec.owner_name) or (not rec.malmatta_kramank):
-            prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == rec.property_id).first()
-            if prop:
-                if not rec.malmatta_kramank:
-                    rec.malmatta_kramank = prop.malmattaKramank
-                if not rec.owner_name:
-                    try:
-                        if prop.owners and len(prop.owners) > 0 and getattr(prop.owners[0], 'name', None):
-                            rec.owner_name = prop.owners[0].name
-                    except Exception:
-                        pass
+        prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == rec.property_id).first()
+        if prop:
+            if not rec.malmatta_kramank:
+                rec.malmatta_kramank = prop.malmattaKramank
+            if not rec.owner_name:
+                try:
+                    if prop.owners and len(prop.owners) > 0 and getattr(prop.owners[0], 'name', None):
+                        rec.owner_name = prop.owners[0].name
+                except Exception:
+                    pass
+            village = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop.village_id).first()
+            rec.village = getattr(village, 'name', None) if village else None
+            try:
+                rec.occupant = getattr(prop.owners[0], 'occupantName', None) if prop.owners else None
+            except Exception:
+                rec.occupant = None
+        else:
+            rec.village = None
+            rec.occupant = None
+
+        # शिल्लक थकबाकी - थकित (shakti*) + चालू (chalu*) दोन्ही मिळून, तक्ता/प्रिंट प्रमाणेच
+        ledger_row = db.query(namuna9_model.Namuna9PropertyData).filter(
+            namuna9_model.Namuna9PropertyData.namuna9_id == rec.namuna9_id,
+            namuna9_model.Namuna9PropertyData.property_id == rec.property_id
+        ).first()
+        if ledger_row:
+            # दंड घरकर रोसोबतच धरतो - प्रिंट टेम्पलेट्समध्ये दंड नेहमी घरकर रोमध्येच दाखवला जातो.
+            rec.remainingGhar = round((ledger_row.shaktiGhar or 0) + (ledger_row.chaluGhar or 0) + (ledger_row.dand or 0), 2)
+            rec.remainingDiva = round((ledger_row.shaktiDiva or 0) + (ledger_row.chaluDiva or 0), 2)
+            rec.remainingAarogyaKar = round((ledger_row.shaktiAarogyaKar or 0) + (ledger_row.chaluAarogyaKar or 0), 2)
+            rec.remainingSapanikar = round((ledger_row.shaktiSapanikar or 0) + (ledger_row.chaluSapanikar or 0), 2)
+            rec.remainingVpanikar = round((ledger_row.shaktiVpanikar or 0) + (ledger_row.chaluVpanikar or 0), 2)
+            rec.remainingCleaningTax = round((ledger_row.shaktiCleaningTax or 0) + (ledger_row.chaluCleaningTax or 0), 2)
+            rec.remainingTotal = round(
+                rec.remainingGhar + rec.remainingDiva + rec.remainingAarogyaKar +
+                rec.remainingSapanikar + rec.remainingVpanikar + rec.remainingCleaningTax, 2
+            )
 
     db.commit()
+
+    term = (search or '').strip().lower()
+    if term:
+        results = [
+            r for r in results
+            if term in (r.owner_name or '').lower()
+            or term in (getattr(r, 'occupant', None) or '').lower()
+            or term in str(r.malmatta_kramank or '').lower()
+        ]
 
     print(f"[DEBUG] Show All Mode: {show_all}")
     print(f"[DEBUG] Total receipts returned: {len(results)}")
@@ -701,6 +867,8 @@ def get_receipt(receipt_id: int, db: Session = Depends(database.get_db)):
     except Exception:
         pass
     if prop2:
+        result.anuKramank = compute_display_sr_no(db, prop2.village_id, prop2.anuKramank)
+        result.exServicemanTip = bool(getattr(prop2, 'exServiceman', False))
         # village
         v = db.query(namuna8_model.Village).filter(namuna8_model.Village.id == prop2.village_id).first()
         result.village = getattr(v, 'name', None)
@@ -717,16 +885,58 @@ def get_receipt(receipt_id: int, db: Session = Depends(database.get_db)):
         else:
             gp = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == prop2.gram_panchayat_id).first()
             result.grampanchayat = getattr(gp, 'name', None) if gp else None
-        # occupant from owner occupantName if available, fallback to first owner name
+        # घर कर / पाणी कर Bank Scanner QR - only shown if the GP has turned this on
+        # in Master settings (same toggle used across namuna8/namuna9 print routes).
+        show_bank_scanner = bool(gp and gp.show_bank_scanner_in_reports)
+        if show_bank_scanner and gp and gp.house_tax_qr_url:
+            result.houseTaxQrUrl = f"{backend_url}/location/gram-panchayats/{gp.id}/qr/house"
+        if show_bank_scanner and gp and gp.water_tax_qr_url:
+            result.waterTaxQrUrl = f"{backend_url}/location/gram-panchayats/{gp.id}/qr/water"
+        # मालमत्ता QR (छोटा - अ.क्र./मालमत्ता क्र./मालक/भोगवट/एकूण कर) - नमुना-8
+        # प्रिंटवर आधीच वापरलेला तोच /namuna8/property_qrcode endpoint, जेणेकरून मजकूर
+        # आणि cached PNG दोन्हीकडे सुसंगत राहतील.
+        qr_path = os.path.join(
+            "uploaded_images", "qrcode", str(prop2.district_id), str(prop2.taluka_id),
+            str(prop2.gram_panchayat_id), str(prop2.village_id), str(prop2.anuKramank), "qrcode.png"
+        )
+        qr_version = int(os.path.getmtime(qr_path)) if os.path.exists(qr_path) else 0
+        result.QRcodeURL = (
+            f"{backend_url}/namuna8/property_qrcode/{prop2.anuKramank}"
+            f"?district_id={prop2.district_id}&taluka_id={prop2.taluka_id}"
+            f"&gram_panchayat_id={prop2.gram_panchayat_id}&village_id={prop2.village_id}"
+            f"&v={qr_version}"
+        )
+        # occupant from owner occupantName if available, fallback to स्वतः (not the
+        # owner's own name again - that duplicated the owner name on this line).
         try:
             if prop2.owners and len(prop2.owners) > 0:
                 occ = getattr(prop2.owners[0], 'occupantName', None)
-                result.occupant = occ or getattr(prop2.owners[0], 'name', None)
+                result.occupant = occ or 'स्वतः'
         except Exception:
             result.occupant = None
         # yearslap from related Namuna9 record
         n9 = db.query(namuna9_model.Namuna9).filter(namuna9_model.Namuna9.id == rec.namuna9_id).first()
         result.yearslap = getattr(n9, 'yearslap', None) if n9 else None
+    # शिल्लक थकबाकी - या मालमत्तेच्या तक्त्यातील सध्याचे थकित (shakti*) + चालू (chalu*)
+    # आकडे एकत्र (दोन्ही "अजून न भरलेली" रक्कम आहे - collect() दोन्ही कमी करतं),
+    # जे ही पावती दिल्यानंतर उरलेली एकूण रक्कम दाखवतात.
+    ledger_row = db.query(namuna9_model.Namuna9PropertyData).filter(
+        namuna9_model.Namuna9PropertyData.namuna9_id == rec.namuna9_id,
+        namuna9_model.Namuna9PropertyData.property_id == rec.property_id
+    ).first()
+    if ledger_row:
+        # दंड (Dand) घरकर रो सोबतच धरतो - बाकीच्या रकान्यांत जसं प्रिंट टेम्पलेटमध्ये आधीपासूनच
+        # दंड फक्त घरकर रोमध्येच दाखवला जातो, तोच नियम शिल्लक बाकीलाही लावला आहे.
+        result.remainingGhar = round((ledger_row.shaktiGhar or 0) + (ledger_row.chaluGhar or 0) + (ledger_row.dand or 0), 2)
+        result.remainingDiva = round((ledger_row.shaktiDiva or 0) + (ledger_row.chaluDiva or 0), 2)
+        result.remainingAarogyaKar = round((ledger_row.shaktiAarogyaKar or 0) + (ledger_row.chaluAarogyaKar or 0), 2)
+        result.remainingSapanikar = round((ledger_row.shaktiSapanikar or 0) + (ledger_row.chaluSapanikar or 0), 2)
+        result.remainingVpanikar = round((ledger_row.shaktiVpanikar or 0) + (ledger_row.chaluVpanikar or 0), 2)
+        result.remainingCleaningTax = round((ledger_row.shaktiCleaningTax or 0) + (ledger_row.chaluCleaningTax or 0), 2)
+        result.remainingTotal = round(
+            result.remainingGhar + result.remainingDiva + result.remainingAarogyaKar +
+            result.remainingSapanikar + result.remainingVpanikar + result.remainingCleaningTax, 2
+        )
     return result
 
 def _enrich_receipt(rec, db: Session) -> Namuna9ReceiptRead:
@@ -787,7 +997,8 @@ def list_receipts_by_date_village(
     """List enriched receipts for a village between dates (inclusive of from, exclusive of next day to)."""
     # Base query: receipts for GP and properties within village
     q = db.query(namuna9_model.Namuna9Receipt).filter(
-        namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id
+        namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id,
+        namuna9_model.Namuna9Receipt.is_deleted == False
     )
     prop_ids_subq = db.query(namuna8_model.Property.id).filter(namuna8_model.Property.village_id == village_id).subquery()
     q = q.filter(namuna9_model.Namuna9Receipt.property_id.in_(prop_ids_subq))
@@ -830,7 +1041,8 @@ def list_receipts_by_date_all(
 ):
     """List enriched receipts for the entire gram panchayat between dates (all villages)."""
     q = db.query(namuna9_model.Namuna9Receipt).filter(
-        namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id
+        namuna9_model.Namuna9Receipt.gram_panchayat_id == gram_panchayat_id,
+        namuna9_model.Namuna9Receipt.is_deleted == False
     )
     def _parse_dt(s: Optional[str]):
         if not s:
@@ -895,7 +1107,7 @@ def list_receipts_by_date(
         if not gp:
             raise HTTPException(status_code=400, detail="Gram Panchayat validation failed")
 
-    q = db.query(namuna9_model.Namuna9Receipt)
+    q = db.query(namuna9_model.Namuna9Receipt).filter(namuna9_model.Namuna9Receipt.is_deleted == False)
     if scope == "gram_panchayat":
         q = q.filter(namuna9_model.Namuna9Receipt.gram_panchayat_id == id)
     elif scope == "property":
@@ -954,6 +1166,8 @@ def update_receipt(
     rec = db.query(namuna9_model.Namuna9Receipt).get(receipt_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Receipt not found")
+    if rec.is_deleted:
+        raise HTTPException(status_code=400, detail="Deleted receipt cannot be edited")
     # Optional location validation
     if gram_panchayat_id is not None and rec.gram_panchayat_id != gram_panchayat_id:
         raise HTTPException(status_code=403, detail="Receipt does not belong to specified gram panchayat")
@@ -978,6 +1192,8 @@ def update_receipt(
                     d = db.query(location_models.District).filter(location_models.District.id == district_id).first()
                     if not d or t.district_id != d.id:
                         raise HTTPException(status_code=400, detail="Taluka does not belong to district")
+    old_vasuli = {k: (getattr(rec, k, 0) or 0) for k in VASULI_TO_PROPERTY_FIELD}
+
     for f, v in payload.dict(exclude_unset=True).items():
         if f == 'pavti_date':
             dt = None
@@ -991,20 +1207,34 @@ def update_receipt(
             setattr(rec, f, v)
     db.commit()
     db.refresh(rec)
+
+    # Re-sync the property's ledger by the difference between the old and new
+    # भरणा amounts - reducing a collected amount here restores थकित/चालू back
+    # up, increasing it reduces them further.
+    new_vasuli = {k: (getattr(rec, k, 0) or 0) for k in VASULI_TO_PROPERTY_FIELD}
+    _adjust_property_data_for_receipt(db, rec.namuna9_id, rec.property_id, {
+        k: old_vasuli[k] - new_vasuli[k] for k in VASULI_TO_PROPERTY_FIELD
+    })
+
     return rec
 
 @router.delete("/receipt/{receipt_id}")
 def delete_receipt(
     receipt_id: int,
+    reason: str = "",
     district_id: Optional[int] = None,
     taluka_id: Optional[int] = None,
     village_id: Optional[int] = None,
     gram_panchayat_id: Optional[int] = None,
     db: Session = Depends(database.get_db)
 ):
+    if not reason or not reason.strip():
+        raise HTTPException(status_code=422, detail="डिलीट करण्याचे कारण आवश्यक आहे")
     rec = db.query(namuna9_model.Namuna9Receipt).get(receipt_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Receipt not found")
+    if rec.is_deleted:
+        raise HTTPException(status_code=400, detail="Receipt is already deleted")
     # Optional location validation
     if gram_panchayat_id is not None and rec.gram_panchayat_id != gram_panchayat_id:
         raise HTTPException(status_code=403, detail="Receipt does not belong to specified gram panchayat")
@@ -1027,7 +1257,20 @@ def delete_receipt(
                     d = db.query(location_models.District).filter(location_models.District.id == district_id).first()
                     if not d or t.district_id != d.id:
                         raise HTTPException(status_code=400, detail="Taluka does not belong to district")
-    db.delete(rec)
+
+    # Restore whatever this receipt had marked as collected before removing it.
+    _adjust_property_data_for_receipt(db, rec.namuna9_id, rec.property_id, {
+        k: (getattr(rec, k, 0) or 0) for k in VASULI_TO_PROPERTY_FIELD
+    })
+
+    # सॉफ्ट-डिलीट - रो कायम ठेवतो (client requirement: पावती कधीच पूर्णपणे हरवायची
+    # नाही), फक्त is_deleted=True करतो. बाकी सगळीकडे (बॅलन्स/याद्या/एक्सपोर्ट) ही
+    # पावती is_deleted==False फिल्टरमुळे आपोआप वगळली जाते - पावती क्रमांकही रो तसाच
+    # असल्यामुळे पुन्हा वापरला जाणार नाही.
+    rec.is_deleted = True
+    rec.deleted_at = datetime.utcnow()
+    rec.deleted_by = "ऑपरेटर"
+    rec.delete_reason = reason.strip()
     db.commit()
     return {"message": "Receipt deleted"}
 

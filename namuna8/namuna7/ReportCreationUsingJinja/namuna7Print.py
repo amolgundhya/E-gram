@@ -1,8 +1,10 @@
 from jinja2 import Environment, FileSystemLoader
 import os
+import csv
+import io
 import requests
 from fastapi import APIRouter , Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import httpx
 
 router = APIRouter()
@@ -78,6 +80,67 @@ async def receipt(request : Request):
             }
         )
         
+@router.post('/receipt/all')
+async def receipt_all(request : Request):
+    try:
+        # "पूर्ण दाखवा" - कालावधीतील सर्व पावत्या, एक पावती = एक पान
+        requestData = await request.json()
+        template = env.get_template('namuna7PavatiAll.html')
+
+        params = {
+            "from_date": requestData.get("from_date"),
+            "to_date": requestData.get("to_date"),
+            "district_id": requestData.get("district_id"),
+            "taluka_id": requestData.get("taluka_id"),
+            "gram_panchayat_id": requestData.get("gram_panchayat_id"),
+        }
+        if requestData.get("village_id"):
+            params["village_id"] = requestData.get("village_id")
+
+        # installer/दुसऱ्या port वरही चालावं म्हणून ज्या backend ला request आला तोच (127.0.0.1:8000 hard-code नाही)
+        base_url = str(request.base_url).rstrip('/')
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f'{base_url}/namuna7/prints/by-date/', params=params)
+        if response.status_code != 200:
+            raise Exception(f"API error {response.status_code}: {response.text}")
+
+        receipts = response.json()
+        if not receipts:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "message": "निवडलेल्या कालावधीत पावती उपलब्ध नाही",
+                    "data": {}
+                }
+            )
+
+        rendered_html = template.render(receipts=receipts)
+
+        os.makedirs(static_dir, exist_ok=True)
+        output_path = os.path.join(static_dir, 'output.html')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(rendered_html)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "Output file is created",
+                "data": {"count": len(receipts)}
+            }
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Error: {str(e)}",
+                "data": {}
+            }
+        )
+
 @router.post('/register')
 async def receipt(request : Request):
     try:
@@ -108,7 +171,7 @@ async def receipt(request : Request):
         
         context = {
             'data': data,
-            'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
+            'gramPanchayat': data[0].get('grampanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
             'jilha': data[0].get('jilha', '') if data else '',
@@ -196,6 +259,55 @@ async def receipt(request : Request):
                 "message": "Output file is created",
                 "data": {}
             }
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Error: {str(e)}",
+                "data": {}
+            }
+        )
+
+@router.post('/logbook/print_csv')
+async def logbook_print_csv(request: Request):
+    """जावक नोंदवही (Outward Register) data as a downloadable CSV."""
+    try:
+        requestDate = await request.json()
+        stateDate = requestDate.get("startDate")
+        endDate = requestDate.get("endDate")
+
+        base_url = str(request.base_url).rstrip('/')
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f'{base_url}/outward-entries/date-range/?from_date={stateDate}&to_date={endDate}')
+        if response.status_code != 200:
+            raise Exception(f"API error {response.status_code}: {response.text}")
+
+        data = response.json()
+        if not isinstance(data, list):
+            data = [data]
+
+        columns = [
+            ("srNo", "अ.क्र."),
+            ("jaKramank", "जा.क्र."),
+            ("reportType", "दस्त प्रकार"),
+            ("timeNDate", "दिनांक व वेळ"),
+            ("name", "नाव"),
+        ]
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow([label for _, label in columns])
+        for row in data:
+            writer.writerow([row.get(key, "") for key, _ in columns])
+
+        csv_bytes = io.BytesIO(buffer.getvalue().encode("utf-8-sig"))
+        return StreamingResponse(
+            csv_bytes,
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="outward_register.csv"'},
         )
 
     except Exception as e:

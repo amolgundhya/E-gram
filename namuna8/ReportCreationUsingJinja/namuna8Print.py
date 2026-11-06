@@ -1,9 +1,14 @@
 from jinja2 import Environment, FileSystemLoader
 import os
+import re
 import requests
+from datetime import datetime, date
 from fastapi import APIRouter , Request
 from fastapi.responses import JSONResponse
-from Utility.QRcodeGeneration import QRCodeGeneration 
+from Utility.QRcodeGeneration import QRCodeGeneration
+from Utility.qr_text import build_property_qr_text, build_area_lines, build_gp_heading
+from Utility import fast_qr
+from Utility.benefit_year import financial_year_full
 import httpx
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -15,6 +20,56 @@ template_dir = os.path.join(base_dir, 'templates')
 namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
 # static_dir = os.path.join(base_dir, 'reports')
 env = Environment(loader=FileSystemLoader(namuna8_template_dir))
+
+# शौचालय/घरकुल लाभ वर्ष - तारीख टाकली असली तरी प्रिंटमध्ये फक्त "2020-2021" (Utility/benefit_year.py)
+env.filters['financial_year_full'] = financial_year_full
+
+# चौ.फु. क्षेत्रफळ/लांबी-रुंदी आकड्यांना 10.76 (किंवा 1/10.76) रूपांतरणामुळे 599.98,
+# 1199.96 सारखे किंचित-चुकीचे आकडे येतात - अपेक्षित आकड्याच्या 0.05 च्या आत असल्यास पूर्ण
+# आकड्यापर्यंत (round) नेतो, नाहीतर normal 2-दशांश round करतो.
+def round_sqft(value):
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return value
+    nearest_whole = round(v)
+    if abs(v - nearest_whole) <= 0.05:
+        return int(nearest_whole)
+    return round(v, 2)
+
+env.filters['round_sqft'] = round_sqft
+
+# नमुना-8 रजिस्टर (हजारो मालमत्ता) चं HTML 10-30 MB होतं, त्यातला मोठा भाग फक्त टॅग्सच्या मधली
+# टेम्प्लेट indentation/रिकाम्या ओळी आणि प्रत्येक पानावर पुन्हा पुन्हा येणारे तेच <style> blocks.
+# - फक्त दोन टॅग्सच्या मधलं, पूर्ण whitespace असलेलं आणि ओळ-बदल असलेलं अंतर (">  \n   <") एका
+#   newline मध्ये बदलतो. एक whitespace ठेवतो कारण दोन inline टॅग्समधला space दिसतो; newline
+#   ब्राउझरमध्ये त्याच एका space सारखाच दिसतो.
+# - मजकुरातले (नावं, पत्ते, लेबल) spaces कधीच बदलत नाही; <pre>/<textarea>/<script>/<style> आतलं
+#   काहीच बदलत नाही.
+# - अगदी तसाच (byte-to-byte) <style> block दुसऱ्यांदा आला तर काढतो - तो काहीच बदलत नाही.
+_STYLE_BLOCK_RE = re.compile(r'<style\b[^>]*>.*?</style>', re.S | re.I)
+_RAW_BLOCK_RE = re.compile(r'(<(pre|textarea|script|style)\b[^>]*>.*?</\2\s*>)', re.S | re.I)
+_BETWEEN_TAGS_WS_RE = re.compile(r'>[ \t\r]*\n[ \t\r\n]*<')
+
+def compact_register_html(html):
+    seen = set()
+
+    def _first_style_only(m):
+        block = m.group(0)
+        if block in seen:
+            return ''
+        seen.add(block)
+        return block
+
+    html = _STYLE_BLOCK_RE.sub(_first_style_only, html)
+    parts = _RAW_BLOCK_RE.split(html)
+    out = []
+    # split: [बाहेरचा मजकूर, raw block, टॅगचं नाव, बाहेरचा मजकूर, ...]
+    for i in range(0, len(parts), 3):
+        out.append(_BETWEEN_TAGS_WS_RE.sub('>\n<', parts[i]))
+        if i + 1 < len(parts):
+            out.append(parts[i + 1])
+    return ''.join(out)
 
 # # Get the user home directory
 home_path = os.path.expanduser("~")
@@ -61,7 +116,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8Prakar1copy.html')
+            template = env.get_template('namuna8Prakar1.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(
                     f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1',
@@ -103,6 +158,24 @@ async def prakar1(request : Request):
                     "data": {}
                 }
             )
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
         # Extract top-level fields from the first record
         context = {
             'data': data,
@@ -112,10 +185,14 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
-        
+        rendered_html = compact_register_html(template.render(**context))
+
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
         output_path = os.path.join(static_dir, 'output.html')
@@ -155,7 +232,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8Prakar2copy.html')
+            template = env.get_template('namuna8Prakar2.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -199,6 +276,25 @@ async def prakar1(request : Request):
                 }
             )
 
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
+
         # Render template
         if not isinstance(data, list):
             data = [data]
@@ -211,10 +307,14 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
-        
+        rendered_html = compact_register_html(template.render(**context))
+
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
         output_path = os.path.join(static_dir, 'output.html')
@@ -255,7 +355,7 @@ async def prakar1(request : Request):
         base_url = str(request.base_url).rstrip('/')
 
         if checkbox:
-            template = env.get_template('namuna8Prakar3copy.html')
+            template = env.get_template('namuna8Prakar3.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -297,6 +397,25 @@ async def prakar1(request : Request):
                 }
             )
 
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
+
         # Render template
         if not isinstance(data, list):
             data = [data]
@@ -309,9 +428,13 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -394,6 +517,25 @@ async def prakar1(request : Request):
                 }
             )
 
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
+
         # Render template
         if not isinstance(data, list):
             data = [data]
@@ -406,9 +548,13 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -490,6 +636,25 @@ async def prakar1(request : Request):
                 }
             )
 
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
+
         # Render template
         if not isinstance(data, list):
             data = [data]
@@ -502,9 +667,13 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -589,6 +758,25 @@ async def prakar1(request : Request):
                 }
             )
 
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
+
         # Render template
         if not isinstance(data, list):
             data = [data]
@@ -601,9 +789,13 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -687,6 +879,25 @@ async def prakar1(request : Request):
                 }
             )
 
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
+
         # Render template
         if not isinstance(data, list):
             data = [data]
@@ -699,9 +910,13 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -743,7 +958,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8VishehPaniPrakar1copy.html')
+            template = env.get_template('namuna8VishehPaniPrakar1.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id}, 
@@ -786,6 +1001,25 @@ async def prakar1(request : Request):
                 }
             )
 
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
+
         # Render template
         if not isinstance(data, list):
             data = [data]
@@ -798,9 +1032,13 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -841,7 +1079,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8VishehPaniPrakar2copy.html')
+            template = env.get_template('namuna8VishehPaniPrakar2.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -883,6 +1121,25 @@ async def prakar1(request : Request):
                 }
             )
 
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
+
         # Render template
         if not isinstance(data, list):
             data = [data]
@@ -895,9 +1152,13 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -938,7 +1199,7 @@ async def prakar1(request : Request):
         # Call API - use base URL from request to avoid localhost issues in installer
         base_url = str(request.base_url).rstrip('/')
         if checkbox:
-            template = env.get_template('namuna8VishehPaniPrakar3copy.html')
+            template = env.get_template('namuna8VishehPaniPrakar3.html')
             async with httpx.AsyncClient() as client:
                 response = await client.get(f'{base_url}/namuna8/recordresponses/property_records_by_gram_panchayat/1' ,
                 params={"district_id" : district_id , "taluka_id" : taluka_id},timeout=300.0
@@ -979,6 +1240,25 @@ async def prakar1(request : Request):
                 }
             )
 
+        # घर कर / पाणी कर Bank Scanner - only fetched/shown if the GP has turned
+        # this on in Master settings.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
+
         # Render template
         if not isinstance(data, list):
             data = [data]
@@ -991,9 +1271,13 @@ async def prakar1(request : Request):
             'jilha': data[0].get('jilha', ''),
             'yearFrom': data[0].get('yearFrom', ''),
             'yearTo': data[0].get('yearTo', ''),
-            "tip" : data[0].get("tip" , "")
+            "tip" : data[0].get("tip" , ""),
+            "pageNumber" : data[0].get("pageNumber" , ""),
+            "showBankScanner": showBankScanner,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
         }
-        rendered_html = template.render(**context)
+        rendered_html = compact_register_html(template.render(**context))
         
         # Save output.html
         os.makedirs(static_dir, exist_ok=True)
@@ -1080,7 +1364,7 @@ async def singlePrint(request : Request):
         
 
     except Exception as e:
-       
+
         with open(file_path, "a", encoding="utf-8") as f:
             f.write(str(e))
         return JSONResponse(
@@ -1091,7 +1375,117 @@ async def singlePrint(request : Request):
                 "data": {}
             }
         )
-    
+
+@router.post('/blank_print')
+async def blankPrint(request: Request):
+    # Prints an empty नमुना-8 form (same layout as single_print) for a village,
+    # for field staff to fill by hand before computer entry - no property/anuKramank needed.
+    try:
+        requestData = await request.json()
+        villageID = requestData.get("villageID")
+        district_id = requestData.get("district_id")
+        taluka_id = requestData.get("taluka_id")
+        gram_panchayat_id = requestData.get("gram_panchayat_id")
+
+        template = env.get_template('singlePrint1.html')
+
+        base_url = str(request.base_url).rstrip('/')
+        async with httpx.AsyncClient() as client:
+            district_resp = await client.get(f'{base_url}/location/districts/{district_id}')
+            taluka_resp = await client.get(f'{base_url}/location/talukas/{taluka_id}')
+            gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+            village_resp = await client.get(f'{base_url}/namuna8/village/{villageID}')
+            checklist_resp = await client.get(f'{base_url}/namuna8/settings/checklist/get/{gram_panchayat_id}')
+
+        checklist_fields = {}
+        if checklist_resp.status_code == 200:
+            checklist_json = checklist_resp.json()
+            checklist_fields = {k: v for k, v in checklist_json.items() if k not in ('id', 'gram_panchayat_id')}
+
+        # घर कर / पाणी कर Bank Scanner QR - same gate as the filled single_print
+        # (show_bank_scanner_in_reports toggle + the QR image actually uploaded).
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gp_resp.status_code == 200:
+            gp_data = gp_resp.json()
+            if gp_data.get('show_bank_scanner_in_reports'):
+                if gp_data.get('house_tax_qr_url'):
+                    houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                if gp_data.get('water_tax_qr_url'):
+                    waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+
+        year_from = datetime.now().year
+        year_to = year_from + 3
+
+        data = {
+            "id": "", "srNo": "", "propertyNumber": "", "propertyDescription": "",
+            "gramPanchayat": gp_resp.json().get('name') if gp_resp.status_code == 200 else "",
+            "village": village_resp.json().get('name') if village_resp.status_code == 200 else "",
+            "taluka": taluka_resp.json().get('name') if taluka_resp.status_code == 200 else "",
+            "jilha": district_resp.json().get('name') if district_resp.status_code == 200 else "",
+            "yearFrom": f"{year_from}-{year_from + 1}",
+            "yearTo": f"{year_to}-{year_to + 1}",
+            "todays_date": date.today().strftime("%d-%m-%Y"),
+            "photoURL": None,
+            "bank_qr_code": None,
+            "houseTaxQrUrl": houseTaxQrUrl,
+            "waterTaxQrUrl": waterTaxQrUrl,
+            "QRcodeURL": None,
+            "total_arearinfoot": "", "totalareainmeters": "",
+            "occupantName": "", "aadharNumber": "", "ownerName": "", "ownerWifeName": "", "mobileNumber": "",
+            "roadName": "", "cityWardGatNumber": "",
+            "areaEast": "", "areaWest": "", "areaNorth": "", "areaSouth": "",
+            "totalArea": "",
+            "boundaryEast": "", "boundaryWest": "", "boundaryNorth": "", "boundarySouth": "",
+            "removeLightHealthTax": False, "applyCleaningTax": False, "applyToiletTax": False, "taxNotApplicable": False,
+            "dwarPurv": False, "dwarPashchim": False, "dwarUttar": False, "dwarDakshin": False, "dwarNaav": "",
+            "khaliJaga": [], "constructionType": [],
+            "waterFacility1": "", "waterFacility2": "", "toilet": "", "house": "",
+            "totalCapitalValue": 0, "totalHouseTax": 0,
+            "totalconstructionareainfoot": "", "totalconstructionareainmeter": "",
+            "housingUnit": "",
+            "lightingTax": 0, "healthTax": 0, "waterTax": 0, "cleaningTax": 0, "toiletTax": 0,
+            "sapanikar": 0, "vpanikar": 0, "totaltax": 0,
+            "userId": [], "villageId": str(villageID) if villageID else "",
+            "creationAt": None, "updationAt": None, "remarks": ""
+        }
+        data.update(checklist_fields)
+
+        # Generate a QR code so the layout matches the filled form (nothing meaningful
+        # to encode yet since there's no property data), reusing the same static file
+        # location single_print already writes to.
+        QRdata = {"srNO": "", "TotalArea": "", "Construction": "", "OpenSpace": "", "TotalTax": ""}
+        QRCodeGeneration.createQRcode(QRdata)
+        data["QRcodeURL"] = f"{base_url}/reports/qrcode.png?ts={int(datetime.now().timestamp())}"
+
+        rendered_html = template.render(data)
+
+        os.makedirs(static_dir, exist_ok=True)
+        output_path = os.path.join(static_dir, 'output.html')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(rendered_html)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "Blank output file is created",
+                "data": {}
+            }
+        )
+
+    except Exception as e:
+        with open(file_path, "a", encoding="utf-8") as f:
+            f.write(str(e))
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Error: {str(e)}",
+                "data": {}
+            }
+        )
+
 @router.post('/single_printP1')
 async def singlePrint(request : Request):
     try:
@@ -1486,7 +1880,7 @@ async def singlePrint(request : Request):
                 'taluka_id': requestData.get('taluka_id'),
                 "village_id" : villageID,
                 'gram_panchayat_id': requestData.get('gram_panchayat_id')
-            })
+            },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
@@ -1536,7 +1930,7 @@ async def singlePrint(request : Request):
                 "village_id" : villageID,
                 'taluka_id': requestData.get('taluka_id'),
                 'gram_panchayat_id': requestData.get('gram_panchayat_id')
-            })
+            },timeout=30.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
 
@@ -1835,3 +2229,186 @@ async def singlePrint(request : Request):
             }
         )
     
+
+
+_DEVANAGARI_DIGITS = str.maketrans('०१२३४५६७८९', '0123456789')
+
+
+def parse_sr_list(value):
+    """नेम प्लेट "ठराविक अ.क्र." यादी - "401, 402, 403" किंवा "401-404" किंवा दोन्ही
+    मिसळून ("3, 7, 10-12"), मराठी अंकही (४०१) चालतात. यादी (list) दिली तरी चालते.
+    (lo, hi) ranges परत करतो; चुकीचा तुकडा असल्यास ValueError."""
+    if isinstance(value, (list, tuple)):
+        value = ",".join(str(v) for v in value)
+    text = str(value or "").translate(_DEVANAGARI_DIGITS).replace('–', '-').replace('—', '-')
+    text = re.sub(r'\s*-\s*', '-', text)
+    ranges = []
+    for token in re.split(r'[,\s;]+', text):
+        if not token:
+            continue
+        m = re.fullmatch(r'(\d+)(?:-(\d+))?', token)
+        if not m:
+            raise ValueError(token)
+        lo = int(m.group(1))
+        hi = int(m.group(2)) if m.group(2) else lo
+        ranges.append((min(lo, hi), max(lo, hi)))
+    return ranges
+
+
+@router.post('/nameplate_sheet')
+async def nameplate_sheet(request: Request):
+    """डिजिटल नेम प्लेट - many QR name plates arranged on one 12x18in sheet,
+    at a uniform, configurable plate size (default 6x5in) for consistent
+    machine cutting. Follows the same open-HTML-and-let-the-browser-print-to-PDF
+    pattern used by every other report in this app.
+
+    पूर्ण गावाचं पान मोठं (~10 MB) होतं, म्हणून भागांत (parts) काढता येतं - पर्यायी:
+      partSize + part     : उदा. partSize=300, part=2 -> 301 ते 600 वी मालमत्ता (यादीतील क्रमाने)
+      fromSrNo / toSrNo   : अ.क्र. पासून - पर्यंत (दोन्ही धरून)
+      srNos               : ठराविक अ.क्र. - "401, 402, 403" / "401-404" (parse_sr_list)
+    काहीच न दिल्यास पूर्ण गाव, पूर्वीप्रमाणेच."""
+    try:
+        requestData = await request.json()
+        villageId = requestData.get("villageID")
+        district_id = requestData.get("district_id")
+        taluka_id = requestData.get("taluka_id")
+        gram_panchayat_id = requestData.get("gram_panchayat_id")
+        plate_width_in = requestData.get("plateWidthIn", 6)
+        plate_height_in = requestData.get("plateHeightIn", 5)
+        part_size = int(requestData.get("partSize") or 0)
+        part_no = int(requestData.get("part") or 1)
+        from_sr = requestData.get("fromSrNo")
+        to_sr = requestData.get("toSrNo")
+        sr_nos = requestData.get("srNos")
+        try:
+            sr_ranges = parse_sr_list(sr_nos)
+        except ValueError as bad:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": f"अ.क्र. यादी चुकीची आहे: '{bad}' (उदा. 401, 402, 403 किंवा 401-404)", "data": {}}
+            )
+        if sr_nos not in (None, "", []) and not sr_ranges:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "कृपया अ.क्र. लिहा (उदा. 401, 402, 403 किंवा 401-404)", "data": {}}
+            )
+
+        base_url = str(request.base_url).rstrip('/')
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f'{base_url}/namuna8/recordresponses/property_records_by_village/{villageId}',
+                params={"district_id": district_id, "taluka_id": taluka_id, "gram_panchayat_id": gram_panchayat_id},
+                timeout=300.0,
+            )
+            gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
+        if response.status_code != 200:
+            raise Exception(f"API error {response.status_code}: {response.text}")
+
+        gp_data = gp_resp.json() if gp_resp.status_code == 200 else {}
+        parent_gp_name = gp_data.get('parent_gram_panchayat_name')
+        year_label = f"{datetime.now().year}-{datetime.now().year + 1}"
+
+        properties = response.json()
+        if not isinstance(properties, list):
+            properties = [properties]
+        total_count = len(properties)
+
+        # भाग निवड (पर्यायी) - अ.क्र. पासून/पर्यंत, किंवा partSize चे part वे भाग
+        def _sr(prop):
+            try:
+                return int(prop.get("srNo"))
+            except (TypeError, ValueError):
+                return None
+        if from_sr not in (None, "") or to_sr not in (None, ""):
+            lo = int(from_sr) if from_sr not in (None, "") else None
+            hi = int(to_sr) if to_sr not in (None, "") else None
+            properties = [p for p in properties if _sr(p) is not None
+                          and (lo is None or _sr(p) >= lo) and (hi is None or _sr(p) <= hi)]
+        missing_sr_nos = []
+        if sr_ranges:
+            properties = [p for p in properties if _sr(p) is not None
+                          and any(lo <= _sr(p) <= hi for lo, hi in sr_ranges)]
+            # यादीतले पण गावात नसलेले अ.क्र. (फक्त सांगण्यासाठी; खूप मोठ्या range साठी मोजत नाही)
+            if sum(hi - lo + 1 for lo, hi in sr_ranges) <= 10000:
+                found = set(_sr(p) for p in properties)
+                missing_sr_nos = sorted(set(n for lo, hi in sr_ranges for n in range(lo, hi + 1)) - found)
+        parts = 1
+        if part_size > 0:
+            parts = max(1, -(-len(properties) // part_size))
+            part_no = min(max(1, part_no), parts)
+            properties = properties[(part_no - 1) * part_size: part_no * part_size]
+
+        # सगळे QR एकाच वेळी - same QR images as before (fast_qr), cache + parallel
+        # मोबाईल / चतुःसीमा (दिशा) / खाली जागा प्लेटवर नाहीत - मोठ्या QR मध्ये, स्कॅन केल्यावर दिसतात
+        qr_texts = [build_property_qr_text(prop, parent_gp_name, year_label, include_contact=True)
+                    for prop in properties]
+        os.makedirs(static_dir, exist_ok=True)
+        qr_uris, qr_stats = fast_qr.png_data_uris(qr_texts, cache_path=os.path.join(static_dir, "qr_cache.sqlite"))
+
+        tagline = "वेळेत कर भरा आणि गावाचा विकास साधा"
+        plates = []
+        for prop, qr_uri in zip(properties, qr_uris):
+            plates.append({
+                "sr_no": prop.get("srNo"),
+                "gram_panchayat_name": prop.get("gramPanchayat"),
+                "taluka_name": prop.get("taluka"),
+                "district_name": prop.get("jilha"),
+                "heading": build_gp_heading(prop.get("gramPanchayat"), prop.get("taluka"), prop.get("jilha"), parent_gp_name),
+                "owner_name": prop.get("ownerName"),
+                "occupant_name": prop.get("occupantName") or "स्वतः",
+                "malmatta_kramank": prop.get("propertyNumber"),
+                "total_area_sqft": prop.get("total_arearinfoot"),
+                "construction_area_sqft": prop.get("totalconstructionareainfoot"),
+                "tagline": tagline,
+                "area_lines": build_area_lines(prop),
+                "qrcode": qr_uri,
+                "boundary_east": prop.get("boundaryEast"),
+                "boundary_west": prop.get("boundaryWest"),
+                "boundary_north": prop.get("boundaryNorth"),
+                "boundary_south": prop.get("boundarySouth"),
+            })
+
+        # /ReportImages is mounted as a top-level static route (see main.py), so an
+        # absolute URL path resolves correctly regardless of where output.html itself
+        # is served from - a disk-relative path does not survive that HTTP indirection.
+        template = env.get_template('nameplateSheet.html')
+        rendered_html = template.render(
+            plates=plates,
+            report_images="/ReportImages",
+            plate_width_in=plate_width_in,
+            plate_height_in=plate_height_in,
+            plates_per_row=requestData.get("platesPerRow", 2),
+        )
+
+        os.makedirs(static_dir, exist_ok=True)
+        output_path = os.path.join(static_dir, 'output.html')
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(rendered_html)
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "Output file is created",
+                "data": {
+                    "count": len(plates),
+                    "total": total_count,
+                    "part": part_no if part_size > 0 else 1,
+                    "parts": parts,
+                    "fromSrNo": plates[0]["sr_no"] if plates else None,
+                    "toSrNo": plates[-1]["sr_no"] if plates else None,
+                    "missingSrNos": missing_sr_nos,
+                    "qr": qr_stats,
+                }
+            }
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"Error: {str(e)}",
+                "data": {}
+            }
+        )

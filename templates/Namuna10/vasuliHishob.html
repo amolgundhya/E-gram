@@ -43,13 +43,36 @@
             text-align: center;
             word-break: break-word;
         }
+        /* पावती दिनांक एका ओळीत */
+        .record-row td:nth-child(2) { white-space: nowrap; }
+        /* स्क्रीनवर A4 Landscape पानासारखा view (राखाडी background वर पांढरे पान) */
+        @media screen {
+            body { margin: 0; background: #9e9e9e; }
+            #toolbar { position: sticky; top: 0; z-index: 10; }
+            #mainContent {
+                width: 297mm;
+                min-height: 210mm;
+                box-sizing: border-box;
+                margin: 12px auto;
+                padding: 6mm;
+                background: #fff;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+            }
+            #mainContent table { font-size: 12px; }
+            #mainContent th, #mainContent td { padding: 2px 3px; }
+        }
         @media print {
             @page {
-                size: A4 portrait;
+                size: A4 landscape;
+                margin: 6mm;
             }
+            body { margin: 0; }
             #toolbar {
                 display: none !important;
             }
+            #mainContent { zoom: 1 !important; }
+            table { font-size: 10px; }
+            th, td { padding: 1px 2px; }
             .record-row { display: table-row !important; }
         }
     </style>
@@ -186,6 +209,7 @@
         </tr>
     </table>
     <table>
+        <thead>
         <tr class="header">
             <th >अ.क्र.</th>
             <th >पावती दिनांक</th>
@@ -202,7 +226,7 @@
             <th >एकूण दिवाकर</th>
             <th >मागील आ.कर</th>
             <th >चालू आ.कर</th>
-            <th >एकूणआ.कर</th>
+            <th >एकूण आ.कर</th>
             <th >मागील पाणीकर</th>
             <th >चालू पाणीकर</th>
             <th >एकूण पाणीकर</th>
@@ -211,6 +235,7 @@
             <th >एकूण सफाई कर</th>
             <th >एकूण कर</th>
         </tr>
+        </thead>
         {% for r in rows %}
         <tr class="record-row">
             <td>{{ loop.index }}</td>
@@ -268,5 +293,8 @@
             <td>{{ rows|map(attribute='total')|sum }}</td>
         </tr>
     </table>
+    </div>
+    <script src="/report_assets/page_numbers.js"></script>
+    <script src="/report_assets/report_share.js"></script>
 </body>
 </html>

@@ -47,6 +47,9 @@
             @page {
                 size: A4 landscape;
             }
+            /* शेरा (घरकुल/योजना/वर्ष) column ला वाचता येईल एवढी रुंदी (24 क्रमांकाचा div) - ती जागा A4 landscape
+               मध्ये बसावी म्हणून प्रिंटमध्ये टेबलचा फॉन्ट किंचित लहान */
+            .main-table, .main-table table { font-size: 12px; }
             #toolbar {
                 display: none !important;
             }
@@ -191,6 +194,13 @@
     </script>
     <!-- Main Data Table -->
     <div id="mainContent">
+    {# "पूर्ण प्रिंट करा" (सर्व गावं) मध्ये data = [{villageName, records}, ...] येतं - प्रत्येक गावासाठी हाच रजिस्टर
+       त्या गावाच्या शीर्षकासह छापतो (आधी वेगळा *copy.html होता, त्यात आधार/मोबाईल/घरकुल नव्हते). एका गावासाठी data = records. #}
+    {% set villages = data if (data and data[0].records is defined) else [{'records': data}] %}
+    {% for v in villages %}
+    {% set data = v.records %}
+    {% if v.villageName is defined %}{% set gramPanchayat, village, taluka, jilha, yearFrom, yearTo, tip = data[0].gramPanchayat, data[0].village, data[0].taluka, data[0].jilha, data[0].yearFrom, data[0].yearTo, data[0].tip %}{% endif %}
+    {% if not loop.first %}<div style="break-before: page; page-break-before: always;"></div>{% endif %}
     <table class="main-table" style="margin-top:0; width:100%;">
         <!-- Page Header - Repeats on every page -->
         <thead class="page-header">
@@ -210,6 +220,20 @@
                             <td class="left" style="width:33%">ग्रामपंचायत : {{ gramPanchayat | default('') }} <br>गाव/मोहोल्ला : {{ village | default('') }} </td>
                             <td class="center bold" style="font-size:22px; width:34%">नमुना ८<br><span style="font-size:15px; font-weight:normal;">सन {{ yearFrom | default('') }} <b>ते</b> {{ yearTo | default('') }} </span></td>
                             <td class="right" style="width:33%">नियम 32 (1)<br>तालुका : {{ taluka | default('') }}  <br>जिल्हा : {{ jilha | default('') }} </td>
+                            {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+                            <td class="center" style="width:1%; white-space:nowrap; padding:0 2px;">
+                                {% if houseTaxQrUrl %}
+                                <div style="display:inline-block; text-align:center; margin:0 2px; font-size:9px; line-height:1.1;">
+                                    <img src="{{ houseTaxQrUrl }}" style="width:44px; height:44px; object-fit:contain; display:block;" />घर कर
+                                </div>
+                                {% endif %}
+                                {% if waterTaxQrUrl %}
+                                <div style="display:inline-block; text-align:center; margin:0 2px; font-size:9px; line-height:1.1;">
+                                    <img src="{{ waterTaxQrUrl }}" style="width:44px; height:44px; object-fit:contain; display:block;" />पाणी कर
+                                </div>
+                                {% endif %}
+                            </td>
+                            {% endif %}
                         </tr>
                     </table>
                 </td>
@@ -264,7 +288,7 @@
                 <th rowspan="1">21</th>
                 <th rowspan="1">22</th>
                 <th rowspan="1">23</th>
-                <th rowspan="1">24</th>
+                <th rowspan="1"><div style="width: 70px;">24</div></th>
             </tr>
         </thead>
         
@@ -288,7 +312,7 @@
                 data-total-tax="{{(row.totaltax|default(0)|float -  (row.cleaningTax|default(0)|float)) }}">
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
-                <td style="width: 300px;">{{ row.ownerName | default('') }}</td>
+                <td style="width: 300px;">{{ row.ownerName | default('') }}{% if row.aadharCard and row.aadharNumber %}<div style="font-size: 9px; line-height: 1.15;">आधार :<br><span style="white-space: nowrap;">{{ row.aadharNumber }}</span></div>{% endif %}{% if row.mobileNumberAdd and row.mobileNumber %}<div style="font-size: 9px; line-height: 1.15;">मो. <span style="white-space: nowrap;">{{ row.mobileNumber }}</span></div>{% endif %}</td>
                 <td>{{ row.occupantName | default('') }}</td>
                 <td>
                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
@@ -461,16 +485,20 @@
                     <span style="font-weight:bold;">पश्चिम:</span> <span style="padding-right: 20px;"> {{ row.boundaryWest | default('') }} </span>
                     <span style="font-weight:bold;">उत्तर:</span> <span style="padding-right: 20px;"> {{ row.boundaryNorth | default('') }} </span>
                     <span style="font-weight:bold;">दक्षिण:</span> <span style="padding-right: 20px;"> {{ row.boundarySouth | default('') }} </span>
+                    {% if row.dwarNaav %}<span style="font-weight:bold;">व्दार नांव:</span> <span style="padding-right: 20px;"> {{ row.dwarNaav }} </span>{% endif %}{% if row.toilet %}<span style="font-weight:bold;">शौचालय:</span> <span style="padding-right: 20px;"> {{ row.toilet }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %} </span>{% endif %}{% if row.gharkul %}<span style="font-weight:bold;">घरकुल:</span> <span style="padding-right: 20px;"> {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %} </span>{% endif %}
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
     
+    {% endfor %}
     <!-- Footer Summary - Outside table to avoid repetition -->
     <div class="footer-summary" id="footerSummary">
         <!-- Totals will be inserted here by JS -->
     </div>
 </div>
+    <script src="/report_assets/page_numbers.js"></script>
+    <script src="/report_assets/report_share.js"></script>
 </body>
 </html>

@@ -64,8 +64,9 @@
         const maxZoom = 2.0;
         const zoomStep = 0.1;
         let currentPage = 1;
-        const recordsPerPage = 10; // Show 10 records per page
         let totalPages = 0;
+        // रो आता सर्व्हरवरच पानांत वाटलेले आहेत (प्रत्येक .print-page = खरं एक छापील
+        // पान, स्वतःच्या गोषवारा बेरजेसह).
 
         function updateZoom() {
             document.getElementById('mainContent').style.zoom = zoomLevel;
@@ -86,14 +87,13 @@
             }
         }
         function showPage(page) {
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             if (page < 1) page = 1;
             if (page > totalPages) page = totalPages;
             currentPage = page;
-            records.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                el.style.display = (pageIdx === currentPage) ? '' : 'none';
+            pages.forEach((el, idx) => {
+                el.style.display = (idx + 1 === currentPage) ? '' : 'none';
             });
             document.getElementById('pageInput').value = currentPage;
             document.getElementById('pageTotal').innerText = '/' + totalPages;
@@ -113,12 +113,11 @@
             // Get page range from input
             const fromPage = parseInt(document.getElementById('fromPage').value) || 1;
             const toPage = parseInt(document.getElementById('toPage').value) || totalPages;
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            const prevStates = records.map(el => el.style.display);
-            // Show only records in the selected page range
-            records.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                if (pageIdx >= fromPage && pageIdx <= toPage) {
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            const prevStates = pages.map(el => el.style.display);
+            // Show only pages in the selected range
+            pages.forEach((el, idx) => {
+                if (idx + 1 >= fromPage && idx + 1 <= toPage) {
                     el.style.display = '';
                 } else {
                     el.style.display = 'none';
@@ -128,12 +127,29 @@
                 window.print();
                 setTimeout(() => {
                     // Restore previous display states
-                    records.forEach((el, idx) => {
+                    pages.forEach((el, idx) => {
                         el.style.display = prevStates[idx];
                     });
                 }, 100);
             }, 50);
         }
+        // प्रिंटमध्ये टेबल A4 landscape पेक्षा रुंद असेल तर Chrome ठराविक मर्यादेपर्यंतच लहान
+        // करतो, उरलेली उजवी बाजू (शेरा कॉलम, उजवी रेघ) कापली जाते. म्हणून प्रिंटच्या आधी
+        // टेबलची खरी रुंदी मोजून तेवढंच लहान करतो. 1040px = A4 landscape (297mm - दोन्ही बाजूचे default margin).
+        const PRINT_WIDTH_PX = 1040;
+        window.addEventListener('beforeprint', function() {
+            const content = document.getElementById('mainContent');
+            content.style.zoom = 1;
+            let widest = 0;
+            document.querySelectorAll('.print-page').forEach(function(p) {
+                if (p.style.display === 'none') return;
+                const t = p.querySelector('.main-table');
+                if (t) widest = Math.max(widest, t.scrollWidth);
+            });
+            const needed = widest + 16; // body margin
+            content.style.zoom = needed > PRINT_WIDTH_PX ? (PRINT_WIDTH_PX / needed) : 1;
+        });
+        window.addEventListener('afterprint', updateZoom);
         function exitPage() {
             window.close();
         }
@@ -157,7 +173,10 @@
         };
     </script>
     <div id="mainContent">
-    <!-- Top section to repeat on every page -->
+    {% for page in pages %}
+    <div class="print-page"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
+    <!-- Top section: फक्त पहिल्या पानावर (मथळा + GP/village/taluka/jilha) -->
+    {% if loop.first %}
     <table class="report-top">
         <tr>
             <td colspan="3" class="center bold" style="font-size:22px;">नमुना ९</td>
@@ -173,11 +192,13 @@
             <td  style="width:34%">गाव/मोहल्ला : {{village}} </td>
         </tr>
     </table>
+    {% endif %}
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
             <tr>
                 <th rowspan="3">अ.क्र.</th>
+                <th rowspan="3" style="min-width:48px;">मिळकत नंबर</th>
                 <th rowspan="3">मालकाचे नाव</th>
                 <th rowspan="3" style="min-width:48px;">‍‍‍‍भोगवटदाराचे नाव</th>
                 <th colspan="16">वसुली</th>
@@ -225,28 +246,29 @@
         </thead>
         <tbody>
 
-            {% for row in data %}
+            {% for row in page %}
             <tr class="record-row">
-                <td>{{ row.id }}</td>
+                <td>{{ row.srNo }}</td>
+                <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
                 <td>{{ row.occupant }}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitHouseTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dandHouseTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.houseTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalHouseTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitLightingTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.lightingTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalLightingTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitHealthTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.healthTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalHealthTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitSaWaterTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.saWaterTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalSaWaterTax}}{% endif %}</td>
-                <td>{% if removeDhakit != 'true' %}{{row.dhakitViWaterTax}}{% endif %}</td>
-                <td>{% if removeChalu != 'true' %}{{row.viWaterTax}}{% endif %}</td>
-                <td>{% if removeYekun != 'true' %}{{row.totalViWaterTax}}{% endif %}</td>
-                <td>{% if removePurnaYekun != 'true' %}{{ ((row.totaltaxwithoutnoticwarrant) - (row.totlaToiletTax|default(0)) - (row.totalCleaningTax|default(0))) | round(2) }}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitHouseTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDandHouseTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliHouseTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalHouseTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitLightingTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliLightingTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalLightingTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitHealthTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliHealthTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalHealthTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitSaWaterTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliSaWaterTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalSaWaterTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitViWaterTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliViWaterTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalViWaterTax}}{% endif %}</td>
+                <td>{% if removePurnaYekun != 'true' %}{{ ((row.vasuliTotalTax) - (row.totlaToiletTax|default(0)) - (row.vasuliTotalCleaningTax|default(0))) | round(2) }}{% endif %}</td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -261,37 +283,123 @@
             </tr>
             {% endfor  %}
         </tbody>
+        <tfoot>
         <tr>
-            <td colspan="3" style="font-weight:bold; text-align:left;">गोषवारा</td>
+            <td colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
             <td colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">पाणी कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+            <td colspan="3" style="font-weight:bold; text-align:center;">विशेष पाणी कर</td>
             <td style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitHouseTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dandHouseTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='houseTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalHouseTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitLightingTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='lightingTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalLightingTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitHealthTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='healthTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalHealthTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitSaWaterTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='saWaterTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalSaWaterTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitCleaningTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='cleaningTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalCleaningTax')) | round(2) }}{% endif %}</td>
-            <td>{% if removePurnaYekun != 'true' %}{{ ((data | sum(attribute='totaltaxwithoutnoticwarrant')) - (data | sum(attribute='totlaToiletTax')) - (data | sum(attribute='totalCleaningTax'))) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='vasuliDhakitHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='vasuliDandHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='vasuliHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='vasuliTotalHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='vasuliDhakitLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='vasuliLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='vasuliTotalLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='vasuliDhakitHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='vasuliHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='vasuliTotalHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='vasuliDhakitSaWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='vasuliSaWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='vasuliTotalSaWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='vasuliDhakitViWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='vasuliViWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='vasuliTotalViWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removePurnaYekun != 'true' %}{{ ((page | sum(attribute='vasuliTotalTax')) - (page | sum(attribute='totlaToiletTax')) - (page | sum(attribute='vasuliTotalCleaningTax'))) | round(2) }}{% endif %}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
         </tr>
+        {% if loop.last %}
+        <tr>
+            <td colspan="4" style="font-weight:bold; text-align:left;">एकूण बेरीज (सर्व पाने)</td>
+            <td colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
+            <td colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
+            <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
+            <td colspan="3" style="font-weight:bold; text-align:center;">पाणी कर</td>
+            <td colspan="3" style="font-weight:bold; text-align:center;">विशेष पाणी कर</td>
+            <td style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='vasuliDhakitHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='vasuliDandHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='vasuliHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='vasuliTotalHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='vasuliDhakitLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='vasuliLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='vasuliTotalLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='vasuliDhakitHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='vasuliHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='vasuliTotalHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='vasuliDhakitSaWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='vasuliSaWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='vasuliTotalSaWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='vasuliDhakitViWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='vasuliViWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='vasuliTotalViWaterTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removePurnaYekun != 'true' %}{{ ((data | sum(attribute='vasuliTotalTax')) - (data | sum(attribute='totlaToiletTax')) - (data | sum(attribute='vasuliTotalCleaningTax'))) | round(2) }}{% endif %}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        {% endif %}
+        </tfoot>
     </table>
+    </div>
+    {% endfor %}
+    </div>
+    <script src="/report_assets/page_numbers.js"></script>
+    <script src="/report_assets/report_share.js"></script>
 </body>
 </html>

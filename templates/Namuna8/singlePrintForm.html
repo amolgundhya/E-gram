@@ -126,7 +126,7 @@
     <ol class="instructions" style="margin-top: 0; margin-bottom: 0;">
         <div style="display: flex;justify-content: space-between;">
             <p>ग्राम पंचायत हद्दीतील करास पात्र इमारतीवर, जागेवर करावयाच्या फेरकर आकारणीचा तक्ता</p>
-            <p style="text-align: right;" >मुंबई – 400001 दिनांक 31</p>
+            <p style="text-align: right;" >मुंबई – 400001 दिनांक 31 डिसेंबर 2015</p>
         </div>
         <li>महाराष्ट्र शासन राजपत्र असाधारण भाग 4 ब ग्रामविकास व जलसंधारण विभाग बांधकाम भवन, 25 मर्झबान पथ फोर्ट, डिसेंबर 2015 ची अधिसुचना</li>
         <li>महाराष्ट्र ग्रामपंचायत अधिनियम 1958 चे कलम 124 महाराष्ट्र ग्रामपंचायत कर व फि (सुधारणा) मुख्य अधिनीयम 2015  </li>
@@ -140,19 +140,27 @@
                 <td style="font-weight: bold; width: 14%;">मालमत्ता धारकाचे नांव :</td>
                 <td style="padding: 2px 6px;"> {{ownerName|default('')}} </td>
                 <td style="font-weight: bold; width: 5%;padding: 2px 6px;">मोकं :</td>
-                <td style="width: 15%; padding: 2px 6px;">&nbsp;</td>
+                <td style="width: 15%; padding: 2px 6px;">{% if mobileNumberAdd %}{{mobileNumber|default('', true)}}{% endif %}&nbsp;</td>
             </tr>
+            {% if (aadharCard and aadharNumber) or gharkul %}
+            <tr>
+                <td style="font-weight: bold; width: 14%;">आधार क्रमांक :</td>
+                <td style="padding: 2px 6px;">{% if aadharCard %}{{aadharNumber|default('', true)}}{% endif %}</td>
+                <td style="font-weight: bold; width: 5%;padding: 2px 6px;">घरकुल :</td>
+                <td style="width: 15%; padding: 2px 6px;">{{gharkul|default('', true)}}{% if gharkulYojana and gharkul != 'नाही' %} - {{gharkulYojana}}{% endif %}{% if gharkulBenefitYear and gharkul != 'नाही' %} ({{gharkulBenefitYear}}){% endif %}</td>
+            </tr>
+            {% endif %}
         </table>
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <tr>
                 <td style="width: 40%; border: none; padding-left: 50px;"><b>भोगवटदाराचे नांव :</b> {{occupantName|default('')}} </td>
-                <td style="width: 60%; border: none; text-align: center; "><b>मिळकत क्रमांक :</b>  {{propertyNumber|default('')}}  </td>
+                <td style="width: 60%; border: none; text-align: center; "><b>अ.क्र. :</b> {{srNo|default('')}} &nbsp;&nbsp; <b>मिळकत क्रमांक :</b>  {{propertyNumber|default('')}}  </td>
             </tr>
         </table>
         <div style="border-bottom: 1px dashed #000; margin: 8px 8px 8px 0;"></div>
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;  margin-bottom: 0;">
             <tr>
-                <td colspan="6" style="border: none; padding-left: 50px;"><b>जागेचे मोजमाप :</b> चौरस फुट मध्ये</td>
+                <td colspan="6" style="border: none; padding-left: 50px;"><b>जागेचे मोजमाप :</b> {% if housingUnit == 'sqm' %}चौरस मीटर मध्ये{% else %}चौरस फुट मध्ये{% endif %}</td>
             </tr>
             <tr>
                 <td style="border: none; text-align: center; font-weight: bold;padding-left: 20px;">पूर्व :</td>
@@ -171,6 +179,7 @@
         <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
         <p style="padding-left: 50px;">स.क्र./ग.क्र ____________ प्लॉट क्र ____________</p>
         <p style="padding-left: 50px;"><b>चतुर्सिमा पूर्व -:</b>  {{boundaryEast|default('')}}, <b>पश्चिम -:</b>  {{boundaryWest|default('')}}, <b>उत्तर -:</b>  {{boundaryNorth|default('')}} <b>दक्षिण -:</b> {{boundarySouth|default('')}}.</p>
+        {% if dwarNaav %}<p style="padding-left: 50px;"><b>व्दार नांव -:</b>  {{dwarNaav}}.</p>{% endif %}
         <p style="padding-left: 50px;"><b>वापराची दिशा :</b>_______________ </p>
         <p style="padding-left: 50px;"><b>ग्रामपंचायत नमुना ८ ला स.न.</b>-च्या नोंदीप्रमाणे मिळकतीचे तपशीलासह वर्णन</p>
     </div>
@@ -200,10 +209,10 @@
                 {{constructionType[2].floor if constructionType and constructionType|length > 2 else ''}}<br>
                 {{khaliJaga[0].constructiontype if khaliJaga and khaliJaga|length > 0 else ''}}
             </td>
-                <td> {{constructionType[0].length if constructionType and constructionType|length > 0 else ''}}  X  {{constructionType[0].width if constructionType and constructionType|length > 0 else ''}} <br> {{constructionType[1].length if constructionType and constructionType|length > 1 else ''}}  X {{constructionType[1].width if constructionType and constructionType|length > 1 else ''}} <br> {{constructionType[2].length if constructionType and constructionType|length > 2 else ''}}  X {{constructionType[2].width if constructionType and constructionType|length > 2 else ''}} <br> {{khaliJaga[0].length if khaliJaga and khaliJaga|length > 0 else ''}}  X {{khaliJaga[0].width if khaliJaga and khaliJaga|length > 0 else ''}} </td>
-                <td> {{(constructionType[0].length * 0.3048)|round(2) if constructionType and constructionType|length > 0 and constructionType[0].length is not none else ''}}  X  {{(constructionType[0].width * 0.3048)|round(2) if constructionType and constructionType|length > 0 and constructionType[0].width is not none else ''}} <br> {{(constructionType[1].length * 0.3048)|round(2) if constructionType and constructionType|length > 1 and constructionType[1].length is not none else ''}}  X {{(constructionType[1].width * 0.3048)|round(2) if constructionType and constructionType|length > 1 and constructionType[1].width is not none else ''}} <br> {{(constructionType[2].length * 0.3048)|round(2) if constructionType and constructionType|length > 2 and constructionType[2].length is not none else ''}}  X {{(constructionType[2].width * 0.3048)|round(2) if constructionType and constructionType|length > 2 and constructionType[2].width is not none else ''}} <br> {{(khaliJaga[0].length * 0.3048)|round(2) if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].length is not none else ''}}  X {{(khaliJaga[0].width * 0.3048)|round(2) if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].width is not none else ''}} </td>
-                <td> {{constructionType[0].length * constructionType[0].width if constructionType and constructionType|length > 0 and constructionType[0].length is not none and constructionType[0].width is not none else ''}} <br> {{constructionType[1].length * constructionType[1].width if constructionType and constructionType|length > 1 and constructionType[1].length is not none and constructionType[1].width is not none else ''}}<br> {{constructionType[2].length * constructionType[2].width if constructionType and constructionType|length > 2 and constructionType[2].length is not none and constructionType[2].width is not none else ''}}<br> {{khaliJaga[0].length * khaliJaga[0].width if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].length is not none and khaliJaga[0].width is not none else ''}} </td>
-                <td> {{(constructionType[0].length * constructionType[0].width * 0.092903)|round(2) if constructionType and constructionType|length > 0 and constructionType[0].length is not none and constructionType[0].width is not none else ''}} <br> {{(constructionType[1].length * constructionType[1].width * 0.092903)|round(2) if constructionType and constructionType|length > 1 and constructionType[1].length is not none and constructionType[1].width is not none else ''}}<br> {{(constructionType[2].length * constructionType[2].width * 0.092903)|round(2) if constructionType and constructionType|length > 2 and constructionType[2].length is not none and constructionType[2].width is not none else ''}}<br> {{(khaliJaga[0].length * khaliJaga[0].width * 0.092903)|round(2) if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].length is not none and khaliJaga[0].width is not none else ''}} </td>
+                <td> {% if constructionType and constructionType|length > 0 and constructionType[0].length is not none %}{% if constructionAreaUnit == 'sqm' %}{{ (constructionType[0].length / 0.3048) | round_sqft }}{% else %}{{ constructionType[0].length | round_sqft }}{% endif %}{% endif %}  X  {% if constructionType and constructionType|length > 0 and constructionType[0].width is not none %}{% if constructionAreaUnit == 'sqm' %}{{ (constructionType[0].width / 0.3048) | round_sqft }}{% else %}{{ constructionType[0].width | round_sqft }}{% endif %}{% endif %} <br> {% if constructionType and constructionType|length > 1 and constructionType[1].length is not none %}{% if constructionAreaUnit == 'sqm' %}{{ (constructionType[1].length / 0.3048) | round_sqft }}{% else %}{{ constructionType[1].length | round_sqft }}{% endif %}{% endif %}  X {% if constructionType and constructionType|length > 1 and constructionType[1].width is not none %}{% if constructionAreaUnit == 'sqm' %}{{ (constructionType[1].width / 0.3048) | round_sqft }}{% else %}{{ constructionType[1].width | round_sqft }}{% endif %}{% endif %} <br> {% if constructionType and constructionType|length > 2 and constructionType[2].length is not none %}{% if constructionAreaUnit == 'sqm' %}{{ (constructionType[2].length / 0.3048) | round_sqft }}{% else %}{{ constructionType[2].length | round_sqft }}{% endif %}{% endif %}  X {% if constructionType and constructionType|length > 2 and constructionType[2].width is not none %}{% if constructionAreaUnit == 'sqm' %}{{ (constructionType[2].width / 0.3048) | round_sqft }}{% else %}{{ constructionType[2].width | round_sqft }}{% endif %}{% endif %} <br> {{ khaliJaga[0].length | round_sqft if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].length is not none else '' }}  X {{ khaliJaga[0].width | round_sqft if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].width is not none else '' }} </td>
+                <td> {% if constructionType and constructionType|length > 0 and constructionType[0].length is not none %}{% if constructionAreaUnit == 'sqm' %}{{ constructionType[0].length | round(2) }}{% else %}{{ (constructionType[0].length * 0.3048) | round(2) }}{% endif %}{% endif %}  X  {% if constructionType and constructionType|length > 0 and constructionType[0].width is not none %}{% if constructionAreaUnit == 'sqm' %}{{ constructionType[0].width | round(2) }}{% else %}{{ (constructionType[0].width * 0.3048) | round(2) }}{% endif %}{% endif %} <br> {% if constructionType and constructionType|length > 1 and constructionType[1].length is not none %}{% if constructionAreaUnit == 'sqm' %}{{ constructionType[1].length | round(2) }}{% else %}{{ (constructionType[1].length * 0.3048) | round(2) }}{% endif %}{% endif %}  X {% if constructionType and constructionType|length > 1 and constructionType[1].width is not none %}{% if constructionAreaUnit == 'sqm' %}{{ constructionType[1].width | round(2) }}{% else %}{{ (constructionType[1].width * 0.3048) | round(2) }}{% endif %}{% endif %} <br> {% if constructionType and constructionType|length > 2 and constructionType[2].length is not none %}{% if constructionAreaUnit == 'sqm' %}{{ constructionType[2].length | round(2) }}{% else %}{{ (constructionType[2].length * 0.3048) | round(2) }}{% endif %}{% endif %}  X {% if constructionType and constructionType|length > 2 and constructionType[2].width is not none %}{% if constructionAreaUnit == 'sqm' %}{{ constructionType[2].width | round(2) }}{% else %}{{ (constructionType[2].width * 0.3048) | round(2) }}{% endif %}{% endif %} <br> {{ (khaliJaga[0].length * 0.3048) | round(2) if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].length is not none else '' }}  X {{ (khaliJaga[0].width * 0.3048) | round(2) if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].width is not none else '' }} </td>
+                <td> {{ constructionType[0].areaSqft | round_sqft if constructionType and constructionType|length > 0 else '' }} <br> {{ constructionType[1].areaSqft | round_sqft if constructionType and constructionType|length > 1 else '' }}<br> {{ constructionType[2].areaSqft | round_sqft if constructionType and constructionType|length > 2 else '' }}<br> {{ khaliJaga[0].totalkhalijagaareainfoot | round_sqft if khaliJaga and khaliJaga|length > 0 else '' }} </td>
+                <td> {{ constructionType[0].areaSqm | round(2) if constructionType and constructionType|length > 0 else '' }} <br> {{ constructionType[1].areaSqm | round(2) if constructionType and constructionType|length > 1 else '' }}<br> {{ constructionType[2].areaSqm | round(2) if constructionType and constructionType|length > 2 else '' }}<br> {{ khaliJaga[0].totalkhalijagaareainmeters | round(2) if khaliJaga and khaliJaga|length > 0 else '' }} </td>
                 <td> {{constructionType[0].year if constructionType and constructionType|length > 0 else ''}} <br> {{constructionType[1].year if constructionType and constructionType|length > 1 else ''}} <br> {{constructionType[2].year if constructionType and constructionType|length > 2 else ''}} <br> </td>
                 <td></td>
             </tr>
@@ -256,5 +265,6 @@
     </div>
 </div>
 </div>
+    <script src="/report_assets/report_share.js"></script>
 </body>
 </html>

@@ -44,7 +44,7 @@
         }
         @media print {
             @page {
-                size: A4 landscape;
+                size: A4;
             }
             #toolbar {
                 display: none !important;
@@ -232,7 +232,7 @@
             {% endfor %}
             <!-- Total row below the 'एकूण कर रुपये' column -->
             <tr>
-                <td colspan="5" style="border:none;"></td>
+                <td colspan="6" style="border:none;"></td>
                 <td class="footer-summary">एकूण : {{ data | sum(attribute='totaltax') }}</td>
             </tr>
         </tbody>
@@ -245,5 +245,7 @@
             <td style="border:none;padding-left: 80px;">सरपंच</td>
         </tr>
     </table>
+    <script src="/report_assets/page_numbers.js"></script>
+    <script src="/report_assets/report_share.js"></script>
 </body>
 </html>

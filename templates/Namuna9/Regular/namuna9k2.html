@@ -9,48 +9,58 @@
         margin: 0;
         padding: 0;
       }
+      /* एक .report-grid = एक A4 पान (2x2 - दोन मालमत्ता, प्रत्येकी दोन प्रती). पानाची
+         उंची/रुंदी ठराविक (mm मध्ये) आणि overflow hidden, जेणेकरून खालची पावती पुढच्या
+         पानावर सांडत नाही. */
       .report-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 0;
-        width: 100vw;
-        max-width: 210mm;
-        min-height: 297mm;
-        margin: 0 auto;
+        grid-template-columns: 105mm 105mm;
+        grid-template-rows: 148mm 148mm;
+        width: 210mm;
+        height: 296mm;
+        margin: 0 auto 10px auto;
+        overflow: hidden;
+        background: #fff;
         box-sizing: border-box;
+        page-break-after: always;
+        break-after: page;
+      }
+      .report-grid:last-child {
+        page-break-after: auto;
+        break-after: auto;
       }
       .report-cell {
-        position: relative;
-        padding: 8px 4px 0 8px;
+        padding: 3mm;
         box-sizing: border-box;
-        background: #fff;
+        overflow: hidden;
+      }
+      .report-cell.left {
+        border-right: 1px dashed #000;
+      }
+      .report-cell.top {
+        border-bottom: 1px dashed #000;
       }
       .outer-border {
-        border: 2px solid #000;
-        background: #fff;
-        position: relative;
-        min-height: 370px;
-        margin: 0;
+        border: 1.5px solid #000;
+        padding: 2px 3px 4px 3px;
         box-sizing: border-box;
       }
-      .dashed-vertical {
-        position: absolute;
-        top: 8px;
-        right: -10px;
-        width: 0;
-        height: calc(100% - 16px);
-        border-right: 2px dashed #000;
-        z-index: 2;
+      .qr-box {
+        display: inline-block;
+        text-align: center;
+        margin-left: 3px;
+        vertical-align: top;
       }
-      .dashed-horizontal {
-        position: absolute;
-        left: 8px;
-        bottom: -10px;
-        width: calc(100% - 16px);
-        height: 0;
-        border-bottom: 2px dashed #000;
-        z-index: 2;
+      .qr-box img,
+      .qr-box .qr-empty {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+        border: 1px solid #000;
+        display: block;
+      }
+      .qr-box div {
+        font-size: 7px;
       }
       table {
         border-collapse: collapse;
@@ -59,8 +69,13 @@
       th,
       td {
         border: 1px solid #000;
-        padding: 2px 6px;
-        font-size: 15px;
+        padding: 1px 3px;
+        font-size: 10.5px;
+      }
+      /* प्रत्येक कॉपी अर्ध्या पानाच्या रुंदीत बसते (2-column grid) - साल/दिनांक/कराचे
+         नाव सारखा मजकूर मध्येच तुटू नये म्हणून नो-रॅप. */
+      .no-wrap {
+        white-space: nowrap;
       }
       .no-border {
         border: none !important;
@@ -76,6 +91,7 @@
       }
       .header-table td {
         border: none;
+        padding: 0 3px;
       }
       .sub-header {
         font-size: 18px;
@@ -93,8 +109,8 @@
         pointer-events: none;
       }
       .signature {
-        margin-top: 8px;
-        font-size: 13px;
+        margin-top: 4px;
+        font-size: 11px;
         text-align: right;
       }
       @media print {
@@ -108,9 +124,20 @@
         #toolbar {
           display: none !important;
         }
+        /* स्क्रीनवरचा zoom प्रिंटला लागू नको - नाहीतर पान A4 पेक्षा मोठं/लहान होतं */
+        #mainContent {
+          zoom: 1 !important;
+        }
         .report-grid {
-          max-width: 100vw;
-          min-height: 100vh;
+          margin: 0;
+        }
+      }
+      @media screen {
+        body {
+          background: #e6e6e6;
+        }
+        .report-grid {
+          box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
         }
       }
     </style>
@@ -400,440 +427,139 @@
         }, 0);
       };
     </script>
+    {# एक पावती (एक प्रत). मथळा 9K प्रमाणेच: मालमत्ता QR नेहमी, घर कर / पाणी कर QR फक्त
+       Master setting (Bank Scanner) चालू असेल तर. #}
+    {% macro receipt(rec, tax_names) %}
+    <div class="outer-border">
+      <table class="header-table" style="width: 100%">
+        <tr>
+          <td class="bold" style="font-size: 9px; line-height: 1.5; vertical-align: middle; padding: 0 2px">
+            ग्रामपंचायत : {{ rec.gramPanchayat or '' }}<br />
+            गाव/मोहल्ला : {{ rec.village or '' }}<br />
+            तालुका : {{ rec.taluka or '' }}<br />
+            जिल्हा : {{ rec.district or '' }}
+          </td>
+          <td class="center bold no-wrap" style="font-size: 9px; line-height: 1.4; vertical-align: middle; padding: 0 2px">
+            नमुना ९ क<br />
+            नियम ३२ (५) पहा<br />
+            करांची मागणी पावती<br />
+            साल : {{ rec.yearSlap or '' }}
+          </td>
+          <td class="no-wrap" style="text-align: right; vertical-align: middle; padding: 0">
+            {% set qrs = [] %}
+            {% if rec.propertyQrUrl %}{% set _ = qrs.append((rec.propertyQrUrl, 'मालमत्ता')) %}{% endif %}
+            {% if rec.houseTaxQrUrl %}{% set _ = qrs.append((rec.houseTaxQrUrl, 'घर कर')) %}{% endif %}
+            {% if rec.waterTaxQrUrl %}{% set _ = qrs.append((rec.waterTaxQrUrl, 'पाणी कर')) %}{% endif %}
+            {% for qr_url, qr_label in qrs %}
+            <span class="qr-box"><img src="{{ qr_url }}" /><div class="bold">{{ qr_label }}</div></span>
+            {% else %}
+            <span class="qr-box"><span class="qr-empty"></span></span>
+            {% endfor %}
+          </td>
+        </tr>
+      </table>
+      <table class="header-table" style="width: 100%">
+        <tr>
+          <td class="bold" style="width: 50%">अनुक्रमांक : {{ rec.anuKramank or '' }}</td>
+          <td class="bold">मालमत्ता क्र. : {{ rec.propertyNumber or '' }}</td>
+        </tr>
+        <tr>
+          <td class="bold">मागणीची पावती क्र. : {{ rec.propertyNumber or '' }}</td>
+          <td class="bold">दिनांक : {{ rec.currentDate or '' }}</td>
+        </tr>
+        <tr>
+          <td colspan="2" class="bold">मालकाचे नाव : {{ rec.ownerName or '' }}</td>
+        </tr>
+        <tr>
+          <td colspan="2" class="bold">भोगवटदार : {{ rec.occupantName or '' }}</td>
+        </tr>
+      </table>
+      {% if rec.exServicemanTip %}
+      <div style="font-size: 8px; text-align: center; border: 1px solid #000">
+        (टीप: आजी / माजी सैनिकांना ग्रामपंचायत मालमत्ता करातून सूट देण्याबाबत शासन परिपत्रक व्हीपीएम-2020/प्र.क्र.93/पंरा-4, दि. 18 ऑगस्ट 2020 नुसार.)
+      </div>
+      {% endif %}
+      <table style="margin-top: 2px; width: 100%">
+        <tr class="center bold">
+          <td rowspan="3">कराचे नाव</td>
+          <td colspan="4">वसूल पात्र रकमा</td>
+          <td rowspan="3">शिल्लक बाकी<br />(Balance)</td>
+        </tr>
+        <tr class="center bold">
+          <td colspan="2">थकबाकी (रुपये = पै.)</td>
+          <td>चालू (रुपये = पै.)</td>
+          <td>एकूण (रुपये = पै.)</td>
+        </tr>
+        <tr class="center bold">
+          <td>मागील</td>
+          <td>दंड</td>
+          <td></td>
+          <td></td>
+        </tr>
+        {% set totals = namespace(magil=0, dand=0, current=0, ekun=0) %}
+        {% for tax in tax_names %}
+          {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}
+          {% set t_thakit = rec.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 %}
+          {% set t_dand = rec.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 %}
+          {% set t_current = rec.recoverableAmounts.current['current' ~ loop.index] or 0 %}
+          {% set totals.magil = totals.magil + t_thakit %}
+          {% set totals.dand = totals.dand + t_dand %}
+          {% set totals.current = totals.current + t_current %}
+          {% set totals.ekun = totals.ekun + t_thakit + t_dand + t_current %}
+          {% endif %}
+        {% endfor %}
+        {% for tax in tax_names %}
+        {% set is_fee = (tax == 'नोटीस फी' or tax == 'वारंट फी') %}
+        {% set thakit_value = rec.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 %}
+        {% set dand_value = rec.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 %}
+        {% set magil_value = 0 if is_fee else thakit_value %}
+        {% set current_value = rec.recoverableAmounts.current['current' ~ loop.index] or 0 %}
+        <tr>
+          <td class="no-wrap">{{ tax }}</td>
+          <td class="right">{{ "%.2f"|format(magil_value) }}</td>
+          <td class="right">{{ "%.2f"|format(0 if is_fee else dand_value) }}</td>
+          <td class="right">{{ "%.2f"|format(current_value) }}</td>
+          <td class="right">{{ "%.2f"|format(current_value if is_fee else (magil_value + dand_value + current_value)) }}</td>
+          <td class="right">{{ "%.2f"|format(current_value if is_fee else (magil_value + dand_value + current_value)) }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="bold">
+          <td>एकूण</td>
+          <td class="right">{{ "%.2f"|format(totals.magil) }}</td>
+          <td class="right">{{ "%.2f"|format(totals.dand) }}</td>
+          <td class="right">{{ "%.2f"|format(totals.current) }}</td>
+          <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
+          <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
+        </tr>
+        <tr class="bold">
+          <td colspan="6" style="border: none">दिनांक : {{ rec.currentDate or '' }}</td>
+        </tr>
+      </table>
+      <div style="font-size: 10.5px; margin-top: 3px; line-height: 1.4">
+        हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या आत करावा.
+        अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये आपल्यावर मागणी बजावण्यात येईल
+      </div>
+      <div class="signature">
+        {% if rec.signature_image %}
+        <img src="{{ rec.signature_image }}" style="height: 24px; object-fit: contain; display: block; margin-left: auto" alt="स्वाक्षरी" />
+        {% endif %}
+        ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी
+      </div>
+    </div>
+    {% endmacro %}
     <div id="mainContent">
-      {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर',
-      'सफाई कर', 'नोटीस फी', 'वारंट फी'] %} {% set tax_names = tax_names if
-      tax_names is defined else default_tax_names %} {% for i in range(0,
-      data|length, 2) %}
+      {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर', 'विशेष पाणी कर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %}
+      {% set tax_names = tax_names if tax_names is defined else default_tax_names %}
+      {% for i in range(0, data|length, 2) %}
       <div class="report-grid">
-        <!-- Upper two reports: show data[i] -->
-        <div class="report-cell" style="border-bottom: 0; border-right: 0">
-          <div class="outer-border">
-            <table class="header-table" style="width: 100%">
-              <tr>
-                <td class="center bold" style="width: 33%">
-                  ग्रामपंचायत<br />{{ data[i].gramPanchayat or '' }}
-                </td>
-                <td class="center bold" style="width: 34%">
-                  नमुना ९ क<br />
-                  नियम ३२ (५) पहा<br />
-                  करांची मागणी पावती<br />
-                  <span style="font-size: 15px"
-                    >साल : {{ data[i].yearSlap or '' }}</span
-                  >
-                </td>
-                <td class="center bold" style="width: 33%">
-                  मागणीची पावती क्र : {{ data[i].propertyNumber or '' }}<br />
-                  दिनांक : {{ data[i].currentDate or '' }}
-                </td>
-              </tr>
-            </table>
-            <table style="margin-top: 2px; width: 100%">
-              <tr>
-                <td colspan="2" class="bold" style="border: none">
-                  श्री {{ data[i].ownerName or '' }} <br />
-                  <span> भोगवटदार : {{ data[i].occupantName or '' }}</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="border: none">
-                  घर क्रमांक : {{ data[i].houseNumber or '' }}
-                </td>
-                <td style="border: none">
-                  यांजकडून पुढील रक्कम वसुलीयोग्य आहे
-                </td>
-              </tr>
-            </table>
-            <table style="margin-top: 2px; width: 100%">
-              <tr class="center bold">
-                <td rowspan="3">कराचे नाव</td>
-                <td colspan="4">वसूल पात्र रकमा</td>
-              </tr>
-              <tr class="center bold">
-                <td colspan="2">थकबाकी (रुपये = पै.)</td>
-                <td>चालू (रुपये = पै.)</td>
-                <td>एकूण (रुपये = पै.)</td>
-              </tr>
-              <tr class="center bold">
-                <td>मागील</td>
-                <td>दंड</td>
-                <td></td>
-                <td></td>
-              </tr>
-              {% set ns = namespace(deduction=0) %} {% for tax in tax_names %}
-              <tr>
-                <td>{{ tax }}</td>
-                <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~
-                  loop.index] or 0) }}
-                </td>
-                <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index]
-                  or 0) }}
-                </td>
-
-                {% set current_value =
-                data[i].recoverableAmounts.current['current' ~ loop.index] or 0
-                %} {% set total_value = data[i].recoverableAmounts.total['total'
-                ~ loop.index] or 0 %}
-
-                <td class="right">
-                  {{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  current_value }}
-                </td>
-                <td class="right">
-                  {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
-                  else total_value }}
-                </td>
-
-                {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
-                ns.deduction = ns.deduction + total_value %} {% elif (tax ==
-                'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
-                ns.deduction + total_value %} {% endif %}
-              </tr>
-              {% endfor %}
-              <tr class="bold">
-                <td>दिनांक : {{ data[i].currentDate or '' }}</td>
-                <td class="right" colspan="4">
-                  एकूण : {{ (data[i].totalTaxwithoutvipanitoilet or 0) }}
-                </td>
-              </tr>
-            </table>
-            <div style="font-size: 13px; margin-top: 4px">
-              हे बिल आपणास प्राप्त झाल्यापासून देय रकमांचा भरणा १५ दिवसांचे आत
-              करावा अन्यथा ग्रामपंचायत अधिनियमच्या कलम क्र.१२९(२) अन्वये
-              आपल्यावर मागणी बजावण्यात येईल
-            </div>
-            <div class="signature">
-              ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी
-            </div>
-          </div>
-          <div class="dashed-vertical"></div>
-          <div class="dashed-horizontal"></div>
-        </div>
-        <div class="report-cell" style="border-bottom: 0">
-          <div class="outer-border">
-            <table class="header-table" style="width: 100%">
-              <tr>
-                <td class="center bold" style="width: 33%">
-                  ग्रामपंचायत<br />{{ data[i].gramPanchayat or '' }}
-                </td>
-                <td class="center bold" style="width: 34%">
-                  नमुना ९ क<br />
-                  नियम ३२ (५) पहा<br />
-                  करांची मागणी पावती<br />
-                  <span style="font-size: 15px"
-                    >साल : {{ data[i].yearSlap or '' }}</span
-                  >
-                </td>
-                <td class="center bold" style="width: 33%">
-                  मागणीची पावती क्र : {{ data[i].propertyNumber or '' }}<br />
-                  दिनांक : {{ data[i].currentDate or '' }}
-                </td>
-              </tr>
-            </table>
-            <table style="margin-top: 2px; width: 100%">
-              <tr>
-                <td colspan="2" class="bold" style="border: none">
-                  श्री {{ data[i].ownerName or '' }} <br />
-                  <span> भोगवटदार : {{ data[i].occupantName or '' }}</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="border: none">
-                  घर क्रमांक : {{ data[i].houseNumber or '' }}
-                </td>
-                <td style="border: none">
-                  यांजकडून पुढील रक्कम वसुलीयोग्य आहे
-                </td>
-              </tr>
-            </table>
-            <table style="margin-top: 2px; width: 100%">
-              <tr class="center bold">
-                <td rowspan="3">कराचे नाव</td>
-                <td colspan="4">वसूल पात्र रकमा</td>
-              </tr>
-              <tr class="center bold">
-                <td colspan="2">थकबाकी (रुपये = पै.)</td>
-                <td>चालू (रुपये = पै.)</td>
-                <td>एकूण (रुपये = पै.)</td>
-              </tr>
-              <tr class="center bold">
-                <td>मागील</td>
-                <td>दंड</td>
-                <td></td>
-                <td></td>
-              </tr>
-              {% set ns = namespace(deduction=0) %} {% for tax in tax_names %}
-              <tr>
-                <td>{{ tax }}</td>
-                <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~
-                  loop.index] or 0) }}
-                </td>
-                <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index]
-                  or 0) }}
-                </td>
-
-                {% set current_value =
-                data[i].recoverableAmounts.current['current' ~ loop.index] or 0
-                %} {% set total_value = data[i].recoverableAmounts.total['total'
-                ~ loop.index] or 0 %}
-
-                <td class="right">
-                  {{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  current_value }}
-                </td>
-                <td class="right">
-                  {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
-                  else total_value }}
-                </td>
-
-                {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
-                ns.deduction = ns.deduction + total_value %} {% elif (tax ==
-                'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
-                ns.deduction + total_value %} {% endif %}
-              </tr>
-              {% endfor %}
-              <tr class="bold">
-                <td>दिनांक : {{ data[i].currentDate or '' }}</td>
-                <td class="right" colspan="4">
-                  एकूण : {{ (data[i].totalTaxwithoutvipanitoilet or 0) }}
-                </td>
-              </tr>
-            </table>
-            <div style="font-size: 13px; margin-top: 4px">
-              हे बिल आपणास प्राप्त झाल्यापासून देय रकमांचा भरणा १५ दिवसांचे आत
-              करावा अन्यथा ग्रामपंचायत अधिनियमच्या कलम क्र.१२९(२) अन्वये
-              आपल्यावर मागणी बजावण्यात येईल
-            </div>
-            <div class="signature">
-              ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी
-            </div>
-          </div>
-          <div class="dashed-horizontal"></div>
-        </div>
-        <!-- Lower two reports: show data[i+1] if exists -->
-        <div class="report-cell" style="border-right: 0">
-          {% if data|length > i+1 %}
-          <div class="outer-border">
-            <table class="header-table" style="width: 100%">
-              <tr>
-                <td class="center bold" style="width: 33%">
-                  ग्रामपंचायत<br />{{ data[i+1].gramPanchayat or '' }}
-                </td>
-                <td class="center bold" style="width: 34%">
-                  नमुना ९ क<br />
-                  नियम ३२ (५) पहा<br />
-                  करांची मागणी पावती<br />
-                  <span style="font-size: 15px"
-                    >साल : {{ data[i+1].yearSlap or '' }}</span
-                  >
-                </td>
-                <td class="center bold" style="width: 33%">
-                  मागणीची पावती क्र : {{ data[i+1].propertyNumber or '' }}<br />
-                  दिनांक : {{ data[i+1].currentDate or '' }}
-                </td>
-              </tr>
-            </table>
-            <table style="margin-top: 2px; width: 100%">
-              <tr>
-                <td colspan="2" class="bold" style="border: none">
-                  श्री {{ data[i+1].ownerName or '' }} <br />
-                  <span> भोगवटदार : {{ data[i+1].occupantName or '' }}</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="border: none">
-                  घर क्रमांक : {{ data[i+1].houseNumber or '' }}
-                </td>
-                <td style="border: none">
-                  यांजकडून पुढील रक्कम वसुलीयोग्य आहे
-                </td>
-              </tr>
-            </table>
-            <table style="margin-top: 2px; width: 100%">
-              <tr class="center bold">
-                <td rowspan="3">कराचे नाव</td>
-                <td colspan="4">वसूल पात्र रकमा</td>
-              </tr>
-              <tr class="center bold">
-                <td colspan="2">थकबाकी (रुपये = पै.)</td>
-                <td>चालू (रुपये = पै.)</td>
-                <td>एकूण (रुपये = पै.)</td>
-              </tr>
-              <tr class="center bold">
-                <td>मागील</td>
-                <td>दंड</td>
-                <td></td>
-                <td></td>
-              </tr>
-              {% set ns = namespace(deduction=0) %} {% for tax in tax_names %}
-              <tr>
-                <td>{{ tax }}</td>
-                <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~
-                  loop.index] or 0) }}
-                </td>
-                <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~
-                  loop.index] or 0) }}
-                </td>
-
-                {% set current_value =
-                data[i+1].recoverableAmounts.current['current' ~ loop.index] or
-                0 %} {% set total_value =
-                data[i+1].recoverableAmounts.total['total' ~ loop.index] or 0 %}
-
-                <td class="right">
-                  {{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  current_value }}
-                </td>
-                <td class="right">
-                  {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
-                  else total_value }}
-                </td>
-
-                {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
-                ns.deduction = ns.deduction + total_value %} {% elif (tax ==
-                'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
-                ns.deduction + total_value %} {% endif %}
-              </tr>
-              {% endfor %}
-              <tr class="bold">
-                <td>दिनांक : {{ data[i+1].currentDate or '' }}</td>
-                <td class="right" colspan="4">
-                  एकूण : {{ (data[i+1].totalTaxwithoutvipanitoilet or 0) }}
-                </td>
-              </tr>
-            </table>
-            <div style="font-size: 13px; margin-top: 4px">
-              हे बिल आपणास प्राप्त झाल्यापासून देय रकमांचा भरणा १५ दिवसांचे आत
-              करावा अन्यथा ग्रामपंचायत अधिनियमच्या कलम क्र.१२९(२) अन्वये
-              आपल्यावर मागणी बजावण्यात येईल
-            </div>
-            <div class="signature">
-              ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी
-            </div>
-          </div>
-          <div class="dashed-vertical"></div>
-          {% endif %}
-        </div>
-        <div class="report-cell">
-          {% if data|length > i+1 %}
-          <div class="outer-border">
-            <table class="header-table" style="width: 100%">
-              <tr>
-                <td class="center bold" style="width: 33%">
-                  ग्रामपंचायत<br />{{ data[i+1].gramPanchayat or '' }}
-                </td>
-                <td class="center bold" style="width: 34%">
-                  नमुना ९ क<br />
-                  नियम ३२ (५) पहा<br />
-                  करांची मागणी पावती<br />
-                  <span style="font-size: 15px"
-                    >साल : {{ data[i+1].yearSlap or '' }}</span
-                  >
-                </td>
-                <td class="center bold" style="width: 33%">
-                  मागणीची पावती क्र : {{ data[i+1].propertyNumber or '' }}<br />
-                  दिनांक : {{ data[i+1].currentDate or '' }}
-                </td>
-              </tr>
-            </table>
-            <table style="margin-top: 2px; width: 100%">
-              <tr>
-                <td colspan="2" class="bold" style="border: none">
-                  श्री {{ data[i+1].ownerName or '' }} <br />
-                  <span> भोगवटदार : {{ data[i+1].occupantName or '' }}</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="border: none">
-                  घर क्रमांक : {{ data[i+1].houseNumber or '' }}
-                </td>
-                <td style="border: none">
-                  यांजकडून पुढील रक्कम वसुलीयोग्य आहे
-                </td>
-              </tr>
-            </table>
-            <table style="margin-top: 2px; width: 100%">
-              <tr class="center bold">
-                <td rowspan="3">कराचे नाव</td>
-                <td colspan="4">वसूल पात्र रकमा</td>
-              </tr>
-              <tr class="center bold">
-                <td colspan="2">थकबाकी (रुपये = पै.)</td>
-                <td>चालू (रुपये = पै.)</td>
-                <td>एकूण (रुपये = पै.)</td>
-              </tr>
-              <tr class="center bold">
-                <td>मागील</td>
-                <td>दंड</td>
-                <td></td>
-                <td></td>
-              </tr>
-              {% set ns = namespace(deduction=0) %} {% for tax in tax_names %}
-              <tr>
-                <td>{{ tax }}</td>
-                <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~
-                  loop.index] or 0) }}
-                </td>
-                <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~
-                  loop.index] or 0) }}
-                </td>
-
-                {% set current_value =
-                data[i+1].recoverableAmounts.current['current' ~ loop.index] or
-                0 %} {% set total_value =
-                data[i+1].recoverableAmounts.total['total' ~ loop.index] or 0 %}
-
-                <td class="right">
-                  {{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  current_value }}
-                </td>
-                <td class="right">
-                  {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
-                  else total_value }}
-                </td>
-
-                {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
-                ns.deduction = ns.deduction + total_value %} {% elif (tax ==
-                'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
-                ns.deduction + total_value %} {% endif %}
-              </tr>
-              {% endfor %}
-              <tr class="bold">
-                <td>दिनांक : {{ data[i+1].currentDate or '' }}</td>
-                <td class="right" colspan="4">
-                  एकूण : {{ (data[i+1].totalTaxwithoutvipanitoilet or 0) }}
-                </td>
-              </tr>
-            </table>
-            <div style="font-size: 13px; margin-top: 4px">
-              हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या
-              आता करावा. अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये
-              आपल्यावर मागणी बजावाण्यात येईल
-            </div>
-            <div class="signature">
-              ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी
-            </div>
-          </div>
-          {% endif %}
-        </div>
+        {# वरच्या दोन: data[i] च्या दोन प्रती; खालच्या दोन: data[i+1] (असेल तर) #}
+        <div class="report-cell left top">{{ receipt(data[i], tax_names) }}</div>
+        <div class="report-cell top">{{ receipt(data[i], tax_names) }}</div>
+        <div class="report-cell left">{% if data|length > i + 1 %}{{ receipt(data[i + 1], tax_names) }}{% endif %}</div>
+        <div class="report-cell">{% if data|length > i + 1 %}{{ receipt(data[i + 1], tax_names) }}{% endif %}</div>
       </div>
       {% endfor %}
     </div>
-  </body>
+      <script src="/report_assets/report_share.js"></script>
+</body>
 </html>

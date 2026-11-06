@@ -31,6 +31,3 @@ class BirthDeathUnavailabilityCertificateRead(BirthDeathUnavailabilityCertificat
     gramPanchayat: Optional[str] = None
     taluka: Optional[str] = None
     jilha: Optional[str] = None
-    model_config = {
-        "from_attributes": True
-    } 

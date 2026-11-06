@@ -406,6 +406,47 @@
       };
     </script>
     <div id="mainContent">
+      {# "एकूण कर" ओळ शेवटच्या मालमत्तेसोबत एकाच break-inside: avoid block मध्ये - ती एकटीच नव्या पानावर जाऊ नये #}
+      {% set footer_summary %}
+    <table
+      class="footer-summary"
+      id="footerSummary"
+      style="
+        width: 100%;
+        border-collapse: collapse;
+        border: 2px solid #000;
+        font-size: 15px;
+        margin-top: 20px;
+        font-weight: bold;
+      "
+    >
+      <tr>
+        <td style="border: 1px solid #000; text-align: left; width: 15%">
+          एकूण कर :
+        </td>
+        <td
+          id="footerHouseTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+        <td
+          id="footerLightingTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+        <td
+          id="footerHealthTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+        <td
+          id="footerWaterTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+        <td
+          id="footerTotalTax"
+          style="border: 1px solid #000; text-align: left; width: 10%"
+        ></td>
+      </tr>
+    </table>
+      {% endset %}
       <!-- Header Section: Place this at the top of your HTML file -->
       {% set num_records = data|length %} {% set num_pages = (num_records // 3)
       + (1 if num_records % 3 else 0) %} {% for page in range(num_pages) %}
@@ -459,6 +500,16 @@
             <span>नियम 32 ( 1 ) </span>
             <span> तालुका: {{taluka|default('')}} </span>
             <span> जिल्हा : {{jilha|default('')}} </span>
+            {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+            <span style="display:inline-flex; gap:6px;">
+                {% if houseTaxQrUrl %}
+                <span style="text-align:center;"><img src="{{ houseTaxQrUrl }}" style="width:40px; height:40px; object-fit:contain; display:block; margin:0 auto;" /><span style="font-size:9px; display:block;">घर कर</span></span>
+                {% endif %}
+                {% if waterTaxQrUrl %}
+                <span style="text-align:center;"><img src="{{ waterTaxQrUrl }}" style="width:40px; height:40px; object-fit:contain; display:block; margin:0 auto;" /><span style="font-size:9px; display:block;">पाणी कर</span></span>
+                {% endif %}
+            </span>
+            {% endif %}
           </div>
           <div
             class="fontSizeData"
@@ -480,6 +531,7 @@
         </style>
         {% for i in range(3) %} {% set idx = page * 3 + i %} {% if idx <
         num_records %} {% set row = data[idx] %}
+        {% if idx == num_records - 1 %}<div class="last-record-with-total" style="break-inside: avoid; page-break-inside: avoid">{% endif %}
         <div
           class="record-table-wrapper"
           data-house-tax="{{ row.totalHouseTax | default('0') }}"
@@ -545,7 +597,7 @@
               <td rowspan="2">{{row.cityWardGatNumber|default('')}}</td>
               <td rowspan="2">{{row.propertyNumber|default('')}}</td>
               <td rowspan="2" style="text-align: left">
-                {{row.ownerName|default('')}}
+                {{row.ownerName|default('')}}{% if row.aadharCard and row.aadharNumber %}<div style="font-size: 9px; line-height: 1.15;">आधार :<br><span style="white-space: nowrap;">{{ row.aadharNumber }}</span></div>{% endif %}{% if row.mobileNumberAdd and row.mobileNumber %}<div style="font-size: 9px; line-height: 1.15;">मो. <span style="white-space: nowrap;">{{ row.mobileNumber }}</span></div>{% endif %}
               </td>
               <td rowspan="2">{{row.occupantName|default('')}}</td>
               <td rowspan="2" style="text-align: left">
@@ -641,7 +693,7 @@
             </tr>
             <tr>
               <td colspan="8" style="text-align: right; font-weight: bold">
-                एकूण चौरस फुट
+                {% if row.toilet or row.gharkul %}<span style="float: left; text-align: left; font-weight: normal;">{% if row.toilet %}<b>शौचालय :</b> {{ row.toilet }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}{% endif %}{% if row.toilet and row.gharkul %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{% if row.gharkul %}<b>घरकुल :</b> {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}{% endif %}</span>{% endif %}एकूण चौरस फुट
               </td>
               <td>{{row.total_arearinfoot|default('')}}</td>
               <td>
@@ -656,7 +708,7 @@
             </tr>
             <tr>
               <td colspan="8" style="text-align: right; font-weight: bold">
-                एकूण चौरस मीटर
+                {% if row.dwarNaav %}<span style="float: left; text-align: left; font-weight: normal;"><b>व्दार नांव :</b> {{ row.dwarNaav }}</span>{% endif %}एकूण चौरस मीटर
               </td>
               <td>{{row.totalareainmeters|default('')}}</td>
               <td>
@@ -671,50 +723,12 @@
             </tr>
           </table>
         </div>
+        {% if idx == num_records - 1 %}{{ footer_summary }}</div>{% endif %}
         {% endif %} {% endfor %}
       </div>
       {% endfor %}
     </div>
 
-    <!-- Footer Summary - Outside main content to avoid repetition -->
-    <table
-      class="footer-summary"
-      id="footerSummary"
-      style="
-        width: 100%;
-        border-collapse: collapse;
-        border: 2px solid #000;
-        font-size: 15px;
-        margin-top: 20px;
-        font-weight: bold;
-      "
-    >
-      <tr>
-        <td style="border: 1px solid #000; text-align: left; width: 15%">
-          एकूण कर :
-        </td>
-        <td
-          id="footerHouseTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-        <td
-          id="footerLightingTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-        <td
-          id="footerHealthTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-        <td
-          id="footerWaterTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-        <td
-          id="footerTotalTax"
-          style="border: 1px solid #000; text-align: left; width: 10%"
-        ></td>
-      </tr>
-    </table>
     <style>
       @media print {
         @page {
@@ -773,5 +787,7 @@
         }
       }
     </style>
-  </body>
+      <script src="/report_assets/page_numbers.js"></script>
+    <script src="/report_assets/report_share.js"></script>
+</body>
 </html>

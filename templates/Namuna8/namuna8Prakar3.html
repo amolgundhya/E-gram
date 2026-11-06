@@ -189,10 +189,16 @@
         };
     </script>
     <div id="mainContent">
+    {# "पूर्ण प्रिंट करा" (सर्व गावं) मध्ये data = [{villageName, records}, ...] येतं - प्रत्येक गावासाठी हाच रजिस्टर
+       त्या गावाच्या शीर्षकासह छापतो (आधी वेगळा *copy.html होता, त्यात आधार/मोबाईल/घरकुल नव्हते). एका गावासाठी data = records. #}
+    {% set villages = data if (data and data[0].records is defined) else [{'records': data}] %}
+    {% for v in villages %}
+    {% set data = v.records %}
+    {% if v.villageName is defined %}{% set gramPanchayat, village, taluka, jilha, yearFrom, yearTo, tip = data[0].gramPanchayat, data[0].village, data[0].taluka, data[0].jilha, data[0].yearFrom, data[0].yearTo, data[0].tip %}{% endif %}
     {% set num_records = data|length %}
     {% set num_pages = (num_records // 2) + (1 if num_records % 2 else 0) %}
     {% for page in range(num_pages) %}
-        <div class="record-page" style="page-break-after: always;">
+        <div class="record-page">
             <!-- Info block: appears once per page -->
             <div class="report-header">
                 {% if tip %}
@@ -211,6 +217,16 @@
                 <span>नियम 32 ( 1 ) </span>
                 <span> तालुका: {{taluka|default('')}} </span>
                 <span> जिल्हा : {{jilha|default('')}} </span>
+                {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+                <span style="display:inline-flex; gap:6px;">
+                    {% if houseTaxQrUrl %}
+                    <span style="text-align:center;"><img src="{{ houseTaxQrUrl }}" style="width:40px; height:40px; object-fit:contain; display:block; margin:0 auto;" /><span style="font-size:9px; display:block;">घर कर</span></span>
+                    {% endif %}
+                    {% if waterTaxQrUrl %}
+                    <span style="text-align:center;"><img src="{{ waterTaxQrUrl }}" style="width:40px; height:40px; object-fit:contain; display:block; margin:0 auto;" /><span style="font-size:9px; display:block;">पाणी कर</span></span>
+                    {% endif %}
+                </span>
+                {% endif %}
               </div>
               <div class="fontSizeData " style="margin-top: 5px; font-size: 12px;text-align: center;">
                 <span>सन {{yearFrom|default('')}} ते {{yearTo|default('')}} </span>
@@ -271,7 +287,7 @@
                                 <td rowspan="2"> {{row.cityWardGatNumber|default('')}} </td>
                                 <td rowspan="2"> {{row.propertyNumber|default('')}} </td>
                                 <td rowspan="2" style="text-align: left;">
-                                    {{row.ownerName|default('')}}
+                                    {{row.ownerName|default('')}}{% if row.aadharCard and row.aadharNumber %}<div style="font-size: 9px; line-height: 1.15;">आधार :<br><span style="white-space: nowrap;">{{ row.aadharNumber }}</span></div>{% endif %}{% if row.mobileNumberAdd and row.mobileNumber %}<div style="font-size: 9px; line-height: 1.15;">मो. <span style="white-space: nowrap;">{{ row.mobileNumber }}</span></div>{% endif %}
                                 </td>
                                 <td rowspan="2"> {{row.occupantName|default('')}} </td>
                                 <td rowspan="2" style="text-align: left;">
@@ -490,18 +506,19 @@
                         </table>
                         <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
                             <tr>
-                                <td style="text-align: left; border-right: 1px solid #000;">शौचालय :  {{row.toilet|default('')}} </td>
+                                <td style="text-align: left; border-right: 1px solid #000;">शौचालय :  {{row.toilet|default('')}} {% if row.gharkul or row.dwarNaav %}<div style="width: 0; min-width: 100%; overflow-wrap: anywhere; font-size: 9px; line-height: 1.15;">{% if row.gharkul %}<div>घरकुल : {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}</div>{% endif %}{% if row.dwarNaav %}<div>व्दार नांव : {{ row.dwarNaav }}</div>{% endif %}</div>{% endif %}</td>
                                 <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
                                 <td style="text-align: left; border-right: 1px solid #000;">पूर्व :  {{row.boundaryEast|default('')}} </td>
                                 <td style="text-align: left; border-right: 1px solid #000;">पश्चिम :  {{row.boundaryWest|default('')}} </td>
                                 <td style="text-align: left; border-right: 1px solid #000;">उत्तर :  {{row.boundaryNorth|default('')}} </td>
                                 <td style="text-align: left; border-right: 1px solid #000;">दक्षिण :  {{row.boundarySouth|default('')}} </td>
                             </tr>
-                        </table> 
+                        </table>
                     </div>
                 {% endif %}
             {% endfor %}
         </div>
+    {% endfor %}
     {% endfor %}
     </div>
     
@@ -511,6 +528,14 @@
     </div>
 
 <style>
+/* एका पानावर 2 रेकॉर्ड: नवं पान प्रत्येक .record-page च्या *आधी* (पहिल्या सोडून). आधी प्रत्येक पानानंतर
+   page-break होता, त्यामुळे शेवटची "एकूण कर" ओळ वेगळ्या रिकाम्या पानावर जायची. */
+.record-page + .record-page {
+    page-break-before: always;
+    break-before: page;
+}
+</style>
+<style id="p3-print-css">
 @media print {
   @page {
     size: A4 landscape;
@@ -537,6 +562,32 @@
   .report-header, .report-info, .fontSizeData, .report-warning {
     font-size: 11px !important;
   }
+  /* 2 रेकॉर्ड + मथळा एका A4 landscape पानात बसावेत म्हणून प्रिंटमध्ये उभी जागा कमी.
+     --p3-fit (खालचं script) फक्त खूप उंच रेकॉर्ड असलेल्या पानावर फॉन्ट थोडा लहान करतो. */
+  .record-page table {
+    font-size: calc(10px * var(--p3-fit, 1)) !important;
+    line-height: 1.2;
+  }
+  .record-page .report-info, .record-page .fontSizeData {
+    font-size: calc(11px * var(--p3-fit, 1)) !important;
+  }
+  .record-page .report-warning {
+    font-size: calc(9.5px * var(--p3-fit, 1)) !important;
+    line-height: 1.2;
+  }
+  .record-page .report-info {
+    margin-top: 3px !important;
+  }
+  .record-page .report-info img {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  .record-page .fontSizeData {
+    margin-top: 2px !important;
+  }
+  .record-page .record-table-wrapper {
+    margin-bottom: 6px !important;
+  }
   .report-header span[style*="font-size: 16px"] {
     font-size: 12px !important;
   }
@@ -557,3 +608,82 @@
   }
 }
 </style>
+<script>
+    // प्रिंटच्या आधी (beforeprint - Print बटण, Ctrl+P, Share PDF) छापली जाणारी प्रत्येक .record-page
+    // A4 landscape पानाच्या उंचीत बसते का ते प्रिंट CSS लावून मोजतो. एखाद्या पानावरचे रेकॉर्ड खूप उंच
+    // असतील (3 बांधकामं, आधार/मोबाईल/घरकुल) तर फक्त त्या पानाचा फॉन्ट (--p3-fit) बसेपर्यंत थोडा लहान
+    // करतो - नाहीतर दुसऱ्या रेकॉर्डचं खालचं टेबल पुढच्या पानावर जातं. स्क्रीनवरचा रिपोर्ट बदलत नाही.
+    // page_numbers.js च्या आधी - Windows 8 वर तो याच बदललेल्या उंचीने पान क्रमांक मोजतो.
+    // ES5 - Windows 8 वरच्या Chrome/Edge 109 साठी.
+    (function () {
+        var PX_PER_MM = 96 / 25.4;
+        var PAGE_WIDTH = (297 - 2 * 6) * PX_PER_MM;   // @page: A4 landscape, margin 6mm
+        var PAGE_HEIGHT = (210 - 2 * 6) * PX_PER_MM;
+        var SAFETY = 0.94;  // Windows प्रिंटमध्ये अक्षरं स्क्रीनपेक्षा थोडी वेगळी मोडतात
+        var MIN_FIT = 0.7, STEP = 0.05, MAX_ROUNDS = 8;
+
+        function printMediaRules() {
+            var el = document.getElementById('p3-print-css');
+            var rules = [];
+            try {
+                var list = el.sheet.cssRules;
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i].type === 4 && /\bprint\b/i.test(list[i].media.mediaText)) rules.push(list[i]);
+                }
+            } catch (e) { /* stylesheet वाचता आलं नाही */ }
+            return rules;
+        }
+
+        function fitPages() {
+            var mc = document.getElementById('mainContent');
+            if (!mc) return;
+            var all = document.querySelectorAll('.record-page');
+            var i;
+            for (i = 0; i < all.length; i++) all[i].style.removeProperty('--p3-fit');
+
+            var rules = printMediaRules();
+            var oldMedia = [];
+            for (i = 0; i < rules.length; i++) { oldMedia.push(rules[i].media.mediaText); rules[i].media.mediaText = 'all'; }
+            var oldWidth = mc.style.width, oldZoom = mc.style.zoom;
+            mc.style.width = PAGE_WIDTH + 'px';
+            mc.style.zoom = '1';
+            try {
+                var todo = [];
+                for (i = 0; i < all.length; i++) {
+                    if (all[i].getClientRects().length) todo.push({ el: all[i], fit: 1 });
+                }
+                if (!todo.length) return;
+                // शेवटच्या छापल्या जाणाऱ्या पानावर "एकूण कर" ओळही यावी
+                var footer = document.getElementById('footerSummary');
+                var footerHeight = footer && footer.getClientRects().length ? footer.getBoundingClientRect().height + 20 : 0;
+                var lastEl = todo[todo.length - 1].el;
+                var limit = PAGE_HEIGHT * SAFETY;
+                for (var round = 0; round < MAX_ROUNDS && todo.length; round++) {
+                    var heights = [];
+                    for (i = 0; i < todo.length; i++) heights.push(todo[i].el.getBoundingClientRect().height);
+                    var next = [];
+                    for (i = 0; i < todo.length; i++) {
+                        var item = todo[i];
+                        var max = item.el === lastEl ? limit - footerHeight : limit;
+                        if (heights[i] > max && item.fit > MIN_FIT) {
+                            item.fit = Math.max(MIN_FIT, item.fit - STEP);
+                            item.el.style.setProperty('--p3-fit', String(item.fit));
+                            next.push(item);
+                        }
+                    }
+                    todo = next;
+                }
+            } finally {
+                mc.style.width = oldWidth;
+                mc.style.zoom = oldZoom;
+                for (i = 0; i < rules.length; i++) rules[i].media.mediaText = oldMedia[i];
+            }
+        }
+
+        window.addEventListener('beforeprint', function () {
+            try { fitPages(); } catch (e) { if (window.console) console.error('fit pages:', e); }
+        });
+    })();
+</script>
+<script src="/report_assets/page_numbers.js"></script>
+<script src="/report_assets/report_share.js"></script>

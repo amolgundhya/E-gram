@@ -138,5 +138,67 @@ def get_gram_panchayat_image_path(db: Session, gram_panchayat_id: int) -> Option
     gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
     if not gram_panchayat or not gram_panchayat.image_url:
         return None
-    
-    return gram_panchayat.image_url.replace("/", os.sep) 
+
+    return gram_panchayat.image_url.replace("/", os.sep)
+
+
+# घर कर / पाणी कर Bank Scanner QR uploads - separate from the generic gram
+# panchayat logo/image above, since a GP may collect the two taxes into
+# different bank accounts and needs two distinct scannable QR codes.
+QR_URL_FIELD = {
+    "house": "house_tax_qr_url",
+    "water": "water_tax_qr_url",
+    "signature": "signature_url",
+}
+
+
+def save_gram_panchayat_qr_image(db: Session, gram_panchayat_id: int, image: UploadFile, qr_type: str) -> str:
+    """Save the घर कर or पाणी कर Bank Scanner QR image and return the file path."""
+    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+    if not gram_panchayat:
+        raise ValueError("Gram panchayat not found")
+
+    taluka = db.query(models.Taluka).filter(models.Taluka.id == gram_panchayat.taluka_id).first()
+    if not taluka:
+        raise ValueError("Taluka not found")
+
+    image_dir = os.path.join(UPLOAD_DIR, str(taluka.district_id), str(taluka.id), str(gram_panchayat_id), f"qr_{qr_type}")
+    os.makedirs(image_dir, exist_ok=True)
+
+    safe_filename = image.filename.replace(' ', '_')
+    file_path = os.path.join(image_dir, safe_filename)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+
+    return file_path.replace(os.sep, "/")
+
+
+def remove_gram_panchayat_qr_image(db: Session, gram_panchayat_id: int, qr_type: str) -> bool:
+    """Remove the घर कर or पाणी कर Bank Scanner QR image file."""
+    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+    field = QR_URL_FIELD[qr_type]
+    url = getattr(gram_panchayat, field, None) if gram_panchayat else None
+    if not gram_panchayat or not url:
+        return False
+
+    try:
+        file_path = url.replace("/", os.sep)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
+def get_gram_panchayat_qr_image_path(db: Session, gram_panchayat_id: int, qr_type: str) -> Optional[str]:
+    """Get the घर कर or पाणी कर Bank Scanner QR image file path."""
+    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
+    field = QR_URL_FIELD[qr_type]
+    url = getattr(gram_panchayat, field, None) if gram_panchayat else None
+    if not url:
+        return None
+
+    return url.replace("/", os.sep)

@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+from Utility.sqlite_compat import query_all_in_chunks
 from database import get_db
 from ..namuna8_model import Owner, Property, ConstructionType
 import os
 from pydantic import BaseModel
 from Utility.QRcodeGeneration import QRCodeGeneration
 from namuna8.recordresponses.property_record_response import get_property_record
-from namuna8.namuna8_apis import build_property_response
+from namuna8.namuna8_apis import build_property_response, compute_property_sort_order
 import qrcode
 from namuna8.PropertyDocuments.property_document_model import PropertyDocument
 import shutil
@@ -114,10 +115,11 @@ class OwnerTransferRequest(BaseModel):
 
 @router.post("/owners/transfer/")
 def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)):
-    owners = db.query(Owner).filter(
-        Owner.id.in_(request.owner_ids), 
-        Owner.village_id == request.from_village_id
-    ).all()
+    owners = query_all_in_chunks(
+        db.query(Owner).filter(Owner.village_id == request.from_village_id),
+        Owner.id,
+        request.owner_ids
+    )
     
     if not owners:
         raise HTTPException(status_code=404, detail="No owners found for transfer.")
@@ -166,6 +168,15 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
 
             # Update location fields
             property.village_id = request.to_village_id
+            # जुना sort_order आधीच्या गावातल्या क्रमाचा होता - नव्या गावाच्या यादीत तो
+            # कुठेही (कुणाच्या तरी मधे/बरोबरीने) पडला असता. नव्या गावात "New" प्रमाणेच
+            # मालमत्ता क्रमांकाच्या नैसर्गिक क्रमवारीत जागा देतो; हवं तर नंतर "जागा बदला".
+            # flush: session autoflush=False आहे - याच लूपमध्ये आधी हलवलेल्या मालमत्ता
+            # नव्या गावाच्या query मध्ये दिसाव्यात (नाहीतर दोघांना एकच जागा मिळू शकते).
+            db.flush()
+            property.sort_order = compute_property_sort_order(
+                db, request.to_village_id, property.malmattaKramank, exclude=property
+            )
             if request.district_id is not None:
                 property.district_id = request.district_id
             if request.taluka_id is not None:
@@ -278,12 +289,24 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
             constructionArea = round(constructionArea, 2)
             openArea = round(totalArea - constructionArea, 2)
 
+            # qr_data = {
+            #     "अनुक्रमांक": getattr(db_property, 'anuKramank', None),
+            #     "मालकाचे नाव": owner_name,
+            #     # "mobileNumber": mobile_number,
+            #     "एकूण क्षेत्रफळ": totalArea,
+            #     "बांधकाम क्षेत्रफळ": constructionArea,
+            #     "खुली जागा": openArea,
+            #     "एकूण कर": totalTax,
+            # }
+            # if wife_name:
+            #     qr_data["पत्नीचे नाव"] = wife_name
+
             qr_data = {
-                # Marathi labels for QR display
-                # "मा. धा. ना.": owner_name,
-                "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
-                "T. A.": totalArea,
-                "T. T.": totalTax
+                    # Marathi labels for QR display
+                    "मा. धा. ना.": owner_name,
+                    "Mal. Kr." : getattr(db_property, 'malmattaKramank', None),
+                    "T. A.": totalArea,
+                    "T. T.": totalTax
             }
 
             qr_dir = os.path.join(

@@ -9,47 +9,57 @@
         margin: 0;
         padding: 0;
       }
+      /* एक .report-grid = एक A4 पान (2x2 - दोन मालमत्ता, प्रत्येकी दोन प्रती). पानाची
+         उंची/रुंदी ठराविक (mm) आणि overflow hidden, जेणेकरून खालची पावती पुढच्या पानावर
+         सांडत नाही (आधी 4 मालमत्ता = 3 पानं होत होती). */
       .report-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
-        gap: 0;
-        width: 100vw;
-        max-width: 210mm;
-        min-height: 297mm;
-        margin: 0 auto;
+        grid-template-columns: 105mm 105mm;
+        grid-template-rows: 148mm 148mm;
+        width: 210mm;
+        height: 296mm;
+        margin: 0 auto 10px auto;
+        overflow: hidden;
+        background: #fff;
         box-sizing: border-box;
+        page-break-after: always;
+        break-after: page;
+      }
+      .report-grid:last-child {
+        page-break-after: auto;
+        break-after: auto;
       }
       .report-cell {
         position: relative;
-        padding: 8px 4px 0 8px;
+        padding: 3mm;
         box-sizing: border-box;
+        overflow: hidden;
         background: #fff;
       }
       .outer-border {
-        border: 2px solid #000;
+        border: 1.5px solid #000;
         background: #fff;
         position: relative;
-        min-height: 370px;
         margin: 0;
+        padding-bottom: 3px;
         box-sizing: border-box;
       }
       .dashed-vertical {
         position: absolute;
-        top: 8px;
-        right: -10px;
+        top: 0;
+        right: 0;
         width: 0;
-        height: calc(100% - 16px);
-        border-right: 2px dashed #000;
+        height: 100%;
+        border-right: 1px dashed #000;
         z-index: 2;
       }
       .dashed-horizontal {
         position: absolute;
-        left: 8px;
-        bottom: -10px;
-        width: calc(100% - 16px);
+        left: 0;
+        bottom: 0;
+        width: 100%;
         height: 0;
-        border-bottom: 2px dashed #000;
+        border-bottom: 1px dashed #000;
         z-index: 2;
       }
       table {
@@ -59,8 +69,8 @@
       th,
       td {
         border: 1px solid #000;
-        padding: 2px 6px;
-        font-size: 15px;
+        padding: 1px 3px;
+        font-size: 10.5px;
       }
       .no-border {
         border: none !important;
@@ -93,8 +103,9 @@
         pointer-events: none;
       }
       .signature {
-        margin-top: 8px;
-        font-size: 13px;
+        margin-top: 4px;
+        padding-right: 3px;
+        font-size: 10.5px;
         text-align: right;
       }
       @media print {
@@ -108,9 +119,17 @@
         #toolbar {
           display: none !important;
         }
+        /* स्क्रीनवरचा zoom प्रिंटला लागू नको - नाहीतर पान A4 पेक्षा मोठं/लहान होतं */
+        #mainContent {
+          zoom: 1 !important;
+        }
         .report-grid {
-          max-width: 100vw;
-          min-height: 100vh;
+          margin: 0;
+        }
+      }
+      @media screen {
+        body {
+          background: #e6e6e6;
         }
       }
     </style>
@@ -411,20 +430,33 @@
           <div class="outer-border">
             <table class="header-table" style="width: 100%">
               <tr>
-                <td class="center bold" style="width: 33%">
-                  ग्रामपंचायत<br />{{ data[i].gramPanchayat or '' }}
+                <td class="center bold" style="width: 33%; font-size: 12px; line-height: 1.5">
+                  ग्रामपंचायत : {{ data[i].gramPanchayat or '' }}<br />
+                  गाव/मोहल्ला : {{ data[i].village or '' }}<br />
+                  तालुका : {{ data[i].taluka or '' }}<br />
+                  जिल्हा : {{ data[i].district or '' }}<br />
+                  अनुक्रमांक : {{ data[i].anuKramank or '' }}
                 </td>
-                <td class="center bold" style="width: 34%">
+                <td class="center bold" style="width: 34%; font-size: 11px">
                   नमुना ९ क<br />
                   नियम ३२ (५) पहा<br />
                   करांची मागणी पावती<br />
-                  <span style="font-size: 15px"
+                  <span style="font-size: 11px; white-space: nowrap"
                     >साल : {{ data[i].yearSlap or '' }}</span
                   >
                 </td>
-                <td class="center bold" style="width: 33%">
-                  मागणीची पावती क्र : {{ data[i].propertyNumber or '' }}<br />
-                  दिनांक : {{ data[i].currentDate or '' }}
+                <td class="center bold" style="width: 33%; font-size: 11px">
+                  {# मालमत्ता QR नेहमी; घर कर / पाणी कर QR फक्त Master setting (Bank Scanner) चालू असेल तर #}
+                  <span style="display:inline-flex; gap:3px; justify-content:center; margin-bottom:2px;">
+                    {% for qr_url, qr_label in [(data[i].propertyQrUrl, 'मालमत्ता'), (data[i].houseTaxQrUrl, 'घर कर'), (data[i].waterTaxQrUrl, 'पाणी कर')] if qr_url %}
+                    <span style="display:inline-block; text-align:center;">
+                      <img src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
+                      <span style="font-size:7px;">{{ qr_label }}</span>
+                    </span>
+                    {% endfor %}
+                  </span><br />
+                  <span style="white-space: nowrap">मागणीची पावती क्र : {{ data[i].propertyNumber or '' }}</span><br />
+                  <span style="white-space: nowrap">दिनांक : {{ data[i].currentDate or '' }}</span>
                 </td>
               </tr>
             </table>
@@ -433,14 +465,6 @@
                 <td colspan="2" class="bold" style="border: none">
                   श्री {{ data[i].ownerName or '' }} <br />
                   <span> भोगवटदार : {{ data[i].occupantName or '' }}</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="border: none">
-                  घर क्रमांक : {{ data[i].houseNumber or '' }}
-                </td>
-                <td style="border: none">
-                  यांजकडून पुढील रक्कम वसुलीयोग्य आहे
                 </td>
               </tr>
             </table>
@@ -495,7 +519,7 @@
               </tr>
               {% endfor %}
               <tr class="bold">
-                <td>दिनांक : {{ data[i].currentDate or '' }}</td>
+                <td style="white-space: nowrap">दिनांक : {{ data[i].currentDate or '' }}</td>
                 <td class="right" colspan="4">
                   एकूण : {{ (data[i].totalTaxwithoutsafaitoilet or 0) }}
                 </td>
@@ -523,7 +547,7 @@
               {% endfor %}
             </table>
             {% endif %}
-            <div style="font-size: 13px; margin-top: 4px">
+            <div style="font-size: 10px; margin-top: 3px; padding: 0 3px; line-height: 1.4">
               हे बिल आपणास प्राप्त झाल्यापासून देय रकमांचा भरणा १५ दिवसांचे आत
               करावा अन्यथा ग्रामपंचायत अधिनियमच्या कलम क्र.१२९(२) अन्वये
               आपल्यावर मागणी बजावण्यात येईल
@@ -539,20 +563,33 @@
           <div class="outer-border">
             <table class="header-table" style="width: 100%">
               <tr>
-                <td class="center bold" style="width: 33%">
-                  ग्रामपंचायत<br />{{ data[i].gramPanchayat or '' }}
+                <td class="center bold" style="width: 33%; font-size: 12px; line-height: 1.5">
+                  ग्रामपंचायत : {{ data[i].gramPanchayat or '' }}<br />
+                  गाव/मोहल्ला : {{ data[i].village or '' }}<br />
+                  तालुका : {{ data[i].taluka or '' }}<br />
+                  जिल्हा : {{ data[i].district or '' }}<br />
+                  अनुक्रमांक : {{ data[i].anuKramank or '' }}
                 </td>
-                <td class="center bold" style="width: 34%">
+                <td class="center bold" style="width: 34%; font-size: 11px">
                   नमुना ९ क<br />
                   नियम ३२ (५) पहा<br />
                   करांची मागणी पावती<br />
-                  <span style="font-size: 15px"
+                  <span style="font-size: 11px; white-space: nowrap"
                     >साल : {{ data[i].yearSlap or '' }}</span
                   >
                 </td>
-                <td class="center bold" style="width: 33%">
-                  मागणीची पावती क्र : {{ data[i].propertyNumber or '' }}<br />
-                  दिनांक : {{ data[i].currentDate or '' }}
+                <td class="center bold" style="width: 33%; font-size: 11px">
+                  {# मालमत्ता QR नेहमी; घर कर / पाणी कर QR फक्त Master setting (Bank Scanner) चालू असेल तर #}
+                  <span style="display:inline-flex; gap:3px; justify-content:center; margin-bottom:2px;">
+                    {% for qr_url, qr_label in [(data[i].propertyQrUrl, 'मालमत्ता'), (data[i].houseTaxQrUrl, 'घर कर'), (data[i].waterTaxQrUrl, 'पाणी कर')] if qr_url %}
+                    <span style="display:inline-block; text-align:center;">
+                      <img src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
+                      <span style="font-size:7px;">{{ qr_label }}</span>
+                    </span>
+                    {% endfor %}
+                  </span><br />
+                  <span style="white-space: nowrap">मागणीची पावती क्र : {{ data[i].propertyNumber or '' }}</span><br />
+                  <span style="white-space: nowrap">दिनांक : {{ data[i].currentDate or '' }}</span>
                 </td>
               </tr>
             </table>
@@ -561,14 +598,6 @@
                 <td colspan="2" class="bold" style="border: none">
                   श्री {{ data[i].ownerName or '' }} <br />
                   <span> भोगवटदार : {{ data[i].occupantName or '' }}</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="border: none">
-                  घर क्रमांक : {{ data[i].houseNumber or '' }}
-                </td>
-                <td style="border: none">
-                  यांजकडून पुढील रक्कम वसुलीयोग्य आहे
                 </td>
               </tr>
             </table>
@@ -623,7 +652,7 @@
               </tr>
               {% endfor %}
               <tr class="bold">
-                <td>दिनांक : {{ data[i].currentDate or '' }}</td>
+                <td style="white-space: nowrap">दिनांक : {{ data[i].currentDate or '' }}</td>
                 <td class="right" colspan="4">
                   एकूण : {{ (data[i].totalTaxwithoutsafaitoilet or 0) }}
                 </td>
@@ -652,7 +681,7 @@
               {% endfor %}
             </table>
             {% endif %}
-            <div style="font-size: 13px; margin-top: 4px">
+            <div style="font-size: 10px; margin-top: 3px; padding: 0 3px; line-height: 1.4">
               हे बिल आपणास प्राप्त झाल्यापासून देय रकमांचा भरणा १५ दिवसांचे आत
               करावा अन्यथा ग्रामपंचायत अधिनियमच्या कलम क्र.१२९(२) अन्वये
               आपल्यावर मागणी बजावण्यात येईल
@@ -669,20 +698,33 @@
           <div class="outer-border">
             <table class="header-table" style="width: 100%">
               <tr>
-                <td class="center bold" style="width: 33%">
-                  ग्रामपंचायत<br />{{ data[i+1].gramPanchayat or '' }}
+                <td class="center bold" style="width: 33%; font-size: 12px; line-height: 1.5">
+                  ग्रामपंचायत : {{ data[i+1].gramPanchayat or '' }}<br />
+                  गाव/मोहल्ला : {{ data[i+1].village or '' }}<br />
+                  तालुका : {{ data[i+1].taluka or '' }}<br />
+                  जिल्हा : {{ data[i+1].district or '' }}<br />
+                  अनुक्रमांक : {{ data[i+1].anuKramank or '' }}
                 </td>
-                <td class="center bold" style="width: 34%">
+                <td class="center bold" style="width: 34%; font-size: 11px">
                   नमुना ९ क<br />
                   नियम ३२ (५) पहा<br />
                   करांची मागणी पावती<br />
-                  <span style="font-size: 15px"
+                  <span style="font-size: 11px; white-space: nowrap"
                     >साल : {{ data[i+1].yearSlap or '' }}</span
                   >
                 </td>
-                <td class="center bold" style="width: 33%">
-                  मागणीची पावती क्र : {{ data[i+1].propertyNumber or '' }}<br />
-                  दिनांक : {{ data[i+1].currentDate or '' }}
+                <td class="center bold" style="width: 33%; font-size: 11px">
+                  {# मालमत्ता QR नेहमी; घर कर / पाणी कर QR फक्त Master setting (Bank Scanner) चालू असेल तर #}
+                  <span style="display:inline-flex; gap:3px; justify-content:center; margin-bottom:2px;">
+                    {% for qr_url, qr_label in [(data[i+1].propertyQrUrl, 'मालमत्ता'), (data[i+1].houseTaxQrUrl, 'घर कर'), (data[i+1].waterTaxQrUrl, 'पाणी कर')] if qr_url %}
+                    <span style="display:inline-block; text-align:center;">
+                      <img src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
+                      <span style="font-size:7px;">{{ qr_label }}</span>
+                    </span>
+                    {% endfor %}
+                  </span><br />
+                  <span style="white-space: nowrap">मागणीची पावती क्र : {{ data[i+1].propertyNumber or '' }}</span><br />
+                  <span style="white-space: nowrap">दिनांक : {{ data[i+1].currentDate or '' }}</span>
                 </td>
               </tr>
             </table>
@@ -691,14 +733,6 @@
                 <td colspan="2" class="bold" style="border: none">
                   श्री {{ data[i+1].ownerName or '' }} <br />
                   <span> भोगवटदार : {{ data[i+1].occupantName or '' }}</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="border: none">
-                  घर क्रमांक : {{ data[i+1].houseNumber or '' }}
-                </td>
-                <td style="border: none">
-                  यांजकडून पुढील रक्कम वसुलीयोग्य आहे
                 </td>
               </tr>
             </table>
@@ -753,7 +787,7 @@
               </tr>
               {% endfor %}
               <tr class="bold">
-                <td>दिनांक : {{ data[i+1].currentDate or '' }}</td>
+                <td style="white-space: nowrap">दिनांक : {{ data[i+1].currentDate or '' }}</td>
                 <td class="right" colspan="4">
                   एकूण : {{ (data[i+1].totalTaxwithoutsafaitoilet or 0) }}
                 </td>
@@ -782,7 +816,7 @@
               {% endfor %}
             </table>
             {% endif %}
-            <div style="font-size: 13px; margin-top: 4px">
+            <div style="font-size: 10px; margin-top: 3px; padding: 0 3px; line-height: 1.4">
               हे बिल आपणास प्राप्त झाल्यापासून देय रकमांचा भरणा १५ दिवसांचे आत
               करावा अन्यथा ग्रामपंचायत अधिनियमच्या कलम क्र.१२९(२) अन्वये
               आपल्यावर मागणी बजावण्यात येईल
@@ -799,20 +833,33 @@
           <div class="outer-border">
             <table class="header-table" style="width: 100%">
               <tr>
-                <td class="center bold" style="width: 33%">
-                  ग्रामपंचायत<br />{{ data[i+1].gramPanchayat or '' }}
+                <td class="center bold" style="width: 33%; font-size: 12px; line-height: 1.5">
+                  ग्रामपंचायत : {{ data[i+1].gramPanchayat or '' }}<br />
+                  गाव/मोहल्ला : {{ data[i+1].village or '' }}<br />
+                  तालुका : {{ data[i+1].taluka or '' }}<br />
+                  जिल्हा : {{ data[i+1].district or '' }}<br />
+                  अनुक्रमांक : {{ data[i+1].anuKramank or '' }}
                 </td>
-                <td class="center bold" style="width: 34%">
+                <td class="center bold" style="width: 34%; font-size: 11px">
                   नमुना ९ क<br />
                   नियम ३२ (५) पहा<br />
                   करांची मागणी पावती<br />
-                  <span style="font-size: 15px"
+                  <span style="font-size: 11px; white-space: nowrap"
                     >साल : {{ data[i+1].yearSlap or '' }}</span
                   >
                 </td>
-                <td class="center bold" style="width: 33%">
-                  मागणीची पावती क्र : {{ data[i+1].propertyNumber or '' }}<br />
-                  दिनांक : {{ data[i+1].currentDate or '' }}
+                <td class="center bold" style="width: 33%; font-size: 11px">
+                  {# मालमत्ता QR नेहमी; घर कर / पाणी कर QR फक्त Master setting (Bank Scanner) चालू असेल तर #}
+                  <span style="display:inline-flex; gap:3px; justify-content:center; margin-bottom:2px;">
+                    {% for qr_url, qr_label in [(data[i+1].propertyQrUrl, 'मालमत्ता'), (data[i+1].houseTaxQrUrl, 'घर कर'), (data[i+1].waterTaxQrUrl, 'पाणी कर')] if qr_url %}
+                    <span style="display:inline-block; text-align:center;">
+                      <img src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
+                      <span style="font-size:7px;">{{ qr_label }}</span>
+                    </span>
+                    {% endfor %}
+                  </span><br />
+                  <span style="white-space: nowrap">मागणीची पावती क्र : {{ data[i+1].propertyNumber or '' }}</span><br />
+                  <span style="white-space: nowrap">दिनांक : {{ data[i+1].currentDate or '' }}</span>
                 </td>
               </tr>
             </table>
@@ -821,14 +868,6 @@
                 <td colspan="2" class="bold" style="border: none">
                   श्री {{ data[i+1].ownerName or '' }} <br />
                   <span> भोगवटदार : {{ data[i+1].occupantName or '' }}</span>
-                </td>
-              </tr>
-              <tr>
-                <td style="border: none">
-                  घर क्रमांक : {{ data[i+1].houseNumber or '' }}
-                </td>
-                <td style="border: none">
-                  यांजकडून पुढील रक्कम वसुलीयोग्य आहे
                 </td>
               </tr>
             </table>
@@ -883,13 +922,13 @@
               </tr>
               {% endfor %}
               <tr class="bold">
-                <td>दिनांक : {{ data[i+1].currentDate or '' }}</td>
+                <td style="white-space: nowrap">दिनांक : {{ data[i+1].currentDate or '' }}</td>
                 <td class="right" colspan="4">
                   एकूण : {{ (data[i+1].totalTaxwithoutvipanitoilet or 0) }}
                 </td>
               </tr>
             </table>
-            <div style="font-size: 13px; margin-top: 4px">
+            <div style="font-size: 10px; margin-top: 3px; padding: 0 3px; line-height: 1.4">
               हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या
               आता करावा. अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये
               आपल्यावर मागणी बजावाण्यात येईल
@@ -903,5 +942,6 @@
       </div>
       {% endfor %}
     </div>
-  </body>
+      <script src="/report_assets/report_share.js"></script>
+</body>
 </html>

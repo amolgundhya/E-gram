@@ -6,7 +6,7 @@
     <style>
         body { font-family: 'Mangal', Arial, sans-serif; margin: 0; padding: 0; }
         table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #000; padding: 2px 6px; font-size: 15px; }
+        th, td { border: 1px solid #000; padding: 1px 5px; font-size: 13px; line-height: 1.4; }
         .no-border { border: none !important; }
         .center { text-align: center; }
         .right { text-align: right; }
@@ -32,8 +32,11 @@
             body {
                 margin: 0;
             }
+            /* एक मालमत्ता (दोन प्रती) = एक A4 पान - margin कमी, नाहीतर दुसरी प्रत पुढच्या पानावर जाते */
             .outer-border {
+                margin: 6mm auto;
                 page-break-after: always;
+                page-break-inside: avoid;
             }
             .outer-border:last-of-type {
                 page-break-after: auto;
@@ -165,75 +168,109 @@
     {% for record in data %}
     <div class="outer-border">
         {% for copy in [1,2] %}
+        {# मथळा: डावीकडे ग्रामपंचायत/गाव व तालुका/जिल्हा, मध्ये नमुना ९ क, उजवीकडे QR.
+           मालमत्ता QR नेहमी; घर कर / पाणी कर QR फक्त Master setting (Bank Scanner) चालू असेल तर. #}
         <table class="header-table" style="width:100%;">
             <tr>
-                <td class="center bold">ग्रामपंचायत<br>{{ record.gramPanchayat or '' }}</td>
-                <td class="center bold">तालुका<br>{{ record.taluka or '' }}</td>   
-                <td class="center bold">जिल्हा<br>{{ record.district or '' }}</td>
-                <td class="center bold" style="width: 34%; ">
+                <td class="bold" style="width: 24%; font-size: 13px; line-height: 1.6; vertical-align: middle;">
+                    ग्रामपंचायत : {{ record.gramPanchayat or '' }}<br>
+                    गाव/मोहल्ला : {{ record.village or '' }}
+                </td>
+                <td class="bold" style="width: 18%; font-size: 13px; line-height: 1.6; vertical-align: middle;">
+                    तालुका : {{ record.taluka or '' }}<br>
+                    जिल्हा : {{ record.district or '' }}
+                </td>
+                <td class="center bold" style="font-size: 13px; vertical-align: middle;">
                     नमुना ९ क<br>
                     नियम ३२ (५) पहा<br>
                     करांची मागणी पावती<br>
-                    <span style="font-size: 15px;">साल : {{ record.yearSlap or '' }}</span>
+                    साल : {{ record.yearSlap or '' }}
                 </td>
-                <td class="center bold" style="width: 33%; ">
-                    मागणीची पावती क्र : {{ record.propertyNumber or '' }}<br>
-                    दिनांक : {{ record.currentDate or '' }}
+                <td style="vertical-align: middle; white-space: nowrap; text-align: right;">
+                    {% set qrs = [] %}
+                    {% if record.propertyQrUrl %}{% set _ = qrs.append((record.propertyQrUrl, 'मालमत्ता')) %}{% endif %}
+                    {% if record.houseTaxQrUrl %}{% set _ = qrs.append((record.houseTaxQrUrl, 'घर कर')) %}{% endif %}
+                    {% if record.waterTaxQrUrl %}{% set _ = qrs.append((record.waterTaxQrUrl, 'पाणी कर')) %}{% endif %}
+                    {% for qr_url, qr_label in qrs %}
+                    <div style="display: inline-block; text-align: center; margin-left: 6px; vertical-align: top;">
+                        <div style="border: 1px solid #000; width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            <img src="{{ qr_url }}" style="width: 62px; height: 62px; object-fit: contain;" />
+                        </div>
+                        <div class="bold" style="font-size: 10px; margin-top: 2px;">{{ qr_label }}</div>
+                    </div>
+                    {% else %}
+                    <div style="display: inline-block; border: 1px solid #000; width: 80px; height: 80px;"></div>
+                    {% endfor %}
                 </td>
-                <td >
-
-                        <div class="center bold" style=" width: 50% ;border: 1px solid #000; width: 100px; height: 100px; margin: 0 auto;  overflow:hidden;">
-                            {% if record.bank_qr_code %}
-                                <img src="{{ record.bank_qr_code }}" class="qr" style="width: 100px; height: 100px; object-fit: contain;" />
-                            {% else %}
-                                <div></div>
-                            {% endif %}
-                    </td>
             </tr>
         </table>
-        <table style="margin-top: 2px; width:100%;">
+        <table class="header-table" style="width:100%;">
             <tr>
-                <td colspan="2" class="bold" style="border:none;">
-                    श्री {{ record.ownerName or '' }} <br><span> भोगवटदार : {{ record.occupantName or '' }}</span>
-                </td>
-                
+                <td class="bold" style="width: 38%;">अनुक्रमांक : {{ record.anuKramank or '' }}</td>
+                <td class="bold" style="width: 34%;">मालमत्ता क्र. : {{ record.propertyNumber or '' }}</td>
+                <td class="bold">मागणीची पावती क्र. : {{ record.propertyNumber or '' }}</td>
             </tr>
             <tr>
-                <td style="border:none;">घर क्रमांक : {{ record.houseNumber or '' }}</td>
-                <td style="border:none;">यांजकडून पुढील रक्कम वसुलीयोग्य आहे</td>
+                <td class="bold">मालकाचे नाव : {{ record.ownerName or '' }}</td>
+                <td class="bold">भोगवटदार : {{ record.occupantName or '' }}</td>
+                <td class="bold">दिनांक : {{ record.currentDate or '' }}</td>
             </tr>
         </table>
+        {% if record.exServicemanTip %}
+        <div style="font-size: 12px; text-align: center; border: 1px solid #000; border-top: none;">
+            (टीप: आजी / माजी सैनिकांना ग्रामपंचायत मालमत्ता करातून सूट देण्याबाबत शासन परिपत्रक व्हीपीएम-2020/प्र.क्र.93/पंरा-4, दि. 18 ऑगस्ट 2020 नुसार.)
+        </div>
+        {% endif %}
         <table style="margin-top: 2px; width:100%;">
             <tr class="center bold">
                 <td rowspan="3">कराचे नाव</td>
                 <td colspan="4">वसूल पात्र रकमा</td>
+                <td rowspan="3">शिल्लक बाकी<br>(Balance)</td>
             </tr>
             <tr class="center bold">
-                <td colspan='2'>थकबाकी (रुपये = पै.) </td>
+                <td colspan="2">थकबाकी (रुपये = पै.)</td>
                 <td>चालू (रुपये = पै.)</td>
                 <td>एकूण (रुपये = पै.)</td>
             </tr>
             <tr class="center bold">
-                <td>मागील </td>
-                <td>दंड </td>
+                <td>मागील</td>
+                <td>दंड</td>
                 <td></td>
                 <td></td>
             </tr>
-            {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %}
+            {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर', 'विशेष पाणी कर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %}
             {% set tax_names = tax_names if tax_names is defined else default_tax_names %}
             {% set ns = namespace(deduction=0) %}
+            {# स्तंभनिहाय बेरीज (मागील/दंड/चालू/एकूण/शिल्लक बाकी) - फक्त कर-रकाने (नोटीस/वारंट
+               फी वगळून, आधीपासूनच्या पद्धतीप्रमाणेच). एकूण आणि शिल्लक बाकी दोन्ही एकाच सूत्राने
+               (मागील+दंड+चालू) मोजतात, त्यामुळे पावती न झालेल्या मालमत्तेसाठी दोन्ही सारखेच येतात. #}
+            {% set totals = namespace(magil=0, dand=0, current=0, ekun=0) %}
+            {% for tax in tax_names %}
+                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}
+                {% set t_thakit = record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 %}
+                {% set t_dand = record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 %}
+                {% set t_current = record.recoverableAmounts.current['current' ~ loop.index] or 0 %}
+                {% set totals.magil = totals.magil + t_thakit %}
+                {% set totals.dand = totals.dand + t_dand %}
+                {% set totals.current = totals.current + t_current %}
+                {% set totals.ekun = totals.ekun + t_thakit + t_dand + t_current %}
+                {% endif %}
+            {% endfor %}
 
 {% for tax in tax_names %}
 <tr>
     <td>{{ tax }}</td>
-    <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
-    <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
-
+    {% set thakit_value = record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 %}
+    {% set dand_value = record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 %}
+    {% set magil_value = 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else thakit_value %}
     {% set current_value = record.recoverableAmounts.current['current' ~ loop.index] or 0 %}
     {% set total_value = record.recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
-    <td class="right">{{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value }}</td>
-    <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
+    <td class="right">{{ "%.2f"|format(magil_value) }}</td>
+    <td class="right">{{ "%.2f"|format(0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else dand_value) }}</td>
+    <td class="right">{{ "%.2f"|format(current_value) }}</td>
+    <td class="right">{{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (magil_value + dand_value + current_value)) }}</td>
+    <td class="right">{{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (magil_value + dand_value + current_value)) }}</td>
 
     {# Accumulate deduction amount if condition matched #}
     {% if (tax == 'नोटीस फी' and noticeFee == 'false') %}
@@ -245,23 +282,32 @@
 {% endfor %}
 
 <tr class="bold">
-    <td>दिनांक : {{ record.currentDate or '' }}</td>
-    <td class="right" colspan="4">
-        एकूण : {{ (record.totalTaxwithoutvipanitoilet or 0) }}
-    </td>
+    <td>एकूण</td>
+    <td class="right">{{ "%.2f"|format(totals.magil) }}</td>
+    <td class="right">{{ "%.2f"|format(totals.dand) }}</td>
+    <td class="right">{{ "%.2f"|format(totals.current) }}</td>
+    <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
+    <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
+</tr>
+<tr class="bold">
+    <td colspan="6" style="border:none;">दिनांक : {{ record.currentDate or '' }}</td>
 </tr>
         </table>
-        <div style="font-size: 13px; margin-top: 4px;">
+        <div style="font-size: 12px; margin-top: 3px; padding: 0 4px; line-height: 1.3;">
             हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या आता करावा. अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये आपल्यावर मागणी बजावाण्यात येईल
         </div>
-        <div style="margin-top: 10px; font-size: 13px;">
+        <div style="margin-top: 4px; font-size: 12px; padding: 0 4px; text-align: right;">
+            {% if record.signature_image %}
+            <img src="{{ record.signature_image }}" style="height: 35px; object-fit: contain; display: block; margin-left: auto;" alt="स्वाक्षरी" />
+            {% endif %}
             <span class="right">ग्रामपंचायत अधिकारी/सरपंच लिपीकाची स्वाक्षरी</span>
         </div>
         {% if copy == 1 %}
-        <div style="border-bottom: 1px dashed #000; margin: 8px 0 8px 0;"></div>
+        <div style="border-bottom: 1px dashed #000; margin: 6px 0;"></div>
         {% endif %}
         {% endfor %}
     </div>
     {% endfor %}
+    <script src="/report_assets/report_share.js"></script>
 </body>
 </html>

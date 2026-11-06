@@ -64,8 +64,9 @@
         const maxZoom = 2.0;
         const zoomStep = 0.1;
         let currentPage = 1;
-        const recordsPerPage = 10; // Show 10 records per page
         let totalPages = 0;
+        // रो आता सर्व्हरवरच पानांत वाटलेले आहेत (प्रत्येक .print-page = खरं एक छापील
+        // पान, स्वतःच्या गोषवारा बेरजेसह).
 
         function updateZoom() {
             document.getElementById('mainContent').style.zoom = zoomLevel;
@@ -86,14 +87,13 @@
             }
         }
         function showPage(page) {
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             if (page < 1) page = 1;
             if (page > totalPages) page = totalPages;
             currentPage = page;
-            records.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                el.style.display = (pageIdx === currentPage) ? '' : 'none';
+            pages.forEach((el, idx) => {
+                el.style.display = (idx + 1 === currentPage) ? '' : 'none';
             });
             document.getElementById('pageInput').value = currentPage;
             document.getElementById('pageTotal').innerText = '/' + totalPages;
@@ -108,23 +108,20 @@
             const toInput = document.getElementById('printTo');
             let from = parseInt(fromInput.value) || 1;
             let to = parseInt(toInput.value) || 1;
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             from = Math.max(1, Math.min(from, totalPages));
             to = Math.max(from, Math.min(to, totalPages));
             // Show only selected pages
-            const prevStates = records.map(el => el.style.display);
-            records.forEach((el, idx) => {
-                const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                el.style.display = (pageIdx >= from && pageIdx <= to) ? '' : 'none';
+            pages.forEach((el, idx) => {
+                el.style.display = (idx + 1 >= from && idx + 1 <= to) ? '' : 'none';
             });
             setTimeout(() => {
                 window.print();
                 setTimeout(() => {
                     // Restore previous state (show only current page)
-                    records.forEach((el, idx) => {
-                        const pageIdx = Math.floor(idx / recordsPerPage) + 1;
-                        el.style.display = (pageIdx === currentPage) ? '' : 'none';
+                    pages.forEach((el, idx) => {
+                        el.style.display = (idx + 1 === currentPage) ? '' : 'none';
                     });
                 }, 100);
             }, 50);
@@ -136,8 +133,8 @@
             updateZoom();
             showPage(1);
             // Set print range max
-            const records = Array.from(document.querySelectorAll('.record-row'));
-            totalPages = Math.ceil(records.length / recordsPerPage);
+            const pages = Array.from(document.querySelectorAll('.print-page'));
+            totalPages = pages.length;
             document.getElementById('printFrom').max = totalPages;
             document.getElementById('printTo').max = totalPages;
             document.getElementById('printTo').value = totalPages;
@@ -153,7 +150,10 @@
         };
     </script>
     <div id="mainContent">
-    <!-- Top section to repeat on every page -->
+    {% for page in pages %}
+    <div class="print-page"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
+    <!-- Top section: फक्त पहिल्या पानावर (मथळा + GP/village/taluka/jilha) -->
+    {% if loop.first %}
     <table class="report-top">
         <tr>
             <td colspan="3" class="center bold" style="font-size:22px;">नमुना ९</td>
@@ -171,6 +171,7 @@
             <td >जिल्हा : {{jilha}}</td>
         </tr>
     </table>
+    {% endif %}
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
@@ -207,9 +208,9 @@
         </thead>
         <tbody>
 
-            {% for row in data %}
+            {% for row in page %}
             <tr class="record-row">
-                <td>{{ row.id }}</td>
+                <td>{{ row.srNo }}</td>
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.ownerName }}</td>
                 <td>{{ row.occupant }}</td>
@@ -231,9 +232,29 @@
             </tr>
             {% endfor  %}
         </tbody>
+        <tfoot>
         <tr>
             <td colspan="3"></td>
             <td style="font-weight:normal; text-align:right;">गोषवारा</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dandHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='houseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalHouseTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='lightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalLightingTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='healthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalHealthTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='dhakitCleaningTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='cleaningTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalCleaningTax')) | round(2) }}{% endif %}</td>
+            <td>{% if removePurnaYekun != 'true' %}{{ (((page | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (page | map(attribute='totalSaWaterTax') | sum) - (page | map(attribute='totlaToiletTax') | sum) - (page | map(attribute='totalViWaterTax') | sum)) | round(2)) }}{% endif %}</td>
+        </tr>
+        {% if loop.last %}
+        <tr>
+            <td colspan="3"></td>
+            <td style="font-weight:bold; text-align:right;">एकूण बेरीज (सर्व पाने)</td>
             <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dhakitHouseTax')) | round(2) }}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='dandHouseTax')) | round(2) }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='houseTax')) | round(2) }}{% endif %}</td>
@@ -249,6 +270,13 @@
             <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalCleaningTax')) | round(2) }}{% endif %}</td>
             <td>{% if removePurnaYekun != 'true' %}{{ (((data | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (data | map(attribute='totalSaWaterTax') | sum) - (data | map(attribute='totlaToiletTax') | sum) - (data | map(attribute='totalViWaterTax') | sum)) | round(2)) }}{% endif %}</td>
         </tr>
+        {% endif %}
+        </tfoot>
     </table>
+    </div>
+    {% endfor %}
+    </div>
+    <script src="/report_assets/page_numbers.js"></script>
+    <script src="/report_assets/report_share.js"></script>
 </body>
 </html>
