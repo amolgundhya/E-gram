@@ -608,12 +608,34 @@ api_packages = [
     "certificates"
 ]
 
+# वरती prefix शिवाय आधीच include केलेले router पुन्हा जोडत नाही - दुसरी प्रत कधीच
+# वापरली जात नव्हती (पहिला जुळणारा route च चालतो), फक्त प्रत्येक request ला तपासायची
+# यादी लांब करत होती. prefix सह include केलेले (उदा. ferfar_apis -> /ferfar) इथे
+# prefix शिवाय पूर्वीप्रमाणेच जोडले जातात, त्यामुळे कोणताही URL बदलत नाही.
+_routers_included_without_prefix = {
+    id(r) for r in (
+        namuna8_apis.router, staff_apis.router, namuna9_apis.router,
+        namuna9_property_data_apis.router, deleted_receipts_apis.router,
+        birth_certificate_apis.router, death_certificate_apis.router,
+        marriage_certificate_apis.router, allcertificates.router,
+        widow_certificate_apis.router, birthdeath_unavailability_apis.router,
+        resident_certificate_apis.router, family_certificate_apis.router,
+        toilet_certificate_apis.router, no_objection_certificate_apis.router,
+        no_benefit_certificate_apis.router, life_certificate_apis.router,
+        good_conduct_certificate_apis.router, niradhar_certificate_apis.router,
+        no_arrears_certificate_apis.router, unemployment_certificate_apis.router,
+        receipt_certificate_apis.router,
+    )
+}
+
 for package_name in api_packages:
     try:
         package = importlib.import_module(package_name)
         for _, modname, _ in pkgutil.iter_modules(package.__path__):
             module = importlib.import_module(f"{package_name}.{modname}")
             if hasattr(module, "router"):
+                if id(module.router) in _routers_included_without_prefix:
+                    continue
                 print(f"[Auto-register] Including router from {package_name}.{modname}")
                 app.include_router(module.router)
     except Exception as e:

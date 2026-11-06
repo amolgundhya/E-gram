@@ -101,7 +101,32 @@ def build_area_lines(record: dict, decimals: int = 2, short_names: bool = True, 
     return lines
 
 
-def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label: str = None) -> str:
+def _mobile_number(record: dict) -> str:
+    """मोबाईल क्र. - रिकामा / फक्त शून्यं ("0", "००००") असेल तर "" """
+    mobile = str(record.get("mobileNumber") or "").strip()
+    if not mobile.translate(str.maketrans('०१२३४५६७८९', '0123456789')).strip("0 "):
+        return ""
+    return mobile
+
+
+def build_contact_boundary_lines(record: dict) -> list:
+    """मोबाईल क्र. आणि चतुःसीमा (दिशा: पूर्व/पश्चिम/उत्तर/दक्षिण) च्या ओळी - रिकाम्या वगळतो.
+    नाव प्लेटवर ही माहिती छापत नाही, मोठ्या QR स्कॅन केल्यावरच दिसते (क्लायंट विनंती,
+    नोव्हें 2026)."""
+    lines = []
+    mobile = _mobile_number(record)
+    if mobile:
+        lines.append(f"मोबाईल : {mobile}")
+    for label, key in (("पूर्व", "boundaryEast"), ("पश्चिम", "boundaryWest"),
+                       ("उत्तर", "boundaryNorth"), ("दक्षिण", "boundarySouth")):
+        value = str(record.get(key) or "").strip()
+        if value:
+            lines.append(f"{label} : {value}")
+    return lines
+
+
+def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label: str = None,
+                           include_contact: bool = False) -> str:
     """record: get_property_record() / property_records_by_village() स्टाईलचा dict
     (srNo, propertyNumber, ownerName, occupantName, gramPanchayat, taluka, jilha,
     areaEast/West/North/South, total_arearinfoot, totalareainmeters, areaUnit,
@@ -113,7 +138,8 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
     अवघड होतं) - म्हणून लेबल्स शक्य तितकी लहान ठेवतो, 0/रिकाम्या कराच्या ओळी (एकूण
     कर सोडून) वगळतो, बांधकाम-प्रकाराचं नाव (कंसातलं) वगळतो, आणि ग्रा.पं./ता./जि.
     मथळा ओळ वगळतो (ती कागदावर आधीच छापलेली असते - parent_gp_name इथे यामुळेच
-    वापरत नाही, पण इतर कॉलर्सशी सुसंगत राहण्यासाठी parameter तसाच ठेवलाय)."""
+    वापरत नाही, पण इतर कॉलर्सशी सुसंगत राहण्यासाठी parameter तसाच ठेवलाय).
+    include_contact=True (फक्त नाव प्लेट): मोबाईल क्र. व चतुःसीमा ओळीही जोडतो."""
     lines = [
         f"अ.क्र. : {record.get('srNo') or ''}",
         f"मालमत्ता क्र. : {record.get('propertyNumber') or ''}",
@@ -121,6 +147,8 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
     if QR_INCLUDE_OWNER_NAME:
         lines.append(f"मालक : {record.get('ownerName') or ''}")
     lines.append(f"भोगवटदार : {record.get('occupantName') or 'स्वतः'}")
+    if include_contact:
+        lines.extend(build_contact_boundary_lines(record))
     lines.extend(build_area_lines(record, include_type=False))
     if year_label:
         lines.append(f"साल : {year_label}")

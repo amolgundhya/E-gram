@@ -92,6 +92,20 @@ def number_to_marathi_words(value) -> str:
 
 regularEnv.filters['marathi_words'] = number_to_marathi_words
 
+# नमुना-10 पावतीवर रक्कम "596.0" ऐवजी फक्त "596" दिसावी (क्लायंट विनंती, नोव्हें 2026).
+# DB मध्ये रकमा Float आहेत, त्यामुळे Jinja थेट "596.0" छापतो आणि बेरजेत कधी
+# "596.0000001" सुद्धा. पूर्ण रुपया असेल तर दशांश नाही; खरे पैसे असतील तरच 2 अंकांपर्यंत.
+def format_amount(value) -> str:
+    try:
+        v = round(float(value or 0), 2)
+    except (TypeError, ValueError):
+        return str(value) if value is not None else ""
+    if v == int(v):
+        return str(int(v))
+    return ("%.2f" % v).rstrip("0").rstrip(".")
+
+regularEnv.filters['amount'] = format_amount
+
 # Shows a blank cell instead of "0" when the "0 असल्यास रिकामे दाखवा" print
 # setting is on. Only blanks an actual zero value - leaves real amounts,
 # including negative ones, untouched. Off (or any other value) shows the
