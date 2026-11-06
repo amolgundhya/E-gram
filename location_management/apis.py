@@ -1,4 +1,5 @@
 import os
+import time
 import bcrypt
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
@@ -9,6 +10,17 @@ from database import get_db
 from . import models, schemas, helpers
 
 router = APIRouter(prefix="/location", tags=["Location Management"])
+
+
+# लोगो / QR / स्वाक्षरी फाईल DB फोल्डरमध्ये असते (helpers.resolve_stored_image_path),
+# /uploaded_images static mount मध्ये नाही - म्हणून URL नेहमी serve endpoint चा देतो.
+# ?ts= मुळे नवीन अपलोडनंतर browser जुना cached फोटो दाखवत नाही.
+def _gp_image_url(request: Request, gram_panchayat_id: int) -> str:
+    return f"{str(request.base_url).rstrip('/')}/location/gram-panchayats/{gram_panchayat_id}/image?ts={int(time.time())}"
+
+
+def _gp_qr_url(request: Request, gram_panchayat_id: int, qr_type: str) -> str:
+    return f"{str(request.base_url).rstrip('/')}/location/gram-panchayats/{gram_panchayat_id}/qr/{qr_type}?ts={int(time.time())}"
 
 # ==================== DISTRICT APIs ====================
 
@@ -227,7 +239,7 @@ def get_gram_panchayat(gram_panchayat_id: int, request: Request, db: Session = D
         if gram_panchayat.image_url.startswith("http"):
             gram_panchayat_data.image_url = gram_panchayat.image_url
         else:
-            gram_panchayat_data.image_url = str(request.base_url)[:-1] + f"/{gram_panchayat.image_url}"
+            gram_panchayat_data.image_url = _gp_image_url(request, gram_panchayat_id)
     
     return gram_panchayat_data
 
@@ -338,7 +350,7 @@ def upload_gram_panchayat_image(
         
         # Add absolute URL for image
         if request:
-            gram_panchayat_data.image_url = str(request.base_url)[:-1] + f"/{image_path}"
+            gram_panchayat_data.image_url = _gp_image_url(request, gram_panchayat_id)
         
         return gram_panchayat_data
         
@@ -381,7 +393,7 @@ def update_gram_panchayat_image(
         
         # Add absolute URL for image
         if request:
-            gram_panchayat_data.image_url = str(request.base_url)[:-1] + f"/{image_path}"
+            gram_panchayat_data.image_url = _gp_image_url(request, gram_panchayat_id)
         
         return gram_panchayat_data
         
@@ -577,10 +589,9 @@ def upload_gram_panchayat_qr(
 
         gram_panchayat_data = schemas.GramPanchayatRead.from_orm(gram_panchayat)
         if request:
-            base = str(request.base_url)[:-1]
-            gram_panchayat_data.house_tax_qr_url = f"{base}/{gram_panchayat.house_tax_qr_url}" if gram_panchayat.house_tax_qr_url else None
-            gram_panchayat_data.water_tax_qr_url = f"{base}/{gram_panchayat.water_tax_qr_url}" if gram_panchayat.water_tax_qr_url else None
-            gram_panchayat_data.signature_url = f"{base}/{gram_panchayat.signature_url}" if gram_panchayat.signature_url else None
+            gram_panchayat_data.house_tax_qr_url = _gp_qr_url(request, gram_panchayat_id, "house") if gram_panchayat.house_tax_qr_url else None
+            gram_panchayat_data.water_tax_qr_url = _gp_qr_url(request, gram_panchayat_id, "water") if gram_panchayat.water_tax_qr_url else None
+            gram_panchayat_data.signature_url = _gp_qr_url(request, gram_panchayat_id, "signature") if gram_panchayat.signature_url else None
         return gram_panchayat_data
 
     except HTTPException:
