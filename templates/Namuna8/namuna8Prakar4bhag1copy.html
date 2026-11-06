@@ -411,7 +411,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="8" style="text-align: right; font-weight: bold;">एकूण चौरस फुट </td>
+                                <td colspan="8" style="text-align: right; font-weight: bold;">{% if row.toilet or row.gharkul %}<span style="float: left; text-align: left; font-weight: normal;">{% if row.toilet %}<b>शौचालय :</b> {{ row.toilet }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}{% endif %}{% if row.toilet and row.gharkul %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{% if row.gharkul %}<b>घरकुल :</b> {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}{% endif %}</span>{% endif %}एकूण चौरस फुट </td>
                                 <td> {{row.total_arearinfoot|default('')}} </td>
                                 <td>
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
@@ -424,7 +424,7 @@
                                 <td></td>
                             </tr>
                             <tr>
-                                <td colspan="8" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
+                                <td colspan="8" style="text-align: right; font-weight: bold;">{% if row.dwarNaav %}<span style="float: left; text-align: left; font-weight: normal;"><b>व्दार नांव :</b> {{ row.dwarNaav }}</span>{% endif %}एकूण चौरस मीटर</td>
                                 <td> {{row.totalareainmeters|default('')}} </td>
                                 <td>
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}

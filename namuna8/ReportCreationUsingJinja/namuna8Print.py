@@ -2308,19 +2308,6 @@ async def nameplate_sheet(request: Request):
         parent_gp_name = gp_data.get('parent_gram_panchayat_name')
         year_label = f"{datetime.now().year}-{datetime.now().year + 1}"
 
-        # घर कर / पाणी कर Bank Scanner - रिपोर्ट्सप्रमाणेच: Master settings मध्ये चालू
-        # असेल आणि QR अपलोड केलेला असेल तरच, तीच images. फाईल खरंच असेल तरच - नाहीतर
-        # प्लेटवर तुटलेल्या image ची चौकट छापली जाईल.
-        def _qr_uploaded(path):
-            return bool(path) and os.path.exists(path.replace("/", os.sep))
-        houseTaxQrUrl = None
-        waterTaxQrUrl = None
-        if gp_data.get('show_bank_scanner_in_reports'):
-            if _qr_uploaded(gp_data.get('house_tax_qr_url')):
-                houseTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
-            if _qr_uploaded(gp_data.get('water_tax_qr_url')):
-                waterTaxQrUrl = f'{base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
-
         properties = response.json()
         if not isinstance(properties, list):
             properties = [properties]
@@ -2352,23 +2339,16 @@ async def nameplate_sheet(request: Request):
             properties = properties[(part_no - 1) * part_size: part_no * part_size]
 
         # सगळे QR एकाच वेळी - same QR images as before (fast_qr), cache + parallel
-        qr_texts = [build_property_qr_text(prop, parent_gp_name, year_label) for prop in properties]
+        # मोबाईल / चतुःसीमा (दिशा) / खाली जागा प्लेटवर नाहीत - मोठ्या QR मध्ये, स्कॅन केल्यावर दिसतात
+        qr_texts = [build_property_qr_text(prop, parent_gp_name, year_label, include_contact=True)
+                    for prop in properties]
         os.makedirs(static_dir, exist_ok=True)
         qr_uris, qr_stats = fast_qr.png_data_uris(qr_texts, cache_path=os.path.join(static_dir, "qr_cache.sqlite"))
 
         tagline = "वेळेत कर भरा आणि गावाचा विकास साधा"
         plates = []
         for prop, qr_uri in zip(properties, qr_uris):
-            # मोबाईल / खाली जागा (चौ.फु.) - फक्त मूल्य असेल तरच प्लेटवर दिसतात
-            mobile = str(prop.get("mobileNumber") or "").strip()
-            khali = prop.get("khaliJaga") or []
-            try:
-                khali_sqft = float((khali[0].get("totalkhalijagaareainfoot") if khali else 0) or 0)
-            except (TypeError, ValueError):
-                khali_sqft = 0.0
             plates.append({
-                "mobile_number": mobile if mobile.translate(_DEVANAGARI_DIGITS).strip("0 ") else "",
-                "khali_jaga_sqft": "%.2f" % khali_sqft if khali_sqft > 0 else "",
                 "sr_no": prop.get("srNo"),
                 "gram_panchayat_name": prop.get("gramPanchayat"),
                 "taluka_name": prop.get("taluka"),
@@ -2398,8 +2378,6 @@ async def nameplate_sheet(request: Request):
             plate_width_in=plate_width_in,
             plate_height_in=plate_height_in,
             plates_per_row=requestData.get("platesPerRow", 2),
-            houseTaxQrUrl=houseTaxQrUrl,
-            waterTaxQrUrl=waterTaxQrUrl,
         )
 
         os.makedirs(static_dir, exist_ok=True)

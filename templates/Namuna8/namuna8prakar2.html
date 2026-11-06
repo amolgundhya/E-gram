@@ -199,6 +199,44 @@
             document.querySelector('button[title="Last Page"]').onclick = lastPage;
         };
     </script>
+    <script>
+        // रुंद रजिस्टर A4 landscape मध्ये बसवणे: एखाद्या रेकॉर्डमध्ये लांब (space नसलेलं) नाव किंवा मोठा आकडा
+        // असला की टेबल पानापेक्षा रुंद होतं आणि उजवी बाजू (शेरा column ची रेषा) कापली जाते. प्रिंटच्या आधी
+        // (beforeprint - Print बटण, Ctrl+P, Share PDF) छापल्या जाणाऱ्या ओळींसह टेबल मोजतो आणि बसेपर्यंत
+        // फक्त प्रिंटमधला फॉन्ट थोडा लहान करतो. ES5 - Windows 8 वरच्या Chrome/Edge 109 साठी.
+        (function () {
+            var PAGE_WIDTH = (297 - 2 * 10.16) * 96 / 25.4; // A4 landscape - Chrome default margin (px)
+            var PRINT_FONT = 12, MIN_FONT = 8;
+            var fitStyle = document.createElement('style');
+            document.head.appendChild(fitStyle);
+            function fontRule(px) { return '.main-table, .main-table table { font-size: ' + px + 'px !important; }'; }
+            function tooWide(mc) {
+                var tables = mc.querySelectorAll('.main-table');
+                for (var i = 0; i < tables.length; i++) {
+                    if (tables[i].offsetWidth > mc.clientWidth + 1) return true;
+                }
+                return false;
+            }
+            function fitForPrint() {
+                var mc = document.getElementById('mainContent');
+                if (!mc) return;
+                var oldWidth = mc.style.width, oldZoom = mc.style.zoom;
+                var body = window.getComputedStyle(document.body);
+                mc.style.width = (PAGE_WIDTH - parseFloat(body.marginLeft) - parseFloat(body.marginRight)) + 'px';
+                mc.style.zoom = '1';
+                var font = PRINT_FONT;
+                fitStyle.textContent = fontRule(font);
+                while (font > MIN_FONT && tooWide(mc)) {
+                    font -= 0.5;
+                    fitStyle.textContent = fontRule(font);
+                }
+                mc.style.width = oldWidth;
+                mc.style.zoom = oldZoom;
+                fitStyle.textContent = font < PRINT_FONT ? '@media print { ' + fontRule(font) + ' }' : '';
+            }
+            window.addEventListener('beforeprint', fitForPrint);
+        })();
+    </script>
     <!-- Main Data Table -->
     <div id="mainContent">
     {# "पूर्ण प्रिंट करा" (सर्व गावं) मध्ये data = [{villageName, records}, ...] येतं - प्रत्येक गावासाठी हाच रजिस्टर
@@ -301,7 +339,7 @@
         <!-- Page Footer - Repeats on every page -->
         <tfoot class="page-footer">
             <tr>
-                <td colspan="24" style="border:none; padding:0;">
+                <td colspan="22" style="border:none; padding:0;">
                     <!-- Footer content moved outside tfoot -->
                 </td>
             </tr>
@@ -482,7 +520,7 @@
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
-                <td>{{ row.remarks | default('') }}{% if row.gharkul %}<div style="font-size: 9px; line-height: 1.15; overflow-wrap: anywhere;">घरकुल : {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}</div>{% endif %}</td>
+                <td>{{ row.remarks | default('') }}</td>
             </tr>
             <tr class="record-row">
                 <td colspan="22" style="text-align:center; font-size:15px; font-weight:bold; border-top:none;padding: 3px;">
@@ -491,7 +529,7 @@
                     <span style="font-weight:bold;">पश्चिम:</span> <span style="padding-right: 20px;"> {{ row.boundaryWest | default('') }} </span>
                     <span style="font-weight:bold;">उत्तर:</span> <span style="padding-right: 20px;"> {{ row.boundaryNorth | default('') }} </span>
                     <span style="font-weight:bold;">दक्षिण:</span> <span style="padding-right: 20px;"> {{ row.boundarySouth | default('') }} </span>
-                    {% if row.dwarNaav %}<span style="font-weight:bold;">व्दार नांव:</span> <span style="padding-right: 20px;"> {{ row.dwarNaav }} </span>{% endif %}
+                    {% if row.dwarNaav %}<span style="font-weight:bold;">व्दार नांव:</span> <span style="padding-right: 20px;"> {{ row.dwarNaav }} </span>{% endif %}{% if row.toilet %}<span style="font-weight:bold;">शौचालय:</span> <span style="padding-right: 20px;"> {{ row.toilet }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %} </span>{% endif %}{% if row.gharkul %}<span style="font-weight:bold;">घरकुल:</span> <span style="padding-right: 20px;"> {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %} </span>{% endif %}
                 </td>
             </tr>
             {% endfor %}

@@ -13,6 +13,8 @@
         .bold { font-weight: bold; }
         th, td { border: 1px solid #000; padding: 2px 4px; text-align: center; vertical-align: middle; }
         th { background: #f0f0f0; }
+        /* शौचालय/घरकुल/व्दार (नमुना8Prakar1 प्रमाणे): रुंदी 24/25/26 क्रमांकाच्या div ने ठरते */
+        .extra-col { font-size: 9px; line-height: 1.15; padding: 0 2px; overflow-wrap: anywhere; }
         .footer-summary {
             border: 3px solid #000;
             border-top: none;
@@ -50,6 +52,8 @@
             #toolbar {
                 display: none !important;
             }
+            /* शौचालय/घरकुल/व्दार चे 3 column वाढल्याने A4 landscape मध्ये सर्व column बसावेत म्हणून प्रिंटमध्ये फॉन्ट किंचित लहान */
+            .main-table, .main-table table { font-size: 11px; }
             /* Ensure footer appears at the end during print */
             .footer-summary {
                 display: table !important;
@@ -226,7 +230,7 @@
         <!-- Page Header - Repeats on every page -->
         <thead class="page-header">
             <tr>
-                <td colspan="21" style="border:none; padding:0;">
+                <td colspan="24" style="border:none; padding:0;">
                     <table class="header-table" style="width:100%; margin:0;">
                         <tr>
                             <td class="left" style="width:33%">ग्रामपंचायत : {{ gramPanchayat | default('') }} <br>गाव/मोहोल्ला : {{ village | default('') }} </td>
@@ -264,6 +268,9 @@
                 <th rowspan="2">भांडवली मुल्य (रु.)</th>
                 <th rowspan="2">कराचे दर (पैसे)</th>
                 <th colspan="7">कराची रक्कम (रु.)</th>
+                <th rowspan="2" class="extra-col">शौचालय</th>
+                <th rowspan="2" class="extra-col">घरकुल</th>
+                <th rowspan="2" class="extra-col">व्दार</th>
             </tr>
             <tr>
                 <th rowspan="1" style="width: 100px;">जमीन</th>
@@ -299,6 +306,9 @@
                 <th rowspan="1">21</th>
                 <th rowspan="1">22</th>
                 <th rowspan="1">23</th>
+                <th rowspan="1" class="extra-col"><div style="width: 38px;">24</div></th>
+                <th rowspan="1" class="extra-col"><div style="width: 64px;">25</div></th>
+                <th rowspan="1" class="extra-col"><div style="width: 38px;">26</div></th>
             </tr>
         </thead>
         
@@ -317,7 +327,7 @@
                 <td>{{ row.srNo | default('') }}</td>
                 <td>{{ row.propertyNumber | default('') }}</td>
                 <td style="width: 300px;">{{ row.ownerName | default('') }}{% if row.aadharCard and row.aadharNumber %}<div style="font-size: 9px; line-height: 1.15;">आधार :<br><span style="white-space: nowrap;">{{ row.aadharNumber }}</span></div>{% endif %}{% if row.mobileNumberAdd and row.mobileNumber %}<div style="font-size: 9px; line-height: 1.15;">मो. <span style="white-space: nowrap;">{{ row.mobileNumber }}</span></div>{% endif %}</td>
-                <td>{{ row.occupantName | default('') }}{% if row.gharkul %}<div style="font-size: 9px; line-height: 1.15; overflow-wrap: anywhere;">घरकुल : {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}</div>{% endif %}</td>
+                <td>{{ row.occupantName | default('') }}</td>
                 <td>
                     {% if row.constructionType is defined and row.constructionType|length > 0 %}
                         {{ row.constructionType[0].type | default('') }}<br>
@@ -477,6 +487,9 @@
                 <td>{{ row.vpanikar | default('') }}</td>
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{(row.totaltax|default(0)|float -  (row.toiletTax|default(0)|float)) }}</td>
+                <td class="extra-col">{{ row.toilet | default('', true) }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}</td>
+                <td class="extra-col">{{ row.gharkul | default('', true) }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}</td>
+                <td class="extra-col">{{ row.dwarNaav | default('', true) }}</td>
             </tr>
             {% endfor %}
         </tbody>
