@@ -204,6 +204,10 @@
                 <th>दिवा कर</th>
                 <th>आ. कर</th>
                 <th>पाणी कर</th>
+                {# शौचालय/घरकुल/व्दार - Index यादी स्क्रीनप्रमाणेच (क्लायंट Nov-2026) #}
+                <th>शौचालय</th>
+                <th>घरकुल</th>
+                <th>व्दार</th>
                 <th>एकूण कर रुपये</th>
             </tr>
         </thead>
@@ -239,6 +243,9 @@
                 <td>{{ row.lightingTax }}</td>
                 <td>{{ row.healthTax }}</td>
                 <td>{{ row.sapanikar }}</td>
+                <td>{% set _t = row.toilet or '' %}{{ _t }}{% if row.toiletBenefitYear and _t != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}</td>
+                <td>{% set _g = row.gharkul or '' %}{% if _g == 'नाही' %}{{ _g }}{% else %}{% if row.gharkulYojana %}{% set _g = (_g ~ ' - ' ~ row.gharkulYojana) if _g else row.gharkulYojana %}{% endif %}{{ _g }}{% if row.gharkulBenefitYear %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}{% endif %}</td>
+                <td>{{ row.dwarNaav or '' }}</td>
                 <td>{{ (row.totalHouseTax|default(0)) + (row.lightingTax|default(0)) + (row.healthTax|default(0)) + (row.sapanikar|default(0)) }}</td>
             </tr>
             {% endfor %}

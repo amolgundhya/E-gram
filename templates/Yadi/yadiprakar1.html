@@ -198,6 +198,10 @@
                 <th>मालमत्ता क्रमांक</th>
                 <th>‍‍‍‍भोगवटदाराचे नाव	</th>
                 <th>मालमत्ता धारकाचे नाव</th>
+                {# शौचालय/घरकुल/व्दार - Index यादी स्क्रीनप्रमाणेच (क्लायंट Nov-2026) #}
+                <th>शौचालय</th>
+                <th>घरकुल</th>
+                <th>व्दार</th>
                 <th>एकूण कर रुपये</th>
                 <th>पान क्रमांक</th>
             </tr>
@@ -215,13 +219,16 @@
                 <td>{{ row.propertyNumber }}</td>
                 <td>{{ row.occupantName }}</td>
                 <td>{{ row.ownerName }}</td>
+                <td>{% set _t = row.toilet or '' %}{{ _t }}{% if row.toiletBenefitYear and _t != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}</td>
+                <td>{% set _g = row.gharkul or '' %}{% if _g == 'नाही' %}{{ _g }}{% else %}{% if row.gharkulYojana %}{% set _g = (_g ~ ' - ' ~ row.gharkulYojana) if _g else row.gharkulYojana %}{% endif %}{{ _g }}{% if row.gharkulBenefitYear %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}{% endif %}</td>
+                <td>{{ row.dwarNaav or '' }}</td>
                 <td>{{ row.totaltax }}</td>
                 <td></td>
             </tr>
             {% endfor %}
             <!-- Total row below the 'एकूण कर रुपये' column -->
             <tr>
-                <td colspan="5" style="border:none;"></td>
+                <td colspan="8" style="border:none;"></td>
                 <td class="footer-summary">एकूण : {{ data | sum(attribute='totaltax') }}</td>
                 <td style="border:none;"></td>
             </tr>
