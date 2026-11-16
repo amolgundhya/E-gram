@@ -40,6 +40,17 @@ router = APIRouter(
     tags=["namuna8"]
 )
 
+# मालमत्ता सेव्ह/अपडेट/जागा बदला वेळी app फोल्डरमध्ये लिहिल्या जाणाऱ्या "QR Template" फाईल्स
+# (uploaded_images/qrTemplate/.../qr_template_N.html व .../qrcode/.../qrcode_template.png) कुठेच वापरल्या
+# जात नाहीत (प्रिंट्स /namuna8/property_qrcode वापरतात, डिजिटल नेम प्लेट QR मेमरीत बनवते) - फक्त
+# फोल्डर भरत होत्या (क्लायंट Nov-2026). True केल्यास पूर्वीसारख्या पुन्हा बनतील. qrcode.png तसाच बनतो.
+WRITE_QR_TEMPLATE_FILES = False
+
+
+class _SkipQrTemplate(Exception):
+    pass
+
+
 def _safe_qr_payload(value):
     if isinstance(value, dict):
         return {k: _safe_qr_payload(v) for k, v in value.items()}
@@ -458,6 +469,8 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 
                 ### For generating QR Template ###
                 try:
+                    if not WRITE_QR_TEMPLATE_FILES:
+                        raise _SkipQrTemplate()
                     ###Creating new QRcode for template
                     # Ensure area values are strictly in square feet for the QR template
                     area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
@@ -563,6 +576,8 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                    
 
 
+                except _SkipQrTemplate:
+                    pass
                 except Exception as e:
                     logging.error(f"Error in generating the qr template : " , e)
         ### For generating QR Template ###
@@ -1021,6 +1036,8 @@ def update_namuna8_entry(
         
         ### For generating QR Template ###
         try:
+            if not WRITE_QR_TEMPLATE_FILES:
+                raise _SkipQrTemplate()
             ###Creating new QRcode for template
             # Ensure area values are strictly in square feet for the QR template
             area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
@@ -1125,6 +1142,8 @@ def update_namuna8_entry(
 
 
 
+        except _SkipQrTemplate:
+            pass
         except Exception:
             logging.exception("QR template generation failed in update_namuna8_entry for property_id=%s", getattr(db_property, "id", None))
        
@@ -2898,6 +2917,8 @@ def serialize_properties(
                     
                     # Generate QR template
                     try:
+                        if not WRITE_QR_TEMPLATE_FILES:
+                            raise _SkipQrTemplate()
                         area_unit_for_template = getattr(db_property, 'areaUnit', 'sqft') or 'sqft'
                         # बांधकाम स्वतःच्या constructionAreaUnit प्रमाणे मोजतो, areaUnit (एकूण जागेचा
                         # एकक) पेक्षा वेगळं असू शकतं - QR sticker वर चुकीचं रूपांतर होऊ नये म्हणून.
@@ -2972,6 +2993,8 @@ def serialize_properties(
                             logging.info(f"Generated QR template HTML: {qr_template_html_path}")
                         except Exception as e:
                             logging.error(f"Error generating QR template HTML for property {db_property.id}: {e}")
+                    except _SkipQrTemplate:
+                        pass
                     except Exception as e:
                         logging.error(f"Error generating QR template for property {db_property.id}: {e}")
                     
