@@ -1,4 +1,4 @@
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, Undefined
 import os
 import re
 import requests
@@ -38,6 +38,40 @@ def round_sqft(value):
     return round(v, 2)
 
 env.filters['round_sqft'] = round_sqft
+
+# रिकामी (None) value प्रिंटवर "None" म्हणून दिसू नये - |default('') फक्त undefined
+# साठी चालतो, None साठी नाही. finalize प्रत्येक {{ }} output वर लागतो.
+def _blank_none(value):
+    return '' if value is None else value
+
+env.finalize = _blank_none
+
+# लांबी x रुंदी (उदा. "40 x 30"). दोन्ही बाजू रिकाम्या/0 असल्यास '' (म्हणजे "None x None"
+# किंवा नुसतं " x " छापलं जात नाही); एकच बाजू असल्यास दुसरी "-".
+def _side_present(v):
+    if v is None or isinstance(v, Undefined):
+        return False
+    if isinstance(v, str):
+        v = v.strip()
+        if not v:
+            return False
+    try:
+        return float(v) != 0
+    except (TypeError, ValueError):
+        return True
+
+def area_sides(a, b):
+    has_a, has_b = _side_present(a), _side_present(b)
+    if not has_a and not has_b:
+        return ''
+    return f"{a if has_a else '-'} x {b if has_b else '-'}"
+
+def has_area(v):
+    """एकूण क्षेत्रफळ 0/रिकामे नाही ना."""
+    return _side_present(v)
+
+env.globals['area_sides'] = area_sides
+env.globals['has_area'] = has_area
 
 # नमुना-8 रजिस्टर (हजारो मालमत्ता) चं HTML 10-30 MB होतं, त्यातला मोठा भाग फक्त टॅग्सच्या मधली
 # टेम्प्लेट indentation/रिकाम्या ओळी आणि प्रत्येक पानावर पुन्हा पुन्हा येणारे तेच <style> blocks.

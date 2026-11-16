@@ -231,7 +231,7 @@
             {% endif %}{% endfor %}<br>
             
         </td>
-        <td rowspan="2">{% if not blank %}{{areaEast|default('')}} x {{areaNorth|default('')}}{% endif %}</td>
+        <td rowspan="2">{% if not blank %}{{ area_sides(areaEast, areaNorth) }}{% endif %}</td>
         <td rowspan="2">{% if not blank %}{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length|round_sqft if khaliJaga and khaliJaga|length > 0 else ''}}{% endif %}</td>
         <td rowspan="2"></td>
     </tr>
@@ -356,10 +356,12 @@
                         दक्षिण : {{boundarySouth|default('')}} <br>
                         एकूण क्षेत्रफळ :
                         {% if blank %}
+                        {% elif not area_sides(areaEast, areaNorth) and not has_area(total_arearinfoot) and not has_area(totalareainmeters) %}
+                        -
                         {% elif housingUnit == 'sqm' %}
-                            {{areaEast|default('')}} x {{areaNorth|default('')}} मी. = {{totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{total_arearinfoot|default('')|round_sqft}} चौ.फु.)</span>
+                            {% if area_sides(areaEast, areaNorth) %}{{ area_sides(areaEast, areaNorth) }} मी. = {% endif %}{{totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{total_arearinfoot|default('')|round_sqft}} चौ.फु.)</span>
                         {% else %}
-                            {{areaEast|default('')}} x {{areaNorth|default('')}} फु. = {{total_arearinfoot|default('')|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{totalareainmeters|default('')}} चौ.मी.)</span>
+                            {% if area_sides(areaEast, areaNorth) %}{{ area_sides(areaEast, areaNorth) }} फु. = {% endif %}{{total_arearinfoot|default('')|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{totalareainmeters|default('')}} चौ.मी.)</span>
                         {% endif %}
 
                     </div>
