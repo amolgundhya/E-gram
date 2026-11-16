@@ -602,38 +602,21 @@
               </td>
               <td rowspan="2">{{row.occupantName|default('')}}</td>
               <td rowspan="2" style="text-align: left">
-                {% if row.constructionType is defined and
+                {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and
                 row.constructionType|length > 0 %} {{
-                row.constructionType[0].type | default('') }}<br />
+                ct_row.type | default('') }}<br />
                 {% endif %} {% if row.constructionType is defined and
                 row.constructionType|length > 0 %} {{
-                row.constructionType[0].floor | default('') }}<br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 1 %} {{
-                row.constructionType[1].type | default('') }}<br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 1 %} {{
-                row.constructionType[1].floor | default('') }}<br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 2 %} {{
-                row.constructionType[2].type | default('') }}<br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 2 %} {{
-                row.constructionType[2].floor | default('') }}<br />
-                {% endif %} {% if row.khaliJaga is defined and
+                ct_row.floor | default('') }}<br />
+                {% endif %} {% endfor %} {% if row.khaliJaga is defined and
                 row.khaliJaga|length > 0 %} {{ row.khaliJaga[0].constructiontype
                 | default('') }} {% endif %}
               </td>
               <td rowspan="2">
-                {% if row.constructionType is defined and
+                {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and
                 row.constructionType|length > 0 %} {{
-                row.constructionType[0].year|default('') }}<br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 1 %} {{
-                row.constructionType[1].year|default('') }} {% endif %} {% if
-                row.constructionType is defined and row.constructionType|length
-                > 2 %} {{ row.constructionType[2].year|default('') }} {% endif
-                %}
+                ct_row.year|default('') }}<br />
+                {% endif %} {% endfor %}
               </td>
               <td rowspan="2">
                 {{ row.areaEast|default('') }} x {{row.areaNorth|default('')}}
@@ -648,45 +631,24 @@
             </tr>
             <tr>
               <td>
-                {% if row.constructionType is defined and
+                {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and
                 row.constructionType|length > 0 %}
-                {{row.constructionType[0].rate|default('')}}-{{row.constructionType[0].length|default('')}}
-                x {{row.constructionType[0].width|default('')}}<br /><br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 1 %}
-                {{row.constructionType[1].rate|default('')}}-{{row.constructionType[1].length|default('')}}
-                x {{row.constructionType[1].width|default('')}} {% endif %} {%
-                if row.constructionType is defined and
-                row.constructionType|length > 2 %}
-                {{row.constructionType[2].rate|default('')}}-{{row.constructionType[2].length|default('')}}
-                x {{row.constructionType[2].width|default('')}} {% endif %}
+                {{ct_row.rate|default('')}}-{{ct_row.length|default('')}}
+                x {{ct_row.width|default('')}}<br /><br />
+                {% endif %} {% endfor %}
               </td>
               <td>
-                {% if row.constructionType is defined and
+                {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and
                 row.constructionType|length > 0 %} {{
-                row.constructionType[0].depreciation_rate|default('') }}<br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 1 %}
-                {{row.constructionType[1].depreciation_rate|default('')}}<br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 2 %}
-                {{row.constructionType[2].depreciation_rate|default('')}}<br />
-                {% endif %} 0
+                ct_row.depreciation_rate|default('') }}<br />
+                {% endif %} {% endfor %} 0
               </td>
               <td>
-                {% if row.constructionType is defined and
+                {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and
                 row.constructionType|length > 0 %} {{
-                row.constructionType[0].usageBasedBuildingWeightageFactor|default('')
+                ct_row.usageBasedBuildingWeightageFactor|default('')
                 }}<br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 1 %} {{
-                row.constructionType[1].usageBasedBuildingWeightageFactor|default('')
-                }}<br />
-                {% endif %} {% if row.constructionType is defined and
-                row.constructionType|length > 2 %} {{
-                row.constructionType[2].usageBasedBuildingWeightageFactor|default('')
-                }}<br />
-                {% endif %} {% if row.khaliJaga is defined and
+                {% endif %} {% endfor %} {% if row.khaliJaga is defined and
                 row.khaliJaga|length > 0 %}
                 {{row.khaliJaga[0].usageBasedBuildingWeightageFactor|default('')
                 }} {% endif %}
