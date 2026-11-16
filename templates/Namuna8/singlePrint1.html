@@ -231,8 +231,8 @@
             {% endif %}{% endfor %}<br>
             
         </td>
-        <td rowspan="2">{{areaEast|default('')}} x {{areaNorth|default('')}}</td>
-        <td rowspan="2">{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length|round_sqft if khaliJaga and khaliJaga|length > 0 else ''}}</td>
+        <td rowspan="2">{% if not blank %}{{areaEast|default('')}} x {{areaNorth|default('')}}{% endif %}</td>
+        <td rowspan="2">{% if not blank %}{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length|round_sqft if khaliJaga and khaliJaga|length > 0 else ''}}{% endif %}</td>
         <td rowspan="2"></td>
     </tr>
     <tr>
@@ -243,7 +243,7 @@
                 {% endif %}
             {% endfor %}
         </td>
-        <td>{% for ct_row in (constructionType or []) %}{{ct_row.depreciation_rate if constructionType and constructionType|length > 0 else ''}}{% if not loop.last %}<br>{% endif %}{% endfor %}<br/>0</td>
+        <td>{% for ct_row in (constructionType or []) %}{{ct_row.depreciation_rate if constructionType and constructionType|length > 0 else ''}}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if not blank %}<br/>0{% endif %}</td>
         <td>{% for ct_row in (constructionType or []) %}{{ct_row.usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 0 else ''}}{% if not loop.last %}<br>{% endif %}{% endfor %}<br/>{{khaliJaga[0].usageBasedBuildingWeightageFactor if khaliJaga and khaliJaga|length > 0 else ''}}</td>
     </tr>
 
@@ -254,7 +254,7 @@
         <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
         <td> {{totalareainmeters|default('')}} </td>
         <td> {{khaliJaga[0].totalkhalijagaareainmeters if khaliJaga and khaliJaga|length > 0 else ''}} </td>
-        <td>0</td>
+        <td>{% if not blank %}0{% endif %}</td>
         <td>{{totalconstructionareainmeter|default('')}}</td>
         <td></td>
         <td></td>
@@ -283,7 +283,7 @@
         <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस मीटर</td>
         <td> {{totalareainmeters|default('')}} </td>
         <td> {{khaliJaga[0].totalkhalijagaareainmeters if khaliJaga and khaliJaga|length > 0 else ''}} </td>
-        <td>0</td>
+        <td>{% if not blank %}0{% endif %}</td>
         <td>{{totalconstructionareainmeter|default('')}}</td>
         <td></td>
         <td></td>
@@ -341,7 +341,7 @@
         <td> {{sapanikar|default('')}} </td>
         <td> {{cleaningTax|default('')}} </td>
         <td> {{toiletTax|default('')}} </td>
-        <td>{{totaltax|default('') - vpanikar|default('')}}</td>
+        <td>{% if not blank %}{{totaltax|default('') - vpanikar|default('')}}{% endif %}</td>
         <td></td>
         <td></td>
         <td></td>
@@ -355,7 +355,8 @@
                     <div style="height: 58px; border-bottom: 1px solid #666; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
                         दक्षिण : {{boundarySouth|default('')}} <br>
                         एकूण क्षेत्रफळ :
-                        {% if housingUnit == 'sqm' %}
+                        {% if blank %}
+                        {% elif housingUnit == 'sqm' %}
                             {{areaEast|default('')}} x {{areaNorth|default('')}} मी. = {{totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{total_arearinfoot|default('')|round_sqft}} चौ.फु.)</span>
                         {% else %}
                             {{areaEast|default('')}} x {{areaNorth|default('')}} फु. = {{total_arearinfoot|default('')|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{totalareainmeters|default('')}} चौ.मी.)</span>
@@ -426,7 +427,7 @@
         <td> {{sapanikar|default('')}} </td>
         <td> {{cleaningTax|default('')}} </td>
         <td>{{toiletTax|default('')}}</td>
-        <td>{{totaltax|default('') - vpanikar|default('')}}</td>
+        <td>{% if not blank %}{{totaltax|default('') - vpanikar|default('')}}{% endif %}</td>
         <td></td>
         <td></td>
         <td></td>
