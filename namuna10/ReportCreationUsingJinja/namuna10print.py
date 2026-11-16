@@ -4,6 +4,7 @@ import requests
 from fastapi import APIRouter , Request
 from fastapi.responses import JSONResponse
 import httpx
+from datetime import date
 
 router = APIRouter()
 # Load templates from the 'templates' folder (adjust path as needed)
@@ -56,7 +57,9 @@ async def prakar1(request : Request):
             'yearFrom': data[0].get('yearFrom', '') if data else '',
             'yearTo': data[0].get('yearTo', '') if data else '',
             "stateDate" : stateDate,
-            "endDate" : endDate
+            "endDate" : endDate,
+            # template मधला "दिनांक : {{currentDate}}" - आजची तारीख (इतर प्रिंटप्रमाणे DD-MM-YYYY)
+            "currentDate": date.today().strftime("%d-%m-%Y"),
         }
         rendered_html = template.render(**context)
         
