@@ -342,8 +342,9 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 north = db_property.northLength or 0
                 south = db_property.southLength or 0
                 area_unit = getattr(property_data, 'areaUnit', 'sqft') or 'sqft'
-                if east == 0 and west == 0 and north == 0 and south == 0:
-                    # All lengths empty, use totalArea from payload with unit awareness
+                # चारही बाजू भरल्या असतील तरच बाजूंवरून क्षेत्रफळ; नाहीतर टाईप केलेलं एकूण क्षेत्रफळ
+                # (फ्रंटएंडही चारही बाजू असतील तरच एकूण आपोआप मोजतो).
+                if not (east > 0 and west > 0 and north > 0 and south > 0):
                     base_area = float(property_data.totalArea or 0)
                     if area_unit == 'sqm':
                         db_property.totalAreaSqFt = sqm_to_sqft(base_area)
@@ -761,8 +762,9 @@ def update_namuna8_entry(
         south = float(db_property.southLength) if db_property.southLength is not None else 0
 
         area_unit = getattr(property_data, 'areaUnit', getattr(db_property, 'areaUnit', 'sqft')) or 'sqft'
-        if east == 0 and west == 0 and north == 0 and south == 0:
-            # Fallback to totalArea when no side lengths are available
+        # चारही बाजू भरल्या असतील तरच बाजूंवरून क्षेत्रफळ; एखादी जरी रिकामी असेल तर टाईप केलेलं
+        # एकूण क्षेत्रफळ ठेवतो - आधी 2-3 बाजू भरल्या की टाईप केलेलं एकूण टाकून 0/चुकीचं क्षेत्रफळ यायचं.
+        if not (east > 0 and west > 0 and north > 0 and south > 0):
             base_area = float(db_property.totalArea or 0)
             if area_unit == 'sqm':
                 db_property.totalAreaSqFt = sqm_to_sqft(base_area)
