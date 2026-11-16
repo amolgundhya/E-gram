@@ -14,7 +14,10 @@ a = Analysis(
     ['main.py'],
     pathex=[SPECPATH],
     binaries=[],
-    datas=[('static', 'static'), ('uploaded_images', 'uploaded_images'), ('ReportImages', 'ReportImages'), ('templates', 'templates'), ('reports', 'reports')],
+    # uploaded_images (user photos) and reports (generated output) are NOT packed
+    # into the exe, same as the Windows 10 main.spec: the app reads them from the
+    # exe's folder (cwd), and packing them would ship our test data to clients.
+    datas=[('static', 'static'), ('ReportImages', 'ReportImages'), ('templates', 'templates')],
     hiddenimports=['sqlalchemy.ext.declarative', 'namuna8', 'namuna9', 'namuna10', 'certificates', 'ferfar', 'location_management', 'reports', 'reportstab', 'LogBook', 'Ghoshawara', 'Yadi', 'JWTapi', 'Utility',
                    # imported lazily (inside functions / try-except), so list them;
                    # msoffcrypto's submodules come from pyinstaller_hooks/

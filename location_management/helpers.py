@@ -85,34 +85,89 @@ def get_location_hierarchy(db: Session) -> List[dict]:
 
 
 # Image upload helper functions
+#
+# ग्रामपंचायत लोगो / घर कर-पाणी कर QR / स्वाक्षरी - या फाईल्स DB सोबत
+# (~/Databasessqllite/uploaded_images/...) ठेवतो, app च्या चालू फोल्डरमध्ये नाही.
+# DB सगळ्या app प्रती (dev E-gram फोल्डर, installed main.exe) मिळून एकच वापरतात,
+# पण आधी फाईल्स "uploaded_images/..." अशा relative path ने चालू फोल्डरमध्ये
+# जात - त्यामुळे एका प्रतीतून अपलोड केलेला QR दुसऱ्या प्रतीत 404 (broken image)
+# येत होता. DB मध्ये path आधीसारखाच "uploaded_images/..." साठवतो; वाचताना आधी
+# DB फोल्डर, मग जुना चालू-फोल्डर path पाहतो (जुनी फाईल सापडली तर DB फोल्डरमध्ये
+# copy करतो, म्हणजे पुढे सगळ्या प्रतींना दिसेल).
 UPLOAD_DIR = "uploaded_images"
 
-def save_gram_panchayat_image(db: Session, gram_panchayat_id: int, image: UploadFile) -> str:
-    """Save gram panchayat image and return the file path"""
-    # Get gram panchayat to find district and taluka IDs
+
+def _shared_root() -> str:
+    from database import database_path
+    return database_path
+
+
+def _shared_path(stored: str) -> str:
+    return os.path.join(_shared_root(), stored.replace("/", os.sep))
+
+
+def resolve_stored_image_path(stored: Optional[str]) -> Optional[str]:
+    """DB मधल्या "uploaded_images/..." path ची खरी फाईल शोधा (DB फोल्डर, मग चालू फोल्डर)."""
+    if not stored:
+        return None
+    if os.path.isabs(stored):
+        return stored
+    shared = _shared_path(stored)
+    if os.path.exists(shared):
+        return shared
+    legacy = os.path.abspath(stored.replace("/", os.sep))
+    if os.path.exists(legacy):
+        try:
+            os.makedirs(os.path.dirname(shared), exist_ok=True)
+            shutil.copy2(legacy, shared)
+            return shared
+        except Exception:
+            return legacy
+    return shared
+
+
+def _remove_stored_image(stored: Optional[str]) -> bool:
+    """DB फोल्डर आणि जुन्या चालू-फोल्डर दोन्ही ठिकाणची प्रत काढा.
+    फाईल आधीच नसली तरी True - नाहीतर गहाळ फाईलचा QR कधीच काढता येत नाही."""
+    if not stored:
+        return False
+    candidates = [stored] if os.path.isabs(stored) else [
+        _shared_path(stored), os.path.abspath(stored.replace("/", os.sep))
+    ]
+    ok = True
+    for p in candidates:
+        try:
+            if os.path.exists(p):
+                os.remove(p)
+        except Exception:
+            ok = False
+    return ok
+
+
+def _gp_image_dir(db: Session, gram_panchayat_id: int, *sub: str) -> str:
+    """uploaded_images/{district_id}/{taluka_id}/{gram_panchayat_id}/<sub> (relative, '/' separated)."""
     gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
     if not gram_panchayat:
         raise ValueError("Gram panchayat not found")
-    
-    # Get taluka to find district ID
     taluka = db.query(models.Taluka).filter(models.Taluka.id == gram_panchayat.taluka_id).first()
     if not taluka:
         raise ValueError("Taluka not found")
-    
-    # Create directory structure: uploaded_images/{district_id}/{taluka_id}/{gram_panchayat_id}/
-    image_dir = os.path.join(UPLOAD_DIR, str(taluka.district_id), str(taluka.id), str(gram_panchayat_id))
-    os.makedirs(image_dir, exist_ok=True)
-    
-    # Create safe filename (replace spaces with underscores)
-    safe_filename = image.filename.replace(' ', '_')
-    file_path = os.path.join(image_dir, safe_filename)
-    
-    # Save the file
+    return "/".join([UPLOAD_DIR, str(taluka.district_id), str(taluka.id), str(gram_panchayat_id), *sub])
+
+
+def _save_upload(rel_dir: str, image: UploadFile) -> str:
+    safe_filename = os.path.basename(image.filename or "image.png").replace(' ', '_')
+    stored = f"{rel_dir}/{safe_filename}"
+    file_path = _shared_path(stored)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(image.file, buffer)
-    
-    # Return relative path for database storage
-    return file_path.replace(os.sep, "/")
+    return stored
+
+
+def save_gram_panchayat_image(db: Session, gram_panchayat_id: int, image: UploadFile) -> str:
+    """Save gram panchayat image and return the stored (relative) path"""
+    return _save_upload(_gp_image_dir(db, gram_panchayat_id), image)
 
 
 def remove_gram_panchayat_image(db: Session, gram_panchayat_id: int) -> bool:
@@ -120,17 +175,7 @@ def remove_gram_panchayat_image(db: Session, gram_panchayat_id: int) -> bool:
     gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
     if not gram_panchayat or not gram_panchayat.image_url:
         return False
-    
-    try:
-        # Convert URL path back to file system path
-        file_path = gram_panchayat.image_url.replace("/", os.sep)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return True
-    except Exception:
-        pass
-    
-    return False
+    return _remove_stored_image(gram_panchayat.image_url)
 
 
 def get_gram_panchayat_image_path(db: Session, gram_panchayat_id: int) -> Optional[str]:
@@ -138,8 +183,7 @@ def get_gram_panchayat_image_path(db: Session, gram_panchayat_id: int) -> Option
     gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
     if not gram_panchayat or not gram_panchayat.image_url:
         return None
-
-    return gram_panchayat.image_url.replace("/", os.sep)
+    return resolve_stored_image_path(gram_panchayat.image_url)
 
 
 # घर कर / पाणी कर Bank Scanner QR uploads - separate from the generic gram
@@ -153,52 +197,21 @@ QR_URL_FIELD = {
 
 
 def save_gram_panchayat_qr_image(db: Session, gram_panchayat_id: int, image: UploadFile, qr_type: str) -> str:
-    """Save the घर कर or पाणी कर Bank Scanner QR image and return the file path."""
-    gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
-    if not gram_panchayat:
-        raise ValueError("Gram panchayat not found")
-
-    taluka = db.query(models.Taluka).filter(models.Taluka.id == gram_panchayat.taluka_id).first()
-    if not taluka:
-        raise ValueError("Taluka not found")
-
-    image_dir = os.path.join(UPLOAD_DIR, str(taluka.district_id), str(taluka.id), str(gram_panchayat_id), f"qr_{qr_type}")
-    os.makedirs(image_dir, exist_ok=True)
-
-    safe_filename = image.filename.replace(' ', '_')
-    file_path = os.path.join(image_dir, safe_filename)
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(image.file, buffer)
-
-    return file_path.replace(os.sep, "/")
+    """Save the घर कर or पाणी कर Bank Scanner QR image and return the stored (relative) path."""
+    return _save_upload(_gp_image_dir(db, gram_panchayat_id, f"qr_{qr_type}"), image)
 
 
 def remove_gram_panchayat_qr_image(db: Session, gram_panchayat_id: int, qr_type: str) -> bool:
     """Remove the घर कर or पाणी कर Bank Scanner QR image file."""
     gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
-    field = QR_URL_FIELD[qr_type]
-    url = getattr(gram_panchayat, field, None) if gram_panchayat else None
-    if not gram_panchayat or not url:
+    url = getattr(gram_panchayat, QR_URL_FIELD[qr_type], None) if gram_panchayat else None
+    if not url:
         return False
-
-    try:
-        file_path = url.replace("/", os.sep)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return True
-    except Exception:
-        pass
-
-    return False
+    return _remove_stored_image(url)
 
 
 def get_gram_panchayat_qr_image_path(db: Session, gram_panchayat_id: int, qr_type: str) -> Optional[str]:
     """Get the घर कर or पाणी कर Bank Scanner QR image file path."""
     gram_panchayat = db.query(models.GramPanchayat).filter(models.GramPanchayat.id == gram_panchayat_id).first()
-    field = QR_URL_FIELD[qr_type]
-    url = getattr(gram_panchayat, field, None) if gram_panchayat else None
-    if not url:
-        return None
-
-    return url.replace("/", os.sep)
+    url = getattr(gram_panchayat, QR_URL_FIELD[qr_type], None) if gram_panchayat else None
+    return resolve_stored_image_path(url)
