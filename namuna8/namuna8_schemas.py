@@ -1,5 +1,5 @@
 from typing import List, Optional, Union, Tuple, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from datetime import datetime
 # --- Owner Schemas ---
 class OwnerBase(BaseModel):
@@ -116,6 +116,15 @@ class PropertyBase(BaseModel):
     constructionAreaUnit: Optional[str] = None
     remarks: Optional[str] = None
     exServiceman: Optional[bool] = False
+
+    # रिकामा बॉक्स (फॉर्म "" पाठवतो) = क्षेत्रफळ/बाजू दिलेली नाही -> None. आधी "" मुळे 422
+    # "value is not a valid float" येऊन क्षेत्रफळाशिवाय मालमत्ता जतन होत नव्हती.
+    @validator('length', 'width', 'totalAreaSqFt', 'totalArea',
+               'eastLength', 'westLength', 'northLength', 'southLength', pre=True)
+    def blank_area_is_none(cls, v):
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v
 
 class PropertyCreate(PropertyBase):
     owners: List[OwnerCreate]
