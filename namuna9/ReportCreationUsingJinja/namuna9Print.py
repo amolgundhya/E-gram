@@ -360,6 +360,8 @@ async def namuna9receipt(request : Request):
             'receipt_id': receipt_id,
             'noticeFee': requestData.get('noticeFee', 'true'),
             'warrantFee': requestData.get('warrantFee', 'true'),
+            # "रद्द / डिलीट केलेल्या पावत्या" रिपोर्टमधून प्रिंट केल्यावरच true - पावतीवर "रद्द" शिक्का.
+            'cancelled': is_true(requestData.get('cancelled')),
         }
         rendered_html = template.render(**context)
         
