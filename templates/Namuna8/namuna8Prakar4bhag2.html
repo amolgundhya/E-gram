@@ -506,15 +506,10 @@
                   </tr>
                   <tr>
                     <td>
-                      {% if row.constructionType is defined and row.constructionType|length > 0 %}
-                          {{ row.constructionType[0].capitalValue | default('') }}<br>
+                      {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and row.constructionType|length > 0 %}
+                          {{ ct_row.capitalValue | default('') }}<br>
                       {% endif %}
-                      {% if row.constructionType is defined and row.constructionType|length > 1 %}
-                          {{ row.constructionType[1].capitalValue | default('') }}<br>
-                      {% endif %}
-                      {% if row.constructionType is defined and row.constructionType|length > 2 %}
-                          {{ row.constructionType[2].capitalValue | default('') }}<br>
-                      {% endif %}
+                      {% endfor %}
                       {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                           {{ row.khaliJaga[0].capitalValue | default('') }}
                       {% endif %}
@@ -522,27 +517,17 @@
                       {{row.totalCapitalValue}}
                   </td>
                   <td>
-                    {% if row.constructionType is defined and row.constructionType|length > 0 %}
-                        {{ row.constructionType[0].depreciation_rate | default('') }}<br>
+                    {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and row.constructionType|length > 0 %}
+                        {{ ct_row.depreciation_rate | default('') }}<br>
                     {% endif %}
-                    {% if row.constructionType is defined and row.constructionType|length > 1 %}
-                        {{ row.constructionType[1].depreciation_rate | default('') }}<br>
-                    {% endif %}
-                    {% if row.constructionType is defined and row.constructionType|length > 2 %}
-                        {{ row.constructionType[2].depreciation_rate | default('') }}<br>
-                    {% endif %}
+                    {% endfor %}
                     0
                 </td>
                 <td>
-                  {% if row.constructionType is defined and row.constructionType|length > 0 %}
-                      {{ row.constructionType[0].houseTax | default('') }}<br>
+                  {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and row.constructionType|length > 0 %}
+                      {{ ct_row.houseTax | default('') }}<br>
                   {% endif %}
-                  {% if row.constructionType is defined and row.constructionType|length > 1 %}
-                      {{ row.constructionType[1].houseTax | default('') }}<br>
-                  {% endif %}
-                  {% if row.constructionType is defined and row.constructionType|length > 2 %}
-                      {{ row.constructionType[2].houseTax | default('') }}<br>
-                  {% endif %}
+                  {% endfor %}
                   {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                       {{ row.khaliJaga[0].houseTax | default('') }}
                   {% endif %}
