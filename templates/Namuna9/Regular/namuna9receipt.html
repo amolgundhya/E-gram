@@ -261,10 +261,13 @@
                 <td></td>
                 <td></td>
             </tr>
-            {% set default_tax_names = ['घर कर', 'दिवा कर', 'आरोग्य कर', 'सामान्य पाणी कर', 'विशेष पाणी कर', 'सफाई कर', 'एकूण देय रक्कम', 'सवलत / सूट असल्यास (66%)', 'सूट नंतर एकूण देय रक्कम'] %}
+            {% set default_tax_names = ['घर कर', 'दिवा कर', 'आरोग्य कर', 'सामान्य पाणी कर', 'विशेष पाणी कर', 'सफाई कर', 'नोटीस फी', 'वारंट फी', 'एकूण देय रक्कम', 'सवलत / सूट असल्यास (66%)', 'सूट नंतर एकूण देय रक्कम'] %}
             {% set thakit_total = (record.vasuliGhar or 0) + (record.vasuliDiva or 0) + (record.vasuliAarogyaKar or 0) + (record.vasuliSapanikar or 0) + (record.vasuliVpanikar or 0) + (record.vasuliCleaningTax or 0) %}
             {% set dand_total = (record.vasuliDand or 0) %}
-            {% set chalu_total = (record.vasuliChaluGhar or 0) + (record.vasuliChaluDiva or 0) + (record.vasuliChaluAarogyaKar or 0) + (record.vasuliChaluSapanikar or 0) + (record.vasuliChaluVpanikar or 0) + (record.vasuliChaluCleaningTax or 0) %}
+            {# नोटीस / वारंट फी - पावतीत जमा झालेली फी चालू रकान्यात (९ क प्रमाणे) आणि एकूण / अक्षरी रकमेत.
+               आधी या ओळीच नव्हत्या, त्यामुळे फी भरली तरी पावतीवर व एकूणमध्ये दिसत नसे. #}
+            {% set fee_total = (record.vasuliNoticeFee or 0) + (record.vasuliWarrantFee or 0) %}
+            {% set chalu_total = (record.vasuliChaluGhar or 0) + (record.vasuliChaluDiva or 0) + (record.vasuliChaluAarogyaKar or 0) + (record.vasuliChaluSapanikar or 0) + (record.vasuliChaluVpanikar or 0) + (record.vasuliChaluCleaningTax or 0) + fee_total %}
             {% set ekun_total = thakit_total + dand_total + chalu_total %}
             {% set tax_names = tax_names if tax_names is defined else default_tax_names %}
             {% set ns = namespace(deduction=0) %}
@@ -272,7 +275,15 @@
 {% for tax in tax_names %}
 <tr>
     <td>{{ tax }}</td>
-    {% if tax == 'सवलत / सूट असल्यास (66%)' %}
+    {% if tax == 'नोटीस फी' or tax == 'वारंट फी' %}
+        {% set fee_paid = (record.vasuliNoticeFee if tax == 'नोटीस फी' else record.vasuliWarrantFee) or 0 %}
+        {% set fee_left = (record.remainingNoticeFee if tax == 'नोटीस फी' else record.remainingWarrantFee) %}
+        <td class="right">0</td>
+        <td class="right">0</td>
+        <td class="right">{{ fee_paid | amount }}</td>
+        <td class="right">{{ fee_paid | amount }}</td>
+        <td class="right balance-col">{{ (fee_left if fee_left is not none else 0) | amount }}</td>
+    {% elif tax == 'सवलत / सूट असल्यास (66%)' %}
         <td class="right">0</td>
         <td class="right"></td>
         <td class="right"></td>

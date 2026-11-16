@@ -456,7 +456,7 @@
                     {% endfor %}
                   </span><br />
                   <span style="white-space: nowrap">मागणीची पावती क्र : {{ data[i].propertyNumber or '' }}</span><br />
-                  <span style="white-space: nowrap">दिनांक : {{ data[i].currentDate or '' }}</span>
+                  <span style="white-space: nowrap">दिनांक : {{ ((data[i].currentDate or '') if showN9Date != 'false' else '') }}</span>
                 </td>
               </tr>
             </table>
@@ -589,7 +589,7 @@
                     {% endfor %}
                   </span><br />
                   <span style="white-space: nowrap">मागणीची पावती क्र : {{ data[i].propertyNumber or '' }}</span><br />
-                  <span style="white-space: nowrap">दिनांक : {{ data[i].currentDate or '' }}</span>
+                  <span style="white-space: nowrap">दिनांक : {{ ((data[i].currentDate or '') if showN9Date != 'false' else '') }}</span>
                 </td>
               </tr>
             </table>
@@ -724,7 +724,7 @@
                     {% endfor %}
                   </span><br />
                   <span style="white-space: nowrap">मागणीची पावती क्र : {{ data[i+1].propertyNumber or '' }}</span><br />
-                  <span style="white-space: nowrap">दिनांक : {{ data[i+1].currentDate or '' }}</span>
+                  <span style="white-space: nowrap">दिनांक : {{ ((data[i+1].currentDate or '') if showN9Date != 'false' else '') }}</span>
                 </td>
               </tr>
             </table>
@@ -859,7 +859,7 @@
                     {% endfor %}
                   </span><br />
                   <span style="white-space: nowrap">मागणीची पावती क्र : {{ data[i+1].propertyNumber or '' }}</span><br />
-                  <span style="white-space: nowrap">दिनांक : {{ data[i+1].currentDate or '' }}</span>
+                  <span style="white-space: nowrap">दिनांक : {{ ((data[i+1].currentDate or '') if showN9Date != 'false' else '') }}</span>
                 </td>
               </tr>
             </table>

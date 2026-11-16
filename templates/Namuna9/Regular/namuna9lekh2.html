@@ -370,7 +370,7 @@
           </td>
           <td class="center bold" style="width: 33%">
             मागणीची पावती क्र : {{ record.propertyNumber or '' }}<br />
-            दिनांक : {{ record.currentDate or '' }}
+            दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') }}
           </td>
         </tr>
       </table>
@@ -444,7 +444,7 @@
         {% endfor %}
 
         <tr class="bold">
-          <td>दिनांक : {{ record.currentDate or '' }}</td>
+          <td>दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') }}</td>
           <td class="right" colspan="4">
             एकूण : {{ (record.totalTaxwithoutvipanitoilet or 0) }}
           </td>

@@ -465,7 +465,7 @@
         </tr>
         <tr>
           <td class="bold">मागणीची पावती क्र. : {{ rec.propertyNumber or '' }}</td>
-          <td class="bold">दिनांक : {{ rec.currentDate or '' }}</td>
+          <td class="bold">दिनांक : {{ ((rec.currentDate or '') if showN9Date != 'false' else '') }}</td>
         </tr>
         <tr>
           <td colspan="2" class="bold">मालकाचे नाव : {{ rec.ownerName or '' }}</td>
@@ -498,7 +498,13 @@
         </tr>
         {% set totals = namespace(magil=0, dand=0, current=0, ekun=0) %}
         {% for tax in tax_names %}
-          {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}
+          {% if (tax == 'नोटीस फी' or tax == 'वारंट फी') %}
+          {# नोटीस/वारंट फी: ओळीत फक्त चालू/एकूण मध्ये दिसते, तशीच बेरजेतही (स्क्रीनच्या एकूण प्रमाणे).
+             Thakit7/8 मध्येही फीच असते, म्हणून मागील/दंड मध्ये धरत नाही. #}
+          {% set t_fee = rec.recoverableAmounts.current['current' ~ loop.index] or 0 %}
+          {% set totals.current = totals.current + t_fee %}
+          {% set totals.ekun = totals.ekun + t_fee %}
+          {% else %}
           {% set t_thakit = rec.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0 %}
           {% set t_dand = rec.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0 %}
           {% set t_current = rec.recoverableAmounts.current['current' ~ loop.index] or 0 %}
@@ -532,7 +538,7 @@
           <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
         </tr>
         <tr class="bold">
-          <td colspan="6" style="border: none">दिनांक : {{ rec.currentDate or '' }}</td>
+          <td colspan="6" style="border: none">दिनांक : {{ ((rec.currentDate or '') if showN9Date != 'false' else '') }}</td>
         </tr>
       </table>
       <div style="font-size: 10.5px; margin-top: 3px; line-height: 1.4">

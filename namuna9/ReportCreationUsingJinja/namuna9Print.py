@@ -126,6 +126,44 @@ regularEnv.filters['blankzero'] = blank_if_zero
 
 localhost = "http://127.0.0.1:8000"
 
+def _fee_flags(requestData):
+    """नमुना-9 स्क्रीनवरचे "वारंट फी" / "नोटीस फी" / "दंड लावा" टिक (प्रिंट मोडलमधून
+    warrantFee/noticeFee/dandLava = 'true'/'false' येतात) डेटा API ला पुढे पाठवतो.
+    आधी प्रिंट हे कधीच पाठवत नसे, त्यामुळे अजून जतन न झालेल्या ओळींवर स्क्रीनवर फी दिसे
+    पण प्रिंटमध्ये 0 - आणि प्रिंट आधी उघडली तर ती ओळ 0 फीसकट जतनही होत असे."""
+    return {
+        "applyWarrantFee": is_true(requestData.get('warrantFee')),
+        "applyNoticeFee": is_true(requestData.get('noticeFee')),
+        "applyPenalty": is_true(requestData.get('dandLava')),
+    }
+
+
+async def _get_n9_date_flags(gram_panchayat_id):
+    """Master -> नमुना 9 सेटिंग: "नमुना ९ क दिनांक ठेवा" (keep_namuna9_date) व "मागणी नोटीस
+    दिनांक ठेवा" (keep_notice_date). आधी हे फक्त जतन होत, कुठेच वापरले जात नव्हते.
+    सेटिंग अजून कधीच जतन केली नसेल (GET 404) तर Master स्क्रीन दोन्ही बॉक्स टिक
+    केलेले दाखवते (Namuns9settings.tsx चा default) - म्हणून प्रिंटही तेच मानते: दोन्ही
+    दिनांक दिसतात. आधी इथे मागणी नोटीसला '' होते, त्यामुळे स्क्रीनवर टिक दिसूनही
+    नोटीसवर दिनांक येत नसे (क्लायंट: "सेटिंग काम करत नाही"). दुसरी काही अडचण आली
+    (सर्व्हर/नेटवर्क) तर आधीसारखेच: ९ क वर दिनांक, नोटीसवर नाही."""
+    show_n9, show_notice = 'true', ''
+    if not gram_panchayat_id:
+        return show_n9, show_notice
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f'{localhost}/namuna9/settings/{gram_panchayat_id}')
+        if resp.status_code == 404:
+            return 'true', 'true'
+        if resp.status_code == 200:
+            d = resp.json()
+            show_n9 = 'true' if d.get('keep_namuna9_date') else 'false'
+            show_notice = 'true' if d.get('keep_notice_date') else 'false'
+    except Exception:
+        pass
+    return show_n9, show_notice
+
+
+
 
 async def _get_checklist_page_number(gram_panchayat_id):
     """पेज नंबर - Master Settings मधल्या "टिप" सारखाच कायमस्वरूपी checklist toggle
@@ -191,9 +229,30 @@ async def namuna10_hishob_by_village(request: Request):
 
         # Normalize to list
         records = data if isinstance(data, list) else [data]
+        village_label = str(requestData.get("villageName", "") or "").strip()
+        all_villages = bool(not receipt_id and (show_all or not villageId))
+        # गावाचे पूर्ण नाव (क्लायंट Nov-2026: "गावाचे नाव पूर्ण दाखवा") - स्क्रीनने पाठवलेल्या
+        # मजकुरावर विसंबून न राहता Master मधलं गावाचं पूर्ण नाव, village id वरून.
+        # "पूर्ण दाखवा" (सर्व गावे) - ग्रामपंचायतीची सर्व गावं (मिळाली नाहीत तर "सर्व गावे").
+        try:
+            async with httpx.AsyncClient() as client:
+                vresp = await client.get(f'{localhost}/namuna8/village/', params={"gram_panchayat_id": gram_panchayat_id}, timeout=60.0)
+            vlist = vresp.json() if vresp.status_code == 200 else []
+            vlist = [v for v in (vlist if isinstance(vlist, list) else []) if isinstance(v, dict)]
+            if all_villages:
+                names = [str(v.get("name") or "").strip() for v in vlist]
+                village_label = ", ".join(n for n in names if n) or "सर्व गावे"
+            elif villageId:
+                match = next((v for v in vlist if str(v.get("id")) == str(villageId)), None)
+                if match and str(match.get("name") or "").strip():
+                    village_label = str(match.get("name")).strip()
+        except Exception:
+            if all_villages:
+                village_label = "सर्व गावे"
         # Prepare context for vasuliHishob.html
         context = {
-            "village": requestData.get("villageName", ""),
+            "village": village_label,
+            "allVillages": all_villages,
             "stateDate": from_date or "",
             "endDate": to_date or "",
             "currentDate": requestData.get("currentDate", ""),
@@ -324,7 +383,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -433,7 +492,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     }, timeout=300.0
 )
         if response.status_code != 200:
@@ -517,7 +576,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -601,7 +660,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     }, timeout=300.0
 )
         if response.status_code != 200:
@@ -684,7 +743,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout= 300.0
 )
         if response.status_code != 200:
@@ -767,7 +826,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout = 300.0
 )
         if response.status_code != 200:
@@ -850,7 +909,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -934,7 +993,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -1015,7 +1074,7 @@ async def prakar1(request: Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -1076,7 +1135,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -1087,7 +1146,10 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showN9Date, showNoticeDate = await _get_n9_date_flags(gram_panchayat_id)
         context = {
+            'showN9Date': showN9Date,
+            'showNoticeDate': showNoticeDate,
             'data': data,
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
@@ -1157,7 +1219,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -1168,7 +1230,10 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showN9Date, showNoticeDate = await _get_n9_date_flags(gram_panchayat_id)
         context = {
+            'showN9Date': showN9Date,
+            'showNoticeDate': showNoticeDate,
             'data': data,
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
@@ -1238,7 +1303,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -1273,7 +1338,10 @@ async def prakar1(request : Request):
             pass
 
         # Extract top-level fields from the first record
+        showN9Date, showNoticeDate = await _get_n9_date_flags(gram_panchayat_id)
         context = {
+            'showN9Date': showN9Date,
+            'showNoticeDate': showNoticeDate,
             'data': data,
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
@@ -1346,7 +1414,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -1357,7 +1425,10 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showN9Date, showNoticeDate = await _get_n9_date_flags(gram_panchayat_id)
         context = {
+            'showN9Date': showN9Date,
+            'showNoticeDate': showNoticeDate,
             'data': data,
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
@@ -1430,7 +1501,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     } ,timeout=300.0
 )
         if response.status_code != 200:
@@ -1515,7 +1586,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -1600,7 +1671,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -1685,7 +1756,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -1769,7 +1840,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -1854,7 +1925,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -1938,7 +2009,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -2023,7 +2094,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -2107,7 +2178,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -2192,7 +2263,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -2275,7 +2346,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -2286,7 +2357,10 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showN9Date, showNoticeDate = await _get_n9_date_flags(gram_panchayat_id)
         context = {
+            'showN9Date': showN9Date,
+            'showNoticeDate': showNoticeDate,
             'data': data,
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
@@ -2358,7 +2432,7 @@ async def prakar1(request : Request):
             "yearslap": year,
             "district_id": district_id,
             "taluka_id": taluka_id,
-            "gram_panchayat_id": gram_panchayat_id
+            "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
         },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -2369,7 +2443,10 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showN9Date, showNoticeDate = await _get_n9_date_flags(gram_panchayat_id)
         context = {
+            'showN9Date': showN9Date,
+            'showNoticeDate': showNoticeDate,
             'data': data,
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
@@ -2442,7 +2519,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -2527,7 +2604,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -2611,7 +2688,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -2696,7 +2773,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0
 )
         if response.status_code != 200:
@@ -2778,7 +2855,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
@@ -2859,7 +2936,7 @@ async def prakar1(request : Request):
         "yearslap": year,
         "district_id": district_id,
         "taluka_id": taluka_id,
-        "gram_panchayat_id": gram_panchayat_id
+        "gram_panchayat_id": gram_panchayat_id, **_fee_flags(requestData)
     },timeout=300.0)
         if response.status_code != 200:
             raise Exception(f"API error {response.status_code}: {response.text}")
