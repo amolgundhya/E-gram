@@ -171,7 +171,14 @@
     {% for record in data %}
     <div class="outer-border">
         {% for copy in [1,2] %}
-        <div class="receipt-copy">
+        <div class="receipt-copy"{% if cancelled %} style="position: relative;"{% endif %}>
+        {% if cancelled %}
+        {# रद्द / डिलीट केलेल्या पावत्या रिपोर्टमधून पुन्हा प्रिंट - पावतीवर "रद्द" शिक्का.
+           absolute overlay - मांडणी (उंची/पान) बदलत नाही. सामान्य पावती प्रिंटला हे लागू नाही. #}
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5;">
+            <div style="transform: rotate(-20deg); border: 4px solid rgba(200,0,0,0.55); color: rgba(200,0,0,0.55); font-size: 56px; font-weight: bold; padding: 4px 28px; border-radius: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">रद्द केलेली पावती</div>
+        </div>
+        {% endif %}
         <table class="header-table" style="width:100%;">
             <tr>
                 <td class="bold" style="width: 36%; vertical-align: middle;">

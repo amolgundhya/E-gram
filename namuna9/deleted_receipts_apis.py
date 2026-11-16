@@ -98,11 +98,21 @@ def _fetch_rows(
         if td:
             q = q.filter(namuna9_model.Namuna9Receipt.deleted_at < td)
 
+        n9_cache = {}
         for r in q.all():
             prop = db.query(namuna8_model.Property).filter(
                 namuna8_model.Property.id == r.property_id
             ).first()
+            n9 = n9_cache.get(r.namuna9_id)
+            if r.namuna9_id not in n9_cache:
+                n9 = db.query(namuna9_model.Namuna9).filter(namuna9_model.Namuna9.id == r.namuna9_id).first()
+                n9_cache[r.namuna9_id] = n9
             rows.append({
+                # रद्द पावती पुन्हा प्रिंट करण्यासाठी (रिपोर्टमधील "पावती" बटण) - Excel/स्क्रीन
+                # कॉलम COLUMNS / columns यादीतूनच ठरतात, त्यामुळे हे तिथे दिसत नाहीत.
+                "receiptId": r.id,
+                "villageId": (prop.village_id if prop else (n9.villageId if n9 else None)),
+                "yearslap": n9.yearslap if n9 else None,
                 "type": "नमुना-9",
                 "pavtiKramank": r.pavti_kramank,
                 "pavtiBookKramank": r.pa_book_kramank,
