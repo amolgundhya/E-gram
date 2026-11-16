@@ -126,6 +126,7 @@ regularEnv.filters['blankzero'] = blank_if_zero
 
 localhost = "http://127.0.0.1:8000"
 
+
 def _fee_flags(requestData):
     """नमुना-9 स्क्रीनवरचे "वारंट फी" / "नोटीस फी" / "दंड लावा" टिक (प्रिंट मोडलमधून
     warrantFee/noticeFee/dandLava = 'true'/'false' येतात) डेटा API ला पुढे पाठवतो.
@@ -163,6 +164,33 @@ async def _get_n9_date_flags(gram_panchayat_id):
     return show_n9, show_notice
 
 
+# नमुना 9 "9 All" रिपोर्ट्सवरील घर कर / पाणी कर Bank Scanner QR - Master setting
+# (show_bank_scanner_in_reports) चालू व QR अपलोड असेल तरच. सुपर 9 All मधल्या आधीच्या
+# तर्काप्रमाणेच. _QR_STRIP_H: पहिल्या पानानंतरच्या पानांवर QR पट्टीसाठी राखलेली उंची (छापील px).
+_QR_STRIP_H = 80
+
+
+async def _get_bank_qr(request, gram_panchayat_id):
+    showBankScanner, houseTaxQrUrl, waterTaxQrUrl = False, None, None
+    if gram_panchayat_id:
+        try:
+            gp_base_url = str(request.base_url).rstrip('/')
+            async with httpx.AsyncClient() as client:
+                gp_resp = await client.get(f'{gp_base_url}/location/gram-panchayats/{gram_panchayat_id}')
+            if gp_resp.status_code == 200:
+                gp_data = gp_resp.json()
+                showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                if gp_data.get('house_tax_qr_url'):
+                    houseTaxQrUrl = f'{gp_base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                if gp_data.get('water_tax_qr_url'):
+                    waterTaxQrUrl = f'{gp_base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+        except Exception:
+            pass
+    return showBankScanner, houseTaxQrUrl, waterTaxQrUrl
+
+
+def _qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl):
+    return _QR_STRIP_H if (showBankScanner and (houseTaxQrUrl or waterTaxQrUrl)) else 0
 
 
 async def _get_checklist_page_number(gram_panchayat_id):
@@ -419,7 +447,8 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -505,7 +534,12 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        # घर कर / पाणी कर Bank Scanner QR (प्रत्येक पानावर) - Master setting चालू असेल तरच
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
+            'showBankScanner': showBankScanner,
+            'houseTaxQrUrl': houseTaxQrUrl,
+            'waterTaxQrUrl': waterTaxQrUrl,
             'data': data,
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
@@ -1514,10 +1548,30 @@ async def prakar1(request : Request):
         if not isinstance(data, list):
             data = [data]
         data = apply_name_sort(data, requestData)
+
+        # घर कर / पाणी कर Bank Scanner QR - सुपर (regular) 9 All प्रमाणेच, Master setting चालू असेल तरच.
+        showBankScanner = False
+        houseTaxQrUrl = None
+        waterTaxQrUrl = None
+        if gram_panchayat_id:
+            try:
+                gp_base_url = str(request.base_url).rstrip('/')
+                async with httpx.AsyncClient() as client:
+                    gp_resp = await client.get(f'{gp_base_url}/location/gram-panchayats/{gram_panchayat_id}')
+                if gp_resp.status_code == 200:
+                    gp_data = gp_resp.json()
+                    showBankScanner = bool(gp_data.get('show_bank_scanner_in_reports'))
+                    if gp_data.get('house_tax_qr_url'):
+                        houseTaxQrUrl = f'{gp_base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+                    if gp_data.get('water_tax_qr_url'):
+                        waterTaxQrUrl = f'{gp_base_url}/location/gram-panchayats/{gram_panchayat_id}/qr/water'
+            except Exception:
+                pass
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1537,6 +1591,9 @@ async def prakar1(request : Request):
             'villageID': requestData.get('villageID', ''),
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
+            'showBankScanner': showBankScanner,
+            'houseTaxQrUrl': houseTaxQrUrl,
+            'waterTaxQrUrl': waterTaxQrUrl,
         }
         rendered_html = template.render(**context)
         
@@ -1685,9 +1742,15 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        # घर कर / पाणी कर Bank Scanner QR (प्रत्येक पानावर) - Master setting चालू असेल तरच
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
+            'showBankScanner': showBankScanner,
+            'houseTaxQrUrl': houseTaxQrUrl,
+            'waterTaxQrUrl': waterTaxQrUrl,
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1770,7 +1833,12 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        # घर कर / पाणी कर Bank Scanner QR (प्रत्येक पानावर) - Master setting चालू असेल तरच
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
+            'showBankScanner': showBankScanner,
+            'houseTaxQrUrl': houseTaxQrUrl,
+            'waterTaxQrUrl': waterTaxQrUrl,
             'data': data,
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
@@ -2533,9 +2601,15 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        # घर कर / पाणी कर Bank Scanner QR (प्रत्येक पानावर) - Master setting चालू असेल तरच
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
+            'showBankScanner': showBankScanner,
+            'houseTaxQrUrl': houseTaxQrUrl,
+            'waterTaxQrUrl': waterTaxQrUrl,
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2618,7 +2692,12 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        # घर कर / पाणी कर Bank Scanner QR (प्रत्येक पानावर) - Master setting चालू असेल तरच
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
+            'showBankScanner': showBankScanner,
+            'houseTaxQrUrl': houseTaxQrUrl,
+            'waterTaxQrUrl': waterTaxQrUrl,
             'data': data,
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
