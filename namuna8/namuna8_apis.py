@@ -842,7 +842,10 @@ def update_namuna8_entry(
     # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा, आजच्या
     # तारखेवरून नाही.
     assessment_year = get_assessment_year(gram_panchayat)
-    if property_data.constructions:
+    # रिकामी यादी (सर्व बांधकाम रो डिलीट केल्या) म्हणजे "सर्व बांधकाम काढा" - आधी `if constructions:`
+    # मुळे रिकामी यादी दुर्लक्षित होऊन जुनी बांधकामे तशीच राहायची (प्रिंटवर तळमजला/कर तसाच).
+    # Bulk Update GET मधील खरी बांधकामे परत पाठवतो, त्यामुळे त्याला याचा परिणाम नाही.
+    if property_data.constructions is not None:
         new_constructions = []
         for construction_data in property_data.constructions:
             if isinstance(construction_data, dict):
