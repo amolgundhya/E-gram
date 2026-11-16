@@ -196,9 +196,54 @@ QR_URL_FIELD = {
 }
 
 
+def _auto_fit_qr_image(stored: str) -> str:
+    """घर कर / पाणी कर QR - अपलोड केलेल्या फोटोभोवतीची रिकामी (पांढरी/पारदर्शक) जागा कापून,
+    चौकोनी करून, थोडी पांढरी किनार देऊन PNG म्हणून जतन करतो - म्हणजे कुठल्याही आकाराचा QR
+    प्रिंटच्या लहान चौकटीत पूर्ण व मोठा बसतो. काहीही अडचण आली तर मूळ फाईलच वापरतो (अपलोड कधीच
+    फेल होत नाही). Pillow 9.5 (Win8/Py3.7) व 12 (Win10) दोन्हीवर चालते."""
+    try:
+        from PIL import Image, ImageOps
+        src = _shared_path(stored)
+        with Image.open(src) as opened:
+            im = ImageOps.exif_transpose(opened)
+            if im.mode in ("RGBA", "LA") or (im.mode == "P" and "transparency" in im.info):
+                im = im.convert("RGBA")
+                bg = Image.new("RGBA", im.size, (255, 255, 255, 255))
+                bg.alpha_composite(im)
+                im = bg
+            im = im.convert("RGB")
+        # जवळजवळ पांढरे (JPEG मधला हलका आवाजसुद्धा) पार्श्वभूमी समजतो
+        bbox = im.convert("L").point(lambda p: 255 if p < 235 else 0).getbbox()
+        if not bbox:
+            return stored
+        im = im.crop(bbox)
+        w, h = im.size
+        side = max(w, h)
+        margin = max(4, int(side * 0.06))
+        full = side + 2 * margin
+        canvas = Image.new("RGB", (full, full), (255, 255, 255))
+        canvas.paste(im, ((full - w) // 2, (full - h) // 2))
+        if full > 1000:  # फक्त मोठा फोटो लहान करतो - लहान QR मोठा (धूसर) करत नाही
+            canvas = canvas.resize((1000, 1000), Image.LANCZOS)
+        new_stored = os.path.splitext(stored)[0] + "_fit.png"
+        canvas.save(_shared_path(new_stored), "PNG")
+        if new_stored != stored:
+            try:
+                os.remove(src)
+            except Exception:
+                pass
+        return new_stored
+    except Exception:
+        return stored
+
+
 def save_gram_panchayat_qr_image(db: Session, gram_panchayat_id: int, image: UploadFile, qr_type: str) -> str:
     """Save the घर कर or पाणी कर Bank Scanner QR image and return the stored (relative) path."""
-    return _save_upload(_gp_image_dir(db, gram_panchayat_id, f"qr_{qr_type}"), image)
+    stored = _save_upload(_gp_image_dir(db, gram_panchayat_id, f"qr_{qr_type}"), image)
+    # डिजिटल स्वाक्षरी (signature) याच फंक्शनमधून जाते - ती जशी आहे तशीच ठेवायची.
+    if qr_type in ("house", "water"):
+        stored = _auto_fit_qr_image(stored)
+    return stored
 
 
 def remove_gram_panchayat_qr_image(db: Session, gram_panchayat_id: int, qr_type: str) -> bool:
