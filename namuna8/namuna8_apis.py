@@ -22,6 +22,7 @@ import re
 from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text_short, build_area_lines
 from Utility.tax_rounding import round_tax_amount
+from Utility.area_units import sqm_to_sqft
 from Utility import fast_qr
 import threading
 from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no
@@ -299,7 +300,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     area_val = 0.0
                 area_unit = property_dict.get("areaUnit", "sqft") or "sqft"
                 if area_unit == "sqm":
-                    property_dict["totalAreaSqFt"] = round(area_val * 10.76, 2)
+                    property_dict["totalAreaSqFt"] = sqm_to_sqft(area_val)
                 else:
                     property_dict["totalAreaSqFt"] = round(area_val, 2)
             
@@ -348,7 +349,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     # All lengths empty, use totalArea from payload with unit awareness
                     base_area = float(property_data.totalArea or 0)
                     if area_unit == 'sqm':
-                        db_property.totalAreaSqFt = round(base_area * 10.76, 2)
+                        db_property.totalAreaSqFt = sqm_to_sqft(base_area)
                     else:
                         db_property.totalAreaSqFt = round(base_area, 2)
                 else:
@@ -358,7 +359,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     # बाजू सध्याच्या area_unit मध्येच असतात (sqm निवडलं असेल तर मीटरमध्ये) - सqft
                     # मध्ये रूपांतरित करूनच totalAreaSqFt (टॅक्स स्लॅबसाठी वापरलं जातं) साठवायचं.
                     if area_unit == 'sqm':
-                        db_property.totalAreaSqFt = round(computed_area * 10.76, 2)
+                        db_property.totalAreaSqFt = sqm_to_sqft(computed_area)
                     else:
                         db_property.totalAreaSqFt = round(computed_area, 2)
             # Only set boolean fields and toilet (not calculated tax fields)
@@ -466,8 +467,8 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     # एकक) पेक्षा वेगळं असू शकतं - QR sticker वर चुकीचं रूपांतर होऊ नये म्हणून.
                     construction_unit_for_template = getattr(db_property, 'constructionAreaUnit', None) or area_unit_for_template
                     total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
-                    construction_area_sqft = round((constructionArea * 10.76), 2) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
-                    open_area_sqft = round((openArea * 10.76), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
+                    construction_area_sqft = sqm_to_sqft(constructionArea) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+                    open_area_sqft = sqm_to_sqft(openArea) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
                     year_from = datetime.now().year
                     year_to = year_from + 3
                     # Display like 2025-26 (two-digit end year)
@@ -680,7 +681,7 @@ def update_namuna8_entry(
             area_val = 0.0
         area_unit = property_update_data.get("areaUnit", "sqft") or "sqft"
         if area_unit == "sqm":
-            property_update_data["totalAreaSqFt"] = round(area_val * 10.76, 2)
+            property_update_data["totalAreaSqFt"] = sqm_to_sqft(area_val)
         else:
             property_update_data["totalAreaSqFt"] = round(area_val, 2)
     # Validate location hierarchy
@@ -767,7 +768,7 @@ def update_namuna8_entry(
             # Fallback to totalArea when no side lengths are available
             base_area = float(db_property.totalArea or 0)
             if area_unit == 'sqm':
-                db_property.totalAreaSqFt = round(base_area * 10.76, 2)
+                db_property.totalAreaSqFt = sqm_to_sqft(base_area)
             else:
                 db_property.totalAreaSqFt = round(base_area, 2)
         else:
@@ -777,7 +778,7 @@ def update_namuna8_entry(
             # बाजू सध्याच्या area_unit मध्येच असतात (sqm निवडलं असेल तर मीटरमध्ये) - सqft
             # मध्ये रूपांतरित करूनच totalAreaSqFt (टॅक्स स्लॅबसाठी वापरलं जातं) साठवायचं.
             if area_unit == 'sqm':
-                db_property.totalAreaSqFt = round(computed_area * 10.76, 2)
+                db_property.totalAreaSqFt = sqm_to_sqft(computed_area)
             else:
                 db_property.totalAreaSqFt = round(computed_area, 2)
 
@@ -1025,8 +1026,8 @@ def update_namuna8_entry(
             # एकक) पेक्षा वेगळं असू शकतं - QR sticker वर चुकीचं रूपांतर होऊ नये म्हणून.
             construction_unit_for_template = getattr(db_property, 'constructionAreaUnit', None) or area_unit_for_template
             total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
-            construction_area_sqft = round((constructionArea * 10.76), 2) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
-            open_area_sqft = round((openArea * 10.76), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
+            construction_area_sqft = sqm_to_sqft(constructionArea) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+            open_area_sqft = sqm_to_sqft(openArea) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
             year_from = datetime.now().year
             year_to = year_from + 3
             # Display like 2025-26 (two-digit end year)
@@ -2988,8 +2989,8 @@ def serialize_properties(
                         # एकक) पेक्षा वेगळं असू शकतं - QR sticker वर चुकीचं रूपांतर होऊ नये म्हणून.
                         construction_unit_for_template = getattr(db_property, 'constructionAreaUnit', None) or area_unit_for_template
                         total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
-                        construction_area_sqft = round((constructionArea * 10.76), 2) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
-                        open_area_sqft = round((openArea * 10.76), 2) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
+                        construction_area_sqft = sqm_to_sqft(constructionArea) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
+                        open_area_sqft = sqm_to_sqft(openArea) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
                         
                         qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
                         QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path_template)

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 from namuna8 import namuna8_model as models
 from namuna8 import namuna8_schemas as schemas
 from database import get_db
+from Utility.area_units import sqft_to_sqm, sqm_to_sqft
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 import math
@@ -83,13 +84,13 @@ def calc_house_tax(rate):
         return 0
 
 # बांधकाम-रो चे क्षेत्रफळ दोन्ही एककांत (चौ.मी./चौ.फु.) दाखवण्यासाठी - नकाशा column मध्ये,
-# "एकूण चौरस फुट/मीटर" रो प्रमाणेच same 10.76 / 0.092937 conversion वापरतो.
+# "एकूण चौरस फुट/मीटर" रो प्रमाणेच same Utility.area_units (÷10.764) रूपांतर वापरतो.
 def _construction_item_dual_unit_area(length, width, construction_unit):
     area_native = round((length or 0) * (width or 0), 2)
     if construction_unit == 'sqm':
-        return {"areaSqm": area_native, "areaSqft": round(area_native * 10.76, 2)}
+        return {"areaSqm": area_native, "areaSqft": sqm_to_sqft(area_native)}
     else:
-        return {"areaSqft": area_native, "areaSqm": round(area_native * 0.092937, 2)}
+        return {"areaSqft": area_native, "areaSqm": sqft_to_sqm(area_native)}
 
 # Deep rounding for all numeric fields (excluding booleans) using HALF_UP,
 # but preserve decimals for specific keys like 'length', 'width' and raw side lengths.
@@ -381,10 +382,10 @@ def get_property_record(
     # Normalize total area based on property unit (mirrors the by-village/by-gram-panchayat builders)
     if unit == 'sqm':
         total_area_m = round(prop.totalArea or 0, 2)
-        total_area_sqft = round((prop.totalArea or 0) * 10.76, 2)
+        total_area_sqft = sqm_to_sqft(prop.totalArea)
     else:
         total_area_sqft = round(prop.totalAreaSqFt or 0, 2)
-        total_area_m = round((prop.totalAreaSqFt or 0) * 0.092937, 2)
+        total_area_m = sqft_to_sqm(prop.totalAreaSqFt)
     total_area = total_area_sqft
     # Calculate totalHouseTax as the sum of all houseTax in constructions (excluding 'खाली जागा')
     total_house_tax = sum([
@@ -407,10 +408,10 @@ def get_property_record(
     construction_area_sum = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
     if construction_unit_disp == 'sqm':
         total_construction_area_meter = round(construction_area_sum, 2)
-        total_construction_area_foot = round(total_construction_area_meter / 0.092937, 2)
+        total_construction_area_foot = sqm_to_sqft(total_construction_area_meter)
     else:
         total_construction_area_foot = round(construction_area_sum, 2)
-        total_construction_area_meter = round(total_construction_area_foot * 0.092937, 2)
+        total_construction_area_meter = sqft_to_sqm(total_construction_area_foot)
     year_from = datetime.now().year
     year_to = year_from + 3
     # Force totals to zero when tax not applicable
@@ -826,10 +827,10 @@ def get_property_records_by_village(
         unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
         if unit == 'sqm':
             total_area_m = round(prop.totalArea or 0, 2)
-            total_area_sqft = round((prop.totalArea or 0) * 10.76, 2)
+            total_area_sqft = sqm_to_sqft(prop.totalArea)
         else:
             total_area_sqft = round(prop.totalAreaSqFt or 0, 2)
-            total_area_m = round((prop.totalAreaSqFt or 0) * 0.092937, 2)
+            total_area_m = sqft_to_sqm(prop.totalAreaSqFt)
         # Use sqft for slabbed area taxes (301-700 etc. are in sqft)
         total_area = total_area_sqft
         # Calculate totalHouseTax as the sum of all houseTax in constructions (excluding 'खाली जागा')
@@ -850,10 +851,10 @@ def get_property_records_by_village(
         construction_area_sum = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
         if construction_unit_disp == 'sqm':
             total_construction_area_meter = round(construction_area_sum, 2)
-            total_construction_area_foot = round(total_construction_area_meter / 0.092937, 2)
+            total_construction_area_foot = sqm_to_sqft(total_construction_area_meter)
         else:
             total_construction_area_foot = round(construction_area_sum, 2)
-            total_construction_area_meter = round(total_construction_area_foot * 0.092937, 2)
+            total_construction_area_meter = sqft_to_sqm(total_construction_area_foot)
         year_from = datetime.now().year
         year_to = year_from + 3
         response = {
@@ -1273,10 +1274,10 @@ def get_property_records_by_gram_panchayat(
             unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
             if unit == 'sqm':
                 total_area_m = round(prop.totalArea or 0, 2)
-                total_area_sqft = round((prop.totalArea or 0) * 10.76, 2)
+                total_area_sqft = sqm_to_sqft(prop.totalArea)
             else:
                 total_area_sqft = round(prop.totalAreaSqFt or 0, 2)
-                total_area_m = round((prop.totalAreaSqFt or 0) * 0.092937, 2)
+                total_area_m = sqft_to_sqm(prop.totalAreaSqFt)
             # Use sqft for slabbed area taxes (301-700 etc. are in sqft)
             total_area = total_area_sqft
             total_house_tax = sum([
@@ -1295,10 +1296,10 @@ def get_property_records_by_gram_panchayat(
             construction_area_sum = sum([(c.length or 0) * (c.width or 0) for c in prop.constructions if not c.construction_type.name.strip().startswith("खाली जागा")])
             if construction_unit_disp == 'sqm':
                 total_construction_area_meter = round(construction_area_sum, 2)
-                total_construction_area_foot = round(total_construction_area_meter / 0.092937, 2)
+                total_construction_area_foot = sqm_to_sqft(total_construction_area_meter)
             else:
                 total_construction_area_foot = round(construction_area_sum, 2)
-                total_construction_area_meter = round(total_construction_area_foot * 0.092937, 2)
+                total_construction_area_meter = sqft_to_sqm(total_construction_area_foot)
             year_from = datetime.now().year
             year_to = year_from + 3
             todays_date = date.today().strftime("%d-%m-%Y")
