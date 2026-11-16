@@ -1390,12 +1390,27 @@ async def blankPrint(request: Request):
         template = env.get_template('singlePrint1.html')
 
         base_url = str(request.base_url).rstrip('/')
+
+        # कोरा फॉर्म - गाव/तालुका निवडले नसले तरी उघडला पाहिजे; जे id नाही त्याचे नाव रिकामे ठेवा.
+        class _NoResp:
+            status_code = 404
+            def json(self):
+                return {}
+
+        async def _get(client, path, ident):
+            if ident in (None, "", "null", "undefined"):
+                return _NoResp()
+            try:
+                return await client.get(f'{base_url}{path}{ident}')
+            except Exception:
+                return _NoResp()
+
         async with httpx.AsyncClient() as client:
-            district_resp = await client.get(f'{base_url}/location/districts/{district_id}')
-            taluka_resp = await client.get(f'{base_url}/location/talukas/{taluka_id}')
-            gp_resp = await client.get(f'{base_url}/location/gram-panchayats/{gram_panchayat_id}')
-            village_resp = await client.get(f'{base_url}/namuna8/village/{villageID}')
-            checklist_resp = await client.get(f'{base_url}/namuna8/settings/checklist/get/{gram_panchayat_id}')
+            district_resp = await _get(client, '/location/districts/', district_id)
+            taluka_resp = await _get(client, '/location/talukas/', taluka_id)
+            gp_resp = await _get(client, '/location/gram-panchayats/', gram_panchayat_id)
+            village_resp = await _get(client, '/namuna8/village/', villageID)
+            checklist_resp = await _get(client, '/namuna8/settings/checklist/get/', gram_panchayat_id)
 
         checklist_fields = {}
         if checklist_resp.status_code == 200:
@@ -1441,22 +1456,19 @@ async def blankPrint(request: Request):
             "dwarPurv": False, "dwarPashchim": False, "dwarUttar": False, "dwarDakshin": False, "dwarNaav": "",
             "khaliJaga": [], "constructionType": [],
             "waterFacility1": "", "waterFacility2": "", "toilet": "", "house": "",
-            "totalCapitalValue": 0, "totalHouseTax": 0,
+            # कोरा फॉर्म: रकमा 0 न दाखवता रिकाम्या (हाताने भरण्यासाठी)
+            "totalCapitalValue": "", "totalHouseTax": "",
             "totalconstructionareainfoot": "", "totalconstructionareainmeter": "",
             "housingUnit": "",
-            "lightingTax": 0, "healthTax": 0, "waterTax": 0, "cleaningTax": 0, "toiletTax": 0,
-            "sapanikar": 0, "vpanikar": 0, "totaltax": 0,
+            "lightingTax": "", "healthTax": "", "waterTax": "", "cleaningTax": "", "toiletTax": "",
+            "sapanikar": "", "vpanikar": "", "totaltax": "",
             "userId": [], "villageId": str(villageID) if villageID else "",
             "creationAt": None, "updationAt": None, "remarks": ""
         }
         data.update(checklist_fields)
-
-        # Generate a QR code so the layout matches the filled form (nothing meaningful
-        # to encode yet since there's no property data), reusing the same static file
-        # location single_print already writes to.
-        QRdata = {"srNO": "", "TotalArea": "", "Construction": "", "OpenSpace": "", "TotalTax": ""}
-        QRCodeGeneration.createQRcode(QRdata)
-        data["QRcodeURL"] = f"{base_url}/reports/qrcode.png?ts={int(datetime.now().timestamp())}"
+        # singlePrint1.html मध्ये blank=True असताना 0 / x / - / एकूण अशी स्थिर अक्षरे लपतात.
+        # मालमत्ता QR बॉक्स रिकामा (मालमत्ता नसताना QR अर्थहीन).
+        data["blank"] = True
 
         rendered_html = template.render(data)
 
