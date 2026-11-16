@@ -259,19 +259,32 @@
 
                     <!-- Center Section -->
                     <div style="flex: 1;">
-                        <div style="height: 120px; border-bottom: 1px solid #666; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 5px;">
+                        {# बांधकाम चौकट: उंची (120px) तेवढीच - पान एकच राहावे. 2 पेक्षा जास्त बांधकाम असल्यास प्रत्येक बांधकाम एका छोट्या ओळीत व लहान अक्षरात;
+                           तरीही बसत नसल्यास खालील n8FitBandhkam() अक्षर आणखी लहान करते / दोन रकान्यांत मांडते - "खुली जागा" वर कधीच येत नाही. #}
+                        {% set n8b = namespace(n=0) %}
+                        {% for item in constructionType or [] %}{% if item.length and item.width and not (item.type or '').strip().startswith('खाली जागा') %}{% set n8b.n = n8b.n + 1 %}{% endif %}{% endfor %}
+                        <div class="n8-bandhkam" style="height: 120px; overflow: hidden; border-bottom: 1px solid #666; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 5px;">
+                            <div class="n8-bandhkam-in{% if n8b.n > 2 %} n8-compact{% endif %}" style="width: 0; min-width: 100%; text-align: center;{% if n8b.n > 2 %} font-size: 12px; line-height: 1.25;{% endif %}">
                                 बांधकाम <br>
-
-                                {% for item in constructionType %}
+                                {% if n8b.n > 2 %}<div class="n8-rows">{% endif %}
+                                {% for item in constructionType or [] %}
                                     {% if item.length and item.width and not (item.type or '').strip().startswith('खाली जागा') %}
-                                        {% if constructionAreaUnit == 'sqm' %}
-                                            {{ item.length }} x {{ item.width }} मी. = {{ item.areaSqm }} चौ.मी. <span style="font-size: 11px;">({{ item.areaSqft|round_sqft }} चौ.फु.)</span><br>
+                                        {% if n8b.n > 2 %}
+                                            {% if constructionAreaUnit == 'sqm' %}
+                                                <div class="n8-row" style="white-space: nowrap;">{{ (item.length|string)[:-2] if (item.length|string).endswith('.0') else (item.length|string) }}x{{ (item.width|string)[:-2] if (item.width|string).endswith('.0') else (item.width|string) }} = {{ item.areaSqm }} चौ.मी. ({{ item.areaSqft|round_sqft }} चौ.फु.)</div>
+                                            {% else %}
+                                                <div class="n8-row" style="white-space: nowrap;">{{ (item.length|string)[:-2] if (item.length|string).endswith('.0') else (item.length|string) }}x{{ (item.width|string)[:-2] if (item.width|string).endswith('.0') else (item.width|string) }} = {{ item.areaSqft|round_sqft }} चौ.फु. ({{ item.areaSqm }} चौ.मी.)</div>
+                                            {% endif %}
+                                        {% elif constructionAreaUnit == 'sqm' %}
+                                            {{ item.length }} x {{ item.width }} मी. = {{ item.areaSqm }} चौ.मी. <span style="font-size: 0.8em;">({{ item.areaSqft|round_sqft }} चौ.फु.)</span><br>
                                         {% else %}
-                                            {{ item.length }} x {{ item.width }} फु. = {{ item.areaSqft|round_sqft }} चौ.फु. <span style="font-size: 11px;">({{ item.areaSqm }} चौ.मी.)</span><br>
+                                            {{ item.length }} x {{ item.width }} फु. = {{ item.areaSqft|round_sqft }} चौ.फु. <span style="font-size: 0.8em;">({{ item.areaSqm }} चौ.मी.)</span><br>
                                         {% endif %}
                                     {% endif %}
                                 {% endfor %}
+                                {% if n8b.n > 2 %}</div>{% endif %}
                             </div>
+                        </div>
                         <div style="height: 32px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 5px;">
                             खुली जागा <br>
                             {% if khaliJaga and khaliJaga|length > 0 %}
@@ -373,4 +386,37 @@
     </tr>
 </table>
 </div>
+<script>
+/* नमुना-8 नकाशा चौकट: बांधकामाचा मजकूर चौकटीबाहेर / "खुली जागा" वर जाऊ नये. चौकटीचा आकार बदलत नाही -
+   फक्त अक्षर लहान होते (किमान 6px); खूप ओळी असल्यास दोन रकान्यांत मांडून जे मोठे अक्षर बसेल ते ठेवते. */
+function n8FitBandhkam() {
+    document.querySelectorAll('.n8-bandhkam').forEach(function (box) {
+        var inner = box.querySelector('.n8-bandhkam-in');
+        if (!inner) return;
+        var rows = inner.querySelector('.n8-rows');
+        function fits() { return box.scrollHeight <= box.clientHeight + 1 && box.scrollWidth <= box.clientWidth + 1; }
+        function shrink(start) {
+            var fs = start;
+            inner.style.fontSize = fs + 'px';
+            while (!fits() && fs > 6) { fs -= 0.5; inner.style.fontSize = fs + 'px'; }
+            return fs;
+        }
+        if (!inner.getAttribute('data-fs0')) inner.setAttribute('data-fs0', parseFloat(getComputedStyle(inner).fontSize) || 13);
+        var start = parseFloat(inner.getAttribute('data-fs0'));
+        inner.style.fontSize = start + 'px';
+        if (rows) rows.style.cssText = '';
+        if (fits()) return;
+        var oneCol = shrink(start);
+        if (rows && rows.children.length > 4) {
+            rows.style.cssText = 'display: grid; grid-template-columns: auto auto; column-gap: 8px; justify-content: center;';
+            var twoCol = shrink(start);
+            if (!(twoCol > oneCol && fits())) { rows.style.cssText = ''; shrink(oneCol); }
+        }
+    });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', n8FitBandhkam); else n8FitBandhkam();
+window.addEventListener('load', n8FitBandhkam);
+window.addEventListener('beforeprint', n8FitBandhkam);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(n8FitBandhkam);
+</script>
 <script src="/report_assets/report_share.js"></script>
