@@ -6,6 +6,7 @@ from namuna8 import namuna8_model as models
 from namuna8 import namuna8_schemas as schemas
 from database import get_db
 from namuna8.calculations.khali_jaga import khali_jaga
+from namuna8.calculations.diva_arogya import diva_arogya_applies, khali_jaga_diva_arogya_allowed, has_real_construction
 from Utility.area_units import sqft_to_sqm, sqm_to_sqft
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
@@ -282,6 +283,8 @@ def get_property_record(
     settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
     water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
     water_slab_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
+    # दिवा/आरोग्य - "कर लागू नाही" / "काढा" / Master "खाली जागेवर दिवा, आरोग्य" (बांधकाम नसलेली मालमत्ता)
+    diva_arogya_on = diva_arogya_applies(prop, khali_jaga_diva_arogya_allowed(db, gram_panchayat_id))
     def get_tax_by_area(area, field):
         if not settings:
             return 0
@@ -417,8 +420,8 @@ def get_property_record(
         "totalconstructionareainfoot": total_construction_area_foot,
         "totalconstructionareainmeter": total_construction_area_meter,
         "housingUnit": prop.areaUnit,
-        "lightingTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0),
-        "healthTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'health') if not prop.divaArogyaKar else 0),
+        "lightingTax": get_tax_by_area(total_area, 'light') if diva_arogya_on else 0,
+        "healthTax": get_tax_by_area(total_area, 'health') if diva_arogya_on else 0,
         "waterTax": 0,
         "cleaningTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if prop.safaiKar else 0),
         "toiletTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'bathroom') if prop.shauchalayKar else 0),
@@ -557,6 +560,8 @@ def get_property_records_by_village(
     water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
     water_slab_settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
     rounding_mode = get_tax_rounding_mode(db, gram_panchayat_id)
+    # Master "खाली जागेवर दिवा, आरोग्य" - एकदाच
+    khali_diva_allowed = khali_jaga_diva_arogya_allowed(db, gram_panchayat_id)
     from location_management import helpers
     gp_image_path = helpers.get_gram_panchayat_image_path(db, gram_panchayat_id)
     # GP image फाईल आहे का ते एकदाच तपासतो (आधी loop मध्ये प्रत्येक मालमत्तेला तपासत होतो)
@@ -798,8 +803,8 @@ def get_property_records_by_village(
             "housingUnit": prop.areaUnit,
             "areaUnit": unit,
             "constructionAreaUnit": construction_unit_disp,
-            "lightingTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0),
-            "healthTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'health') if not prop.divaArogyaKar else 0),
+            "lightingTax": get_tax_by_area(total_area, 'light') if diva_arogya_applies(prop, khali_diva_allowed) else 0,
+            "healthTax": get_tax_by_area(total_area, 'health') if diva_arogya_applies(prop, khali_diva_allowed) else 0,
             "waterTax": 0,
             "cleaningTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if prop.safaiKar else 0),
             "toiletTax": 0 if prop.karLaguNahi else (get_tax_by_area(total_area, 'bathroom') if prop.shauchalayKar else 0),
@@ -966,6 +971,14 @@ def get_property_records_by_gram_panchayat(
         if key not in _depreciation_rate_cache:
             _depreciation_rate_cache[key] = calculate_depreciation_rate(year, type_name, ref_year)
         return _depreciation_rate_cache[key]
+
+    # Master "खाली जागेवर दिवा, आरोग्य" - प्रत्येक गा.पं. साठी एकदाच
+    _khali_diva_cache = {}
+
+    def _khali_diva_allowed(prop_gram_panchayat_id):
+        if prop_gram_panchayat_id not in _khali_diva_cache:
+            _khali_diva_cache[prop_gram_panchayat_id] = khali_jaga_diva_arogya_allowed(db, prop_gram_panchayat_id)
+        return _khali_diva_cache[prop_gram_panchayat_id]
 
     # round_tax_amount सारखाच नियम, फक्त राउंडिंग मोड प्रत्येक गा.पं. साठी एकदाच आणतो.
     _rounding_mode_cache = {}
@@ -1192,8 +1205,8 @@ def get_property_records_by_gram_panchayat(
                 "housingUnit": prop.areaUnit,
                 "areaUnit": unit,
                 "constructionAreaUnit": construction_unit_disp,
-                "lightingTax": get_tax_by_area(total_area, 'light') if not prop.divaArogyaKar else 0,
-                "healthTax": get_tax_by_area(total_area, 'health') if not prop.divaArogyaKar else 0,
+                "lightingTax": get_tax_by_area(total_area, 'light') if (not prop.divaArogyaKar and (_khali_diva_allowed(prop.gram_panchayat_id) or has_real_construction(prop.constructions))) else 0,
+                "healthTax": get_tax_by_area(total_area, 'health') if (not prop.divaArogyaKar and (_khali_diva_allowed(prop.gram_panchayat_id) or has_real_construction(prop.constructions))) else 0,
                 "waterTax": 0,
                 "cleaningTax": get_tax_by_area(total_area, 'cleaning') if prop.safaiKar else 0,
                 "toiletTax": get_tax_by_area(total_area, 'bathroom') if prop.shauchalayKar else 0,
