@@ -420,8 +420,9 @@
       };
     </script>
     <div id="mainContent">
-      {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर',
-      'सफाई कर', 'नोटीस फी', 'वारंट फी'] %} {% set tax_names = tax_names if
+      {# API (visheshpani) क्रम: घर, दिवा, आरोग्य, सा.पाणी, वि.पाणी, सफाई, नोटीस, वारंट #}
+      {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'सा.पाणीकर',
+      'वि.पाणीकर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %} {% set tax_names = tax_names if
       tax_names is defined else default_tax_names %} {% for i in range(0,
       data|length, 2) %}
       <div class="report-grid">
@@ -484,7 +485,7 @@
                 <td></td>
                 <td></td>
               </tr>
-              {% set ns = namespace(deduction=0) %} {% for tax in tax_names %}
+              {% set ns = namespace(deduction=0) %} {% set totals = namespace(magil=0, dand=0, current=0, ekun=0) %} {% for tax in tax_names %}
               <tr>
                 <td>{{ tax }}</td>
                 <td class="right">
@@ -512,6 +513,7 @@
                   else total_value }}
                 </td>
 
+                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
                 {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
                 ns.deduction = ns.deduction + total_value %} {% elif (tax ==
                 'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
@@ -519,10 +521,11 @@
               </tr>
               {% endfor %}
               <tr class="bold">
-                <td style="white-space: nowrap">दिनांक : {{ data[i].currentDate or '' }}</td>
-                <td class="right" colspan="4">
-                  एकूण : {{ (data[i].totalTaxwithoutsafaitoilet or 0) }}
-                </td>
+                <td style="white-space: nowrap">एकूण (दिनांक : {{ ((data[i].currentDate or '') if showN9Date != 'false' else '') }})</td>
+                <td class="right">{{ totals.magil }}</td>
+                <td class="right">{{ totals.dand }}</td>
+                <td class="right">{{ totals.current }}</td>
+                <td class="right">{{ totals.ekun }}</td>
               </tr>
             </table>
             {% set kmap = (data[i]['कराचे नाव'] if data[i]['कराचे नाव'] is
@@ -617,7 +620,7 @@
                 <td></td>
                 <td></td>
               </tr>
-              {% set ns = namespace(deduction=0) %} {% for tax in tax_names %}
+              {% set ns = namespace(deduction=0) %} {% set totals = namespace(magil=0, dand=0, current=0, ekun=0) %} {% for tax in tax_names %}
               <tr>
                 <td>{{ tax }}</td>
                 <td class="right">
@@ -645,6 +648,7 @@
                   else total_value }}
                 </td>
 
+                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
                 {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
                 ns.deduction = ns.deduction + total_value %} {% elif (tax ==
                 'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
@@ -652,10 +656,11 @@
               </tr>
               {% endfor %}
               <tr class="bold">
-                <td style="white-space: nowrap">दिनांक : {{ data[i].currentDate or '' }}</td>
-                <td class="right" colspan="4">
-                  एकूण : {{ (data[i].totalTaxwithoutsafaitoilet or 0) }}
-                </td>
+                <td style="white-space: nowrap">एकूण (दिनांक : {{ ((data[i].currentDate or '') if showN9Date != 'false' else '') }})</td>
+                <td class="right">{{ totals.magil }}</td>
+                <td class="right">{{ totals.dand }}</td>
+                <td class="right">{{ totals.current }}</td>
+                <td class="right">{{ totals.ekun }}</td>
               </tr>
             </table>
             {% set kmap2 = (data[i]['कराचे नाव'] if data[i]['कराचे नाव'] is
@@ -752,7 +757,7 @@
                 <td></td>
                 <td></td>
               </tr>
-              {% set ns = namespace(deduction=0) %} {% for tax in tax_names %}
+              {% set ns = namespace(deduction=0) %} {% set totals = namespace(magil=0, dand=0, current=0, ekun=0) %} {% for tax in tax_names %}
               <tr>
                 <td>{{ tax }}</td>
                 <td class="right">
@@ -780,6 +785,7 @@
                   else total_value }}
                 </td>
 
+                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
                 {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
                 ns.deduction = ns.deduction + total_value %} {% elif (tax ==
                 'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
@@ -787,10 +793,11 @@
               </tr>
               {% endfor %}
               <tr class="bold">
-                <td style="white-space: nowrap">दिनांक : {{ data[i+1].currentDate or '' }}</td>
-                <td class="right" colspan="4">
-                  एकूण : {{ (data[i+1].totalTaxwithoutsafaitoilet or 0) }}
-                </td>
+                <td style="white-space: nowrap">एकूण (दिनांक : {{ ((data[i+1].currentDate or '') if showN9Date != 'false' else '') }})</td>
+                <td class="right">{{ totals.magil }}</td>
+                <td class="right">{{ totals.dand }}</td>
+                <td class="right">{{ totals.current }}</td>
+                <td class="right">{{ totals.ekun }}</td>
               </tr>
             </table>
             {% set kmap3 = (data[i+1]['कराचे नाव'] if data[i+1]['कराचे नाव'] is
@@ -887,7 +894,7 @@
                 <td></td>
                 <td></td>
               </tr>
-              {% set ns = namespace(deduction=0) %} {% for tax in tax_names %}
+              {% set ns = namespace(deduction=0) %} {% set totals = namespace(magil=0, dand=0, current=0, ekun=0) %} {% for tax in tax_names %}
               <tr>
                 <td>{{ tax }}</td>
                 <td class="right">
@@ -915,6 +922,7 @@
                   else total_value }}
                 </td>
 
+                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
                 {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
                 ns.deduction = ns.deduction + total_value %} {% elif (tax ==
                 'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
@@ -922,10 +930,11 @@
               </tr>
               {% endfor %}
               <tr class="bold">
-                <td style="white-space: nowrap">दिनांक : {{ data[i+1].currentDate or '' }}</td>
-                <td class="right" colspan="4">
-                  एकूण : {{ (data[i+1].totalTaxwithoutvipanitoilet or 0) }}
-                </td>
+                <td style="white-space: nowrap">एकूण (दिनांक : {{ ((data[i+1].currentDate or '') if showN9Date != 'false' else '') }})</td>
+                <td class="right">{{ totals.magil }}</td>
+                <td class="right">{{ totals.dand }}</td>
+                <td class="right">{{ totals.current }}</td>
+                <td class="right">{{ totals.ekun }}</td>
               </tr>
             </table>
             <div style="font-size: 10px; margin-top: 3px; padding: 0 3px; line-height: 1.4">

@@ -237,9 +237,13 @@
                 <td></td>
                 <td></td>
             </tr>
-            {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %}
+            {# API (visheshpani) क्रम: घर, दिवा, आरोग्य, सा.पाणी, वि.पाणी, सफाई, नोटीस, वारंट #}
+            {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'सा.पाणीकर', 'वि.पाणीकर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %}
             {% set tax_names = tax_names if tax_names is defined else default_tax_names %}
             {% set ns = namespace(deduction=0) %}
+            {# एकूण ओळ - प्रत्येक रकान्याची बेरीज, जशी ओळींत दिसते तशीच (नोटीस/वारंट फीसह) -
+               त्यामुळे एकूण = आधीचा "एकूण" + सफाई कर (regular ९क सारखी ओळ, क्लायंट Nov-2026). #}
+            {% set totals = namespace(magil=0, dand=0, current=0, ekun=0) %}
 
 {% for tax in tax_names %}
 <tr>
@@ -252,6 +256,14 @@
 
     <td class="right">{{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value }}</td>
     <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
+    {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}
+        {% set totals.magil = totals.magil + (record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}
+        {% set totals.dand = totals.dand + (record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}
+        {% set totals.current = totals.current + current_value %}
+        {% set totals.ekun = totals.ekun + total_value %}
+    {% else %}
+        {% set totals.ekun = totals.ekun + current_value %}
+    {% endif %}
 
     {# Accumulate deduction amount if condition matched #}
     {% if (tax == 'नोटीस फी' and noticeFee == 'false') %}
@@ -263,10 +275,14 @@
 {% endfor %}
 
 <tr class="bold">
-    <td>दिनांक : {{ record.currentDate or '' }}</td>
-    <td class="right" colspan="4">
-        एकूण : {{ (record.totalTaxwithoutsafaitoilet or 0) }}
-    </td>
+    <td>एकूण</td>
+    <td class="right">{{ totals.magil }}</td>
+    <td class="right">{{ totals.dand }}</td>
+    <td class="right">{{ totals.current }}</td>
+    <td class="right">{{ totals.ekun }}</td>
+</tr>
+<tr class="bold">
+    <td colspan="5" style="border:none;">दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') }}</td>
 </tr>
         </table>
         <div style="font-size: 12px; margin-top: 3px; padding: 0 4px; line-height: 1.3;">

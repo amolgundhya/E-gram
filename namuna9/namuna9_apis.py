@@ -1704,14 +1704,17 @@ def get_property_records_by_village_visheshpani(
     from datetime import datetime
     for r in table_rows:
         # Build arrears/current/total same as regular
-        thakit = {f"Thakit{i}": 0 for i in range(1, 8)}
+        # विशेष पाणी ९क/९क२ - सफाई कर रकाना regular ९क प्रमाणेच (क्लायंट Nov-2026): सफाई 6 व्या
+        # जागी, नोटीस/वारंट फी एका जागेने पुढे (7, 8). हा API फक्त हेच दोन प्रिंट वापरतात.
+        thakit = {f"Thakit{i}": 0 for i in range(1, 9)}
         thakit["Thakit1"] = r.get('shaktiGhar', 0)
         thakit["Thakit2"] = r.get('shaktiDiva', 0)
         thakit["Thakit3"] = r.get('shaktiAarogyaKar', 0)
         thakit["Thakit4"] = r.get('shaktiSapanikar', 0)
         thakit["Thakit5"] = r.get('shaktiVpanikar', 0)
-        thakit["Thakit6"] = r.get('noticeFee', 0)
-        thakit["Thakit7"] = r.get('warrantFee', 0)
+        thakit["Thakit6"] = r.get('shaktiCleaningTax', 0)
+        thakit["Thakit7"] = r.get('noticeFee', 0)
+        thakit["Thakit8"] = r.get('warrantFee', 0)
 
         current = {
             "current1": r.get('chaluGhar', 0),
@@ -1719,8 +1722,9 @@ def get_property_records_by_village_visheshpani(
             "current3": r.get('chaluAarogyaKar', 0),
             "current4": r.get('chaluSapanikar', 0),
             "current5": r.get('chaluVpanikar', 0),
-            "current6": r.get('noticeFee', 0),
-            "current7": r.get('warrantFee', 0)
+            "current6": r.get('chaluCleaningTax', 0),
+            "current7": r.get('noticeFee', 0),
+            "current8": r.get('warrantFee', 0)
         }
         total = {
             "total1": round(r.get('ekunGhar', 0)),
@@ -1728,8 +1732,9 @@ def get_property_records_by_village_visheshpani(
             "total3": round(r.get('ekunAarogyaKar', 0)),
             "total4": round(r.get('ekunSapanikar', 0)),
             "total5": round(r.get('ekunVpanikar', 0)),
-            "total6": round(r.get('noticeFee', 0)),
-            "total7": round(r.get('warrantFee', 0))
+            "total6": round(r.get('ekunCleaningTax', 0)),
+            "total7": round(r.get('noticeFee', 0)),
+            "total8": round(r.get('warrantFee', 0))
         }
 
         # Resolve gram panchayat and occupant like regular
@@ -1781,7 +1786,7 @@ def get_property_records_by_village_visheshpani(
             "propertyQrUrl": property_qr_url,
             "houseNumber": r.get('malmattaKramank', ''),
             "recoverableAmounts": {
-                "arrears": {"Thakit": thakit, "Dand": {"Dand1": r.get('dand', 0), "Dand2": 0, "Dand3": 0, "Dand4": 0, "Dand5": 0, "Dand6": 0, "Dand7": 0}},
+                "arrears": {"Thakit": thakit, "Dand": {"Dand1": r.get('dand', 0), "Dand2": 0, "Dand3": 0, "Dand4": 0, "Dand5": 0, "Dand6": 0, "Dand7": 0, "Dand8": 0}},
                 "current": current,
                 "total": total
             },
