@@ -228,7 +228,9 @@ def _run(db, district_id, taluka_id, gram_panchayat, dry_run, include_namuna9=Fa
         })
 
     # नमुना-9 चालू वर्ष - फक्त मोजणी (पूर्वावलोकनासाठी नेहमी; लागू फक्त include_namuna9 ने).
-    n9_plans = current_year_sync.plan_properties(db, properties, current_year_sync.demand_context(db, gram_panchayat_id))
+    # नमुना-9 घरपट्टी बांधकाम रो वरचा जतन केलेला कर वापरते - रो अजून बदलले नाहीत, म्हणून नवे कर override ने.
+    n9_plans = current_year_sync.plan_properties(db, properties, current_year_sync.demand_context(db, gram_panchayat_id),
+                                                 tax_override={c.id: new_tax for c, _cap, new_tax in plan})
     n9_summary = _namuna9_summary(n9_plans, prop_rows)
     n9_summary["included"] = bool(include_namuna9)
     n9_apply = bool(include_namuna9) and n9_summary["rows_changed"] > 0

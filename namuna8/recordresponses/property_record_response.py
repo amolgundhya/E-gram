@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 from namuna8 import namuna8_model as models
 from namuna8 import namuna8_schemas as schemas
 from database import get_db
+from namuna8.calculations.khali_jaga import khali_jaga
 from Utility.area_units import sqft_to_sqm, sqm_to_sqft
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
@@ -197,44 +198,12 @@ def get_property_record(
         # घोळ होतो (उदा. sqft plot: 2500-1075.84=1424.16 थेट ऐवजी 232.34-99.99=132.35,
         # नंतर *10.76=1424.09 अशी चुकीची किंमत येते). बांधकाम लांबी/रुंदी constructionAreaUnit
         # मध्ये असू शकतात, जे areaUnit पेक्षा वेगळं असू शकतं - तेव्हाच एकदा रूपांतर करतो.
+        # खाली जागा = एकूण - फक्त तळमजला; ÷10.764, चौ.मी. 2 दशांश - नमुना-9 सुद्धा हेच shared फंक्शन वापरतो.
         unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-        construction_unit = getattr(prop, 'constructionAreaUnit', None) or unit
-        construction_sum = sum((c.length or 0) * (c.width or 0) for c in prop.constructions
-                                if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला"))
-        total_area_native = (prop.totalArea or 0) if unit == 'sqm' else (prop.totalAreaSqFt or 0)
-        if construction_unit == unit:
-            used_area_native = construction_sum
-        else:
-            used_area_native = construction_sum * 10.76 if unit == 'sqft' else construction_sum / 10.76
-        khali_area_native = max(total_area_native - used_area_native, 0)
-        if unit == 'sqm':
-            khali_area_m = round(khali_area_native, 2)
-            khali_area = round(khali_area_native * 10.76, 2)
-        else:
-            khali_area = round(khali_area_native, 2)
-            khali_area_m = round(khali_area_native / 10.76, 2)
-        # बांधकामाचे प्रकार तक्त्यात स्वतः "खाली जागा" प्रकाराची रो टाकली असेल (उदा. एकूण
-        # जागा कधीच भरली नाही, फक्त खाली जागाच नोंदवली) तर ती रो वरच्या वजाबाकीत
-        # "वापरलेली जागा" म्हणून आधीच धरलेली आहे (टॅक्स दुप्पट होऊ नये म्हणून capital_value/
-        # house_tax खालीच वरच्या khali_area/khali_area_m वरूनच काढतो, बदलत नाही) - पण
-        # प्रदर्शनासाठी (एकूण चौ.फु./मी., डायग्राम, entry screen) ती रो स्वतःच खुली जागा आहे,
-        # म्हणून वेगळ्या display-only मूल्यात तिचं क्षेत्रफळ मोजून जोडतो.
-        khali_type_sum_construction_unit = sum(
-            (c.length or 0) * (c.width or 0) for c in prop.constructions
-            if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला")
-            and (getattr(c.construction_type, 'name', None) or "").strip().startswith("खाली जागा")
-        )
-        if construction_unit == unit:
-            khali_type_sum_native = khali_type_sum_construction_unit
-        else:
-            khali_type_sum_native = khali_type_sum_construction_unit * 10.76 if unit == 'sqft' else khali_type_sum_construction_unit / 10.76
-        khali_area_display_native = khali_area_native + khali_type_sum_native
-        if unit == 'sqm':
-            khali_area_m_display = round(khali_area_display_native, 2)
-            khali_area_display = round(khali_area_display_native * 10.76, 2)
-        else:
-            khali_area_display = round(khali_area_display_native, 2)
-            khali_area_m_display = round(khali_area_display_native / 10.76, 2)
+        _kj = khali_jaga(prop, prop.constructions, db.query(models.ConstructionType).filter(models.ConstructionType.name == prop.vacantLandType).first(),
+                         lambda v: round_tax_amount(v, db, getattr(prop, 'gram_panchayat_id', None)))
+        khali_area, khali_area_m = _kj["khali_sqft"], _kj["khali_sqm"]
+        khali_area_display, khali_area_m_display = _kj["display_sqft"], _kj["display_sqm"]
         # Find the bandhmastache_dar for vacantLandType construction type
         khali_jaga_rate = 0
         vacant_construction_type = None
@@ -253,39 +222,8 @@ def get_property_record(
         # Get construction type for khali jaga
         khali_construction_type = db.query(models.ConstructionType).filter(models.ConstructionType.name == prop.vacantLandType).first()
         weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
-        capital_value = 0
-        house_tax = 0
-        if khali_area > 0 and khali_construction_type:
-            # Get user formula preference - same as Namuna8
-            userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-
-            if userFormulaPreference:
-                formula1 = userFormulaPreference.capitalFormula1
-                formula2 = userFormulaPreference.capitalFormula2
-            else:
-                formula1 = None
-                formula2 = None
-
-            # Calculate area in meters - same as Namuna8 (khali_area_m आधीच एकदाच बरोबर
-            # रूपांतरित केलेलं आहे, इथे khali_area मधून परत रूपांतर करायचं नाही)
-            AreaInMeter = khali_area_m
-            AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-            ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
-            depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
-
-            # Get usage weightage factor - same as Namuna8
-            usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
-
-            # Calculate capital value - exact same logic as Namuna8. भांडवली मूल्य
-            # राउंड करत नाही - फक्त 2 दशांश स्थळांपर्यंत ठेवतो; फक्त कर रक्कम राउंड होते.
-            if formula1:
-                capital_value = (khali_area_m * AnnualLandValueRate)
-            else:
-                capital_value = AreaInMeter * AnnualLandValueRate
-            capital_value = round(capital_value, 2)
-
-            # Calculate house tax - exact same logic as Namuna8
-            house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(prop, 'gram_panchayat_id', None))
+        capital_value = _kj["capital_value"]
+        house_tax = _kj["house_tax"]
 
         # Always emit a khaliJaga entry when vacantLandType is set, even if the
         # computed area is exactly 0 (e.g. construction covers the whole plot),
@@ -702,43 +640,12 @@ def get_property_records_by_village(
             # गोल केलेल्या मूल्यांमधून मीटरमध्ये वजाबाकी करून मग परत फुटात रूपांतरित केलं की
             # घोळ होतो. बांधकाम लांबी/रुंदी constructionAreaUnit मध्ये असू शकतात, जे areaUnit
             # पेक्षा वेगळं असू शकतं - तेव्हाच एकदा रूपांतर करतो.
+            # खाली जागा = एकूण - फक्त तळमजला; ÷10.764, चौ.मी. 2 दशांश - नमुना-9 सुद्धा हेच shared फंक्शन वापरतो.
             unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-            construction_unit = getattr(prop, 'constructionAreaUnit', None) or unit
-            construction_sum = sum((c.length or 0) * (c.width or 0) for c in prop.constructions
-                                    if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला"))
-            total_area_native = (prop.totalArea or 0) if unit == 'sqm' else (prop.totalAreaSqFt or 0)
-            if construction_unit == unit:
-                used_area_native = construction_sum
-            else:
-                used_area_native = construction_sum * 10.76 if unit == 'sqft' else construction_sum / 10.76
-            khali_area_native = max(total_area_native - used_area_native, 0)
-            if unit == 'sqm':
-                khali_area_m = round(khali_area_native, 2)
-                khali_area = round(khali_area_native * 10.76, 2)
-            else:
-                khali_area = round(khali_area_native, 2)
-                khali_area_m = round(khali_area_native / 10.76, 2)
-            # बांधकामाचे प्रकार तक्त्यात स्वतः "खाली जागा" प्रकाराची रो टाकली असेल तर ती वरच्या
-            # वजाबाकीत आधीच "वापरलेली जागा" म्हणून धरलेली आहे (टॅक्स दुप्पट होऊ नये म्हणून
-            # capital_value/house_tax वरच्याच khali_area/khali_area_m वरून काढतो, बदलत नाही) -
-            # पण प्रदर्शनासाठी ती रो स्वतःच खुली जागा आहे, म्हणून वेगळ्या display-only
-            # मूल्यात तिचं क्षेत्रफळ मोजून जोडतो.
-            khali_type_sum_construction_unit = sum(
-                (c.length or 0) * (c.width or 0) for c in prop.constructions
-                if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला")
-                and (getattr(c.construction_type, 'name', None) or "").strip().startswith("खाली जागा")
-            )
-            if construction_unit == unit:
-                khali_type_sum_native = khali_type_sum_construction_unit
-            else:
-                khali_type_sum_native = khali_type_sum_construction_unit * 10.76 if unit == 'sqft' else khali_type_sum_construction_unit / 10.76
-            khali_area_display_native = khali_area_native + khali_type_sum_native
-            if unit == 'sqm':
-                khali_area_m_display = round(khali_area_display_native, 2)
-                khali_area_display = round(khali_area_display_native * 10.76, 2)
-            else:
-                khali_area_display = round(khali_area_display_native, 2)
-                khali_area_m_display = round(khali_area_display_native / 10.76, 2)
+            _kj = khali_jaga(prop, prop.constructions, _construction_type_by_exact_name(prop.vacantLandType),
+                             _round_tax)
+            khali_area, khali_area_m = _kj["khali_sqft"], _kj["khali_sqm"]
+            khali_area_display, khali_area_m_display = _kj["display_sqft"], _kj["display_sqm"]
             # Find the bandhmastache_dar for vacantLandType construction type
             khali_jaga_rate = 0
             vacant_construction_type = None
@@ -755,35 +662,8 @@ def get_property_records_by_village(
             # Calculate capital value and house tax for khali jaga using same logic as Namuna8
             # Get construction type for khali jaga (respect property vacantLandType)
             khali_construction_type = _construction_type_by_exact_name(prop.vacantLandType)
-            capital_value = 0
-            house_tax = 0
-            if khali_area > 0 and khali_construction_type:
-                # Get user formula preference - same as Namuna8
-                if general_setting:
-                    formula1 = general_setting.capitalFormula1
-                    formula2 = general_setting.capitalFormula2
-                else:
-                    formula1 = None
-                    formula2 = None
-
-                # Calculate area in meters - same as Namuna8
-                AreaInMeter = khali_area_m
-                AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
-                depreciationRate = _cached_depreciation_rate(datetime.now().year, khali_construction_type.name)
-
-                # Get usage weightage factor - same as Namuna8
-                usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
-
-                # Calculate capital value - exact same logic as Namuna8
-                if formula1:
-                    capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                else:
-                    capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
-                capital_value = round(capital_value, 2)
-
-                # Calculate house tax - exact same logic as Namuna8
-                house_tax = _round_tax((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value)
+            capital_value = _kj["capital_value"]
+            house_tax = _kj["house_tax"]
 
             # Always emit a khaliJaga entry when vacantLandType is set, even if the
             # computed area is exactly 0, so reports show "0" instead of omitting the row.
@@ -1125,43 +1005,12 @@ def get_property_records_by_gram_panchayat(
                 # गोल केलेल्या मूल्यांमधून मीटरमध्ये वजाबाकी करून मग परत फुटात रूपांतरित केलं की
                 # घोळ होतो. बांधकाम लांबी/रुंदी constructionAreaUnit मध्ये असू शकतात, जे areaUnit
                 # पेक्षा वेगळं असू शकतं - तेव्हाच एकदा रूपांतर करतो.
+                # खाली जागा = एकूण - फक्त तळमजला; ÷10.764, चौ.मी. 2 दशांश - नमुना-9 सुद्धा हेच shared फंक्शन वापरतो.
                 unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-                construction_unit = getattr(prop, 'constructionAreaUnit', None) or unit
-                construction_sum = sum((c.length or 0) * (c.width or 0) for c in prop.constructions
-                                        if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला"))
-                total_area_native = (prop.totalArea or 0) if unit == 'sqm' else (prop.totalAreaSqFt or 0)
-                if construction_unit == unit:
-                    used_area_native = construction_sum
-                else:
-                    used_area_native = construction_sum * 10.76 if unit == 'sqft' else construction_sum / 10.76
-                khali_area_native = max(total_area_native - used_area_native, 0)
-                if unit == 'sqm':
-                    khali_area_m = round(khali_area_native, 2)
-                    khali_area = round(khali_area_native * 10.76, 2)
-                else:
-                    khali_area = round(khali_area_native, 2)
-                    khali_area_m = round(khali_area_native / 10.76, 2)
-                # बांधकामाचे प्रकार तक्त्यात स्वतः "खाली जागा" प्रकाराची रो टाकली असेल तर ती वरच्या
-                # वजाबाकीत आधीच "वापरलेली जागा" म्हणून धरलेली आहे (टॅक्स दुप्पट होऊ नये म्हणून
-                # capital_value/house_tax वरच्याच khali_area/khali_area_m वरून काढतो, बदलत नाही) -
-                # पण प्रदर्शनासाठी ती रो स्वतःच खुली जागा आहे, म्हणून वेगळ्या display-only
-                # मूल्यात तिचं क्षेत्रफळ मोजून जोडतो.
-                khali_type_sum_construction_unit = sum(
-                    (c.length or 0) * (c.width or 0) for c in prop.constructions
-                    if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला")
-                    and (getattr(c.construction_type, 'name', None) or "").strip().startswith("खाली जागा")
-                )
-                if construction_unit == unit:
-                    khali_type_sum_native = khali_type_sum_construction_unit
-                else:
-                    khali_type_sum_native = khali_type_sum_construction_unit * 10.76 if unit == 'sqft' else khali_type_sum_construction_unit / 10.76
-                khali_area_display_native = khali_area_native + khali_type_sum_native
-                if unit == 'sqm':
-                    khali_area_m_display = round(khali_area_display_native, 2)
-                    khali_area_display = round(khali_area_display_native * 10.76, 2)
-                else:
-                    khali_area_display = round(khali_area_display_native, 2)
-                    khali_area_m_display = round(khali_area_display_native / 10.76, 2)
+                _kj = khali_jaga(prop, prop.constructions, _construction_type_by_exact_name(prop.vacantLandType),
+                                 lambda v: _round_tax(v, getattr(prop, 'gram_panchayat_id', None)))
+                khali_area, khali_area_m = _kj["khali_sqft"], _kj["khali_sqm"]
+                khali_area_display, khali_area_m_display = _kj["display_sqft"], _kj["display_sqm"]
                 khali_jaga_rate = 0
                 vacant_construction_type = None
 
@@ -1175,30 +1024,8 @@ def get_property_records_by_gram_panchayat(
                             khali_jaga_rate = getattr(similar_construction, 'bandhmastache_dar', 0)
 
                 khali_construction_type = _construction_type_by_exact_name(prop.vacantLandType)
-                capital_value = 0
-                house_tax = 0
-                if khali_area > 0 and khali_construction_type:
-                    if userFormulaPreference:
-                        formula1 = userFormulaPreference.capitalFormula1
-                        formula2 = userFormulaPreference.capitalFormula2
-                    else:
-                        formula1 = None
-                        formula2 = None
-
-                    AreaInMeter = khali_area_m
-                    AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                    ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
-                    depreciationRate = _cached_depreciation_rate(datetime.now().year, khali_construction_type.name)
-
-                    usageBasedBuildingWeightageFactor = weightage_map.get(prop.vacantLandType, 1)
-
-                    if formula1:
-                        capital_value = ((AreaInMeter * AnnualLandValueRate) + (AreaInMeter * ConstructionRateAsPerConstruction * depreciationRate)) * usageBasedBuildingWeightageFactor
-                    else:
-                        capital_value = AreaInMeter * AnnualLandValueRate * depreciationRate * usageBasedBuildingWeightageFactor
-                    capital_value = round(capital_value, 2)
-
-                    house_tax = _round_tax((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, getattr(prop, 'gram_panchayat_id', None))
+                capital_value = _kj["capital_value"]
+                house_tax = _kj["house_tax"]
 
                 # Always emit a khaliJaga entry when vacantLandType is set, even if the
                 # computed area is exactly 0, so reports show "0" instead of omitting the row.
