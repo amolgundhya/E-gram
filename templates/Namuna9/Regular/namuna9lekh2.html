@@ -374,10 +374,26 @@
           </td>
         </tr>
       </table>
+      {# मालमत्ता QR नेहमी; घर कर / पाणी कर QR फक्त Master (Bank Scanner) चालू असेल तर -
+         API तेव्हाच URL पाठवतो (९ क सारखेच). उजव्या बाजूला या ३ ओळींच्या उंचीतच. #}
+      {% set qrs = [] %}
+      {% if record.propertyQrUrl %}{% set _ = qrs.append((record.propertyQrUrl, 'मालमत्ता')) %}{% endif %}
+      {% if record.houseTaxQrUrl %}{% set _ = qrs.append((record.houseTaxQrUrl, 'घर कर')) %}{% endif %}
+      {% if record.waterTaxQrUrl %}{% set _ = qrs.append((record.waterTaxQrUrl, 'पाणी कर')) %}{% endif %}
       <table style="margin-top: 2px; width: 100%">
         <tr>
           <td class="bold" style="border: none">अनुक्रमांक : {{ record.anuKramank or '' }}</td>
           <td class="bold" style="border: none">मालमत्ता क्रमांक : {{ record.propertyNumber or '' }}</td>
+          {% if qrs %}
+          <td rowspan="3" style="border: none; width: 1%; white-space: nowrap; text-align: center; vertical-align: middle; padding: 0 2px;">
+            {% for qr_url, qr_label in qrs %}
+            <div style="display: inline-block; text-align: center; margin: 0 3px; vertical-align: top;">
+              <img src="{{ qr_url }}" style="width: 52px; height: 52px; object-fit: contain; display: block;" />
+              <div class="bold" style="font-size: 10px; line-height: 1.1;">{{ qr_label }}</div>
+            </div>
+            {% endfor %}
+          </td>
+          {% endif %}
         </tr>
         <tr>
           <td colspan="2" class="bold" style="border: none">
