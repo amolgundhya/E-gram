@@ -1654,6 +1654,10 @@ def get_property_records_by_village_visheshpani(
     district_id: int = Query(..., description="District ID"),
     taluka_id: int = Query(..., description="Taluka ID"),
     gram_panchayat_id: int = Query(..., description="Gram Panchayat ID"),
+    # regular प्रमाणेच - प्रिंट मोडलचे वारंट/नोटीस फी, दंड टिक (आधी इथे नेहमी False होते)
+    applyWarrantFee: bool = Query(False),
+    applyNoticeFee: bool = Query(False),
+    applyPenalty: bool = Query(False),
     db: Session = Depends(database.get_db)
 ):
     # Validate location hierarchy - check if the three fields match the actual data
@@ -1682,9 +1686,9 @@ def get_property_records_by_village_visheshpani(
         district_id=district_id,
         taluka_id=taluka_id,
         gram_panchayat_id=gram_panchayat_id,
-        applyWarrantFee=False,
-        applyNoticeFee=False,
-        applyPenalty=False,
+        applyWarrantFee=applyWarrantFee,
+        applyNoticeFee=applyNoticeFee,
+        applyPenalty=applyPenalty,
         sortByName=False,
         db=db
     )

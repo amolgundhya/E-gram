@@ -203,7 +203,8 @@
     <div style="text-align:center; font-weight:bold; font-size:16px;">नमुना १० वसुली हिशोब</div>
     <table style="margin-top:4px;">
         <tr>
-            <td colspan="4" class="left bold">गाव  : {{village}} </td>
+            {# गावाचे पूर्ण नाव एकाच ओळीत (तुटू/कापू नये) - सर्व गावांची यादी असेल तेव्हाच ओळ तुटू देतो #}
+            <td colspan="4" class="left bold" style="{{ '' if allVillages else 'white-space: nowrap;' }}">गाव  : {{village}} </td>
             <td colspan="8" class="center">दिनांक : <span class="bold"> {{stateDate}} </span> पासून ते दिनांक : <span class="bold"> {{endDate}} </span> पर्यंत</td>
             <td colspan="6" class="right">दिनांक : <span class="bold"> {{currentDate}} </span></td>
         </tr>

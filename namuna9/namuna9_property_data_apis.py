@@ -749,9 +749,13 @@ def list_receipts(
             rec.remainingSapanikar = round((ledger_row.shaktiSapanikar or 0) + (ledger_row.chaluSapanikar or 0), 2)
             rec.remainingVpanikar = round((ledger_row.shaktiVpanikar or 0) + (ledger_row.chaluVpanikar or 0), 2)
             rec.remainingCleaningTax = round((ledger_row.shaktiCleaningTax or 0) + (ledger_row.chaluCleaningTax or 0), 2)
+            # नोटीस/वारंट फी - पावतीने collect() ही ledger मधूनच कमी करतं, म्हणून उरलेली फी = ledger ची.
+            rec.remainingNoticeFee = round(max(ledger_row.noticeFee or 0, 0), 2)
+            rec.remainingWarrantFee = round(max(ledger_row.warrantFee or 0, 0), 2)
             rec.remainingTotal = round(
                 rec.remainingGhar + rec.remainingDiva + rec.remainingAarogyaKar +
-                rec.remainingSapanikar + rec.remainingVpanikar + rec.remainingCleaningTax, 2
+                rec.remainingSapanikar + rec.remainingVpanikar + rec.remainingCleaningTax +
+                rec.remainingNoticeFee + rec.remainingWarrantFee, 2
             )
 
     db.commit()
@@ -932,9 +936,13 @@ def get_receipt(receipt_id: int, db: Session = Depends(database.get_db)):
         result.remainingSapanikar = round((ledger_row.shaktiSapanikar or 0) + (ledger_row.chaluSapanikar or 0), 2)
         result.remainingVpanikar = round((ledger_row.shaktiVpanikar or 0) + (ledger_row.chaluVpanikar or 0), 2)
         result.remainingCleaningTax = round((ledger_row.shaktiCleaningTax or 0) + (ledger_row.chaluCleaningTax or 0), 2)
+        # नोटीस/वारंट फी - पावतीने collect() ही ledger मधूनच कमी करतं, म्हणून उरलेली फी = ledger ची.
+        result.remainingNoticeFee = round(max(ledger_row.noticeFee or 0, 0), 2)
+        result.remainingWarrantFee = round(max(ledger_row.warrantFee or 0, 0), 2)
         result.remainingTotal = round(
             result.remainingGhar + result.remainingDiva + result.remainingAarogyaKar +
-            result.remainingSapanikar + result.remainingVpanikar + result.remainingCleaningTax, 2
+            result.remainingSapanikar + result.remainingVpanikar + result.remainingCleaningTax +
+            result.remainingNoticeFee + result.remainingWarrantFee, 2
         )
     return result
 

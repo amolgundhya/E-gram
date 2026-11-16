@@ -259,6 +259,8 @@ class Namuna9ReceiptRead(BaseModel):
     remainingSapanikar: Optional[float] = None
     remainingVpanikar: Optional[float] = None
     remainingCleaningTax: Optional[float] = None
+    remainingNoticeFee: Optional[float] = None
+    remainingWarrantFee: Optional[float] = None
     houseTaxQrUrl: Optional[str] = None
     waterTaxQrUrl: Optional[str] = None
     QRcodeURL: Optional[str] = None
