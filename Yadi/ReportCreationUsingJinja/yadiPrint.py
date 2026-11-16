@@ -21,6 +21,9 @@ home_path = os.path.expanduser("~")
 # Path to: C:\Users\<User>\AppData\Local\grampanchayat\reports
 static_dir = os.path.join(home_path, 'Documents', 'grampanchayat', 'reports')
 env = Environment(loader=FileSystemLoader(namuna8_template_dir))
+# शौचालय/घरकुल लाभ वर्ष "2020-2021" स्वरूपात (Index यादी स्क्रीन/नमुना-8 प्रिंट प्रमाणेच)
+from Utility.benefit_year import financial_year_full
+env.filters['financial_year_full'] = financial_year_full
 
 localhost = "http://127.0.0.1:8000"
 
