@@ -359,6 +359,12 @@
     {% for record in data %}
     <div class="outer-border">
       {% for copy in [1, 2] %}
+      {# मालमत्ता QR नेहमी; घर कर / पाणी कर QR फक्त Master (Bank Scanner) चालू असेल तर -
+         API तेव्हाच URL पाठवतो (९ क सारखेच). मथळ्याच्या उजव्या वरच्या कोपऱ्यात, मालमत्ता क्रमांकाच्या वर. #}
+      {% set qrs = [] %}
+      {% if record.propertyQrUrl %}{% set _ = qrs.append((record.propertyQrUrl, 'मालमत्ता')) %}{% endif %}
+      {% if record.houseTaxQrUrl %}{% set _ = qrs.append((record.houseTaxQrUrl, 'घर कर')) %}{% endif %}
+      {% if record.waterTaxQrUrl %}{% set _ = qrs.append((record.waterTaxQrUrl, 'पाणी कर')) %}{% endif %}
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div class="bold">
@@ -372,7 +378,19 @@
               नमुना ३ पहा
             </div>
           </div>
-          <div class="bold">मालमत्ता क्रमांक : {{ record.propertyNumber or '' }}</div>
+          <div class="bold" style="align-self: flex-start; text-align: right;">
+            {% if qrs %}
+            <div style="white-space: nowrap; margin-bottom: 4px;">
+              {% for qr_url, qr_label in qrs %}
+              <div style="display: inline-block; text-align: center; margin-left: 6px; vertical-align: top;">
+                <img src="{{ qr_url }}" style="width: 56px; height: 56px; object-fit: contain; display: block;" />
+                <div class="bold" style="font-size: 10px; line-height: 1.1;">{{ qr_label }}</div>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+            मालमत्ता क्रमांक : {{ record.propertyNumber or '' }}
+          </div>
         </div>
         <table class="details-table" style="margin-top: 8px">
           <tr>
