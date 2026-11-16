@@ -70,7 +70,7 @@
         let zoomLevel = 1.0;
         const minZoom = 0.5;
         const maxZoom = 2.0;
-        const zoomStep = 0.1;
+        const zoomStep = 0.05; // क्लायंट Nov-2026: झूम 5% ने (आधी 10%)
         let currentPage = 1;
         const recordsPerPage = 10; // Show 10 records per page
         let totalPages = 0;
@@ -81,14 +81,14 @@
         }
         function zoomIn() {
             if (zoomLevel < maxZoom) {
-                zoomLevel += zoomStep;
+                zoomLevel = Math.round((zoomLevel + zoomStep) * 100) / 100;
                 zoomLevel = Math.min(maxZoom, zoomLevel);
                 updateZoom();
             }
         }
         function zoomOut() {
             if (zoomLevel > minZoom) {
-                zoomLevel -= zoomStep;
+                zoomLevel = Math.round((zoomLevel - zoomStep) * 100) / 100;
                 zoomLevel = Math.max(minZoom, zoomLevel);
                 updateZoom();
             }
