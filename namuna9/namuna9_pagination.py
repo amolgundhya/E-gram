@@ -161,9 +161,11 @@ def _page_height(rows, p):
     return sum(_row_height(r, p, cpl) for r in rows)
 
 
-def paginate_by_height(data, template_name):
+def paginate_by_height(data, template_name, extra_other_pages=0):
     """data ला पानांत वाटतो: पहिल्या पानावर मथळ्याची जागा, शेवटच्या पानावर "एकूण
     बेरीज (सर्व पाने)" ची जागा राखून. रिकामी यादी असली तरी एक (रिकामं) पान."""
+    # extra_other_pages: पहिल्या पानानंतरच्या प्रत्येक पानावर वर राखायची जादा उंची (छापील px) -
+    # घर कर / पाणी कर QR पट्टी दाखवायची असेल तेव्हाच (9 All). 0 असेल तर पूर्वीसारखेच पान-विभाजन.
     if not data:
         return [[]]
     p = _PROFILES[template_name]
@@ -173,7 +175,7 @@ def paginate_by_height(data, template_name):
     for row in data:
         if cur and _page_height(cur + [row], p) > budget:
             pages.append(cur)
-            cur, budget = [], usable
+            cur, budget = [], usable - extra_other_pages
         cur.append(row)
     # शेवटच्या पानावर एकूण बेरजेच्या ओळी मावत नसतील तर शेवटच्या ओळी नव्या पानावर.
     tail = []

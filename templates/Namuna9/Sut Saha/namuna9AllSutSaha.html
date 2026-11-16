@@ -160,6 +160,26 @@
     <div class="print-page"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
     <!-- Top section: फक्त पहिल्या पानावर (मथळा + GP/village/taluka/jilha) -->
     {% if loop.first %}
+    {# घर कर / पाणी कर Bank Scanner QR - सुपर "Print 9 All" प्रमाणेच (Master setting चालू असेल तरच).
+       मथळ्याच्या उजव्या वरच्या कोपऱ्यात overlay - इथे खालची GP/गाव ओळ फक्त डावीकडे असल्याने
+       उजवा कोपरा रिकामा आहे; overlay मुळे मथळ्याची उंची (namuna9_pagination मधला 'top') बदलत नाही. #}
+    <div style="position: relative;">
+    {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+    <div style="position: absolute; top: 0; right: 0; white-space: nowrap; z-index: 1;">
+        {% if houseTaxQrUrl %}
+        <span style="display: inline-block; text-align: center; margin: 0 4px; font-size: 11px; line-height: 1.1;">
+            <img src="{{ houseTaxQrUrl }}" style="width: 64px; height: 64px; object-fit: contain;" /><br>
+            <span>घर कर</span>
+        </span>
+        {% endif %}
+        {% if waterTaxQrUrl %}
+        <span style="display: inline-block; text-align: center; margin: 0 4px; font-size: 11px; line-height: 1.1;">
+            <img src="{{ waterTaxQrUrl }}" style="width: 64px; height: 64px; object-fit: contain;" /><br>
+            <span>पाणी कर</span>
+        </span>
+        {% endif %}
+    </div>
+    {% endif %}
     <table class="report-top">
         <tr>
             <td colspan="3" class="center bold" style="font-size:22px;">नमुना ९</td>
@@ -175,6 +195,12 @@
             <td  style="width:34%">गाव/मोहल्ला : {{village}} </td>
         </tr>
     </table>
+    </div>
+    {% endif %}
+    {# पहिल्या पानानंतरच्या प्रत्येक पानावर घर कर / पाणी कर QR (Master Bank Scanner चालू असेल तरच).
+       पान-विभाजनात (_QR_STRIP_H) एवढी उंची राखलेली आहे - QR बंद असेल तर पूर्वीसारखेच. #}
+    {% if not loop.first and showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+    <div style="height: 78px; text-align: right; white-space: nowrap; overflow: hidden;">{% if houseTaxQrUrl %}<span style="display: inline-block; text-align: center; margin: 0 4px; font-size: 11px; line-height: 1.1;"><img src="{{ houseTaxQrUrl }}" style="width: 64px; height: 64px; object-fit: contain;" /><br><span>घर कर</span></span>{% endif %}{% if waterTaxQrUrl %}<span style="display: inline-block; text-align: center; margin: 0 4px; font-size: 11px; line-height: 1.1;"><img src="{{ waterTaxQrUrl }}" style="width: 64px; height: 64px; object-fit: contain;" /><br><span>पाणी कर</span></span>{% endif %}</div>
     {% endif %}
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">

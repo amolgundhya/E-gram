@@ -207,6 +207,11 @@
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
+            {# घर कर / पाणी कर QR - टेबल-हेडरमध्ये, त्यामुळे ब्राउझर प्रत्येक छापील पानावर पुन्हा दाखवतो.
+               Master Bank Scanner चालू असेल तरच (नाहीतर ही ओळच नाही - पूर्वीसारखेच). #}
+            {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+            <tr><th colspan="99" style="border: none; background: none; text-align: right; padding: 0 0 4px 0; white-space: nowrap;">{% if houseTaxQrUrl %}<span style="display: inline-block; text-align: center; margin: 0 4px; font-size: 11px; line-height: 1.1;"><img src="{{ houseTaxQrUrl }}" style="width: 64px; height: 64px; object-fit: contain;" /><br><span>घर कर</span></span>{% endif %}{% if waterTaxQrUrl %}<span style="display: inline-block; text-align: center; margin: 0 4px; font-size: 11px; line-height: 1.1;"><img src="{{ waterTaxQrUrl }}" style="width: 64px; height: 64px; object-fit: contain;" /><br><span>पाणी कर</span></span>{% endif %}</th></tr>
+            {% endif %}
             <tr>
                 <th rowspan="3" style="min-width:40px;">अ.क्र.</th>
                 <th rowspan="3" style="min-width:56px;">मिळकत नंबर</th>
