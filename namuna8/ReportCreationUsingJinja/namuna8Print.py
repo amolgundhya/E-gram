@@ -1616,6 +1616,34 @@ async def singlePrint(request : Request):
             }
         )
     
+def _filter_sr_range(data, requestData):
+    # Print Range - सर्व मालमत्ता (900+) एकाच HTML मध्ये टाकल्या तर पान उघडायला ~40 सेकंद
+    # लागतात. फ्रंटएंड "अ.क्र. पासून / पर्यंत" पाठवतो तेव्हा फक्त तेवढ्याच (srNo = छापलेला
+    # अ.क्र.) ठेवा. दोन्ही रिकामे असल्यास पूर्वीसारखी सगळी यादी.
+    def _int(v):
+        try:
+            return int(str(v).strip())
+        except (TypeError, ValueError):
+            return None
+    sr_from = _int(requestData.get("fromSrNo"))
+    sr_to = _int(requestData.get("toSrNo"))
+    if sr_from is None and sr_to is None:
+        return data
+    if sr_from is not None and sr_to is not None and sr_from > sr_to:
+        sr_from, sr_to = sr_to, sr_from
+    out = []
+    for r in data:
+        n = _int(r.get("srNo")) if isinstance(r, dict) else None
+        if n is None:
+            continue
+        if sr_from is not None and n < sr_from:
+            continue
+        if sr_to is not None and n > sr_to:
+            continue
+        out.append(r)
+    return out
+
+
 @router.post('/single_print_range')
 async def singlePrint(request : Request):
     try:
@@ -1844,6 +1872,7 @@ async def singlePrint(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = _filter_sr_range(data, requestData)
             
         context = {
                 
@@ -2214,6 +2243,7 @@ async def singlePrint(request : Request):
         # Render template
         if not isinstance(data, list):
             data = [data]
+        data = _filter_sr_range(data, requestData)
         rendered_html = template.render(data=data)
 
         # Save output.html
