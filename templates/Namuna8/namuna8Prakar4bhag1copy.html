@@ -348,7 +348,7 @@
                                     {% endfor %}
                                     
                                 </td>
-                                <td rowspan="2">{{ row.areaEast|default('') }} x {{row.areaNorth|default('')}}</td>
+                                <td rowspan="2">{{ area_sides(row.areaEast, row.areaNorth) }}</td>
                                 <td rowspan="2">
                                     {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                         {{ row.khaliJaga[0].rate|default('') }} - {{row.khaliJaga[0].totalkhalijagaareainfoot|default('') }}
@@ -359,7 +359,7 @@
                             <tr>
                                 <td>
                                     {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and row.constructionType|length > 0 %}
-                                        {{ct_row.rate|default('')}}-{{ct_row.length|default('')}} x {{ct_row.width|default('')}}<br><br/>
+                                        {{ct_row.rate|default('')}}-{{ area_sides(ct_row.length, ct_row.width) }}<br><br/>
                                     {% endif %}
                                     {% endfor %}
                                 </td>

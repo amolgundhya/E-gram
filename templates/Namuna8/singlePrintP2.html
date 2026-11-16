@@ -238,10 +238,12 @@
                 <div style="height: 58px; border-bottom: 1px solid #666; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
                     दक्षिण : {{boundarySouth|default('')}} <br>
                     एकूण क्षेत्रफळ :
-                    {% if housingUnit == 'sqm' %}
-                        {{areaEast|default('')}} x {{areaNorth|default('')}} मी. = {{totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{total_arearinfoot|default('')|round_sqft}} चौ.फु.)</span>
+                    {% if not area_sides(areaEast, areaNorth) and not has_area(total_arearinfoot) and not has_area(totalareainmeters) %}
+                    -
+                    {% elif housingUnit == 'sqm' %}
+                        {% if area_sides(areaEast, areaNorth) %}{{ area_sides(areaEast, areaNorth) }} मी. = {% endif %}{{totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{total_arearinfoot|default('')|round_sqft}} चौ.फु.)</span>
                     {% else %}
-                        {{areaEast|default('')}} x {{areaNorth|default('')}} फु. = {{total_arearinfoot|default('')|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{totalareainmeters|default('')}} चौ.मी.)</span>
+                        {% if area_sides(areaEast, areaNorth) %}{{ area_sides(areaEast, areaNorth) }} फु. = {% endif %}{{total_arearinfoot|default('')|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{totalareainmeters|default('')}} चौ.मी.)</span>
                     {% endif %}
 
                 </div>

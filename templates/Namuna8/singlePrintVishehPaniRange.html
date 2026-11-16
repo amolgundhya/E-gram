@@ -286,7 +286,7 @@
             {{row.khaliJaga[0].constructiontype if row.khaliJaga and row.khaliJaga|length > 0 else ''}}
         </td>
         <td rowspan="2">{% for ct_row in (row.constructionType or []) %}{{ct_row.year if row.constructionType and row.constructionType|length > 0 else ''}}{% if not loop.last %} <br>{% endif %}{% endfor %}<br/> <br></td>
-        <td rowspan="2">{{row.areaEast|default('')}} x {{row.areaNorth|default('')}}</td>
+        <td rowspan="2">{{ area_sides(row.areaEast, row.areaNorth) }}</td>
         <td rowspan="2">{{row.khaliJaga[0].rate if row.khaliJaga and row.khaliJaga|length > 0 else ''}}-{{row.khaliJaga[0].length|round_sqft if row.khaliJaga and row.khaliJaga|length > 0 else ''}}</td>
         <td rowspan="2"></td>
     </tr>
@@ -417,10 +417,12 @@
                 <div style="height: 58px; border-bottom: 1px solid #666; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;">
                     दक्षिण : {{row.boundarySouth|default('')}} <br>
                     एकूण क्षेत्रफळ :
-                    {% if row.housingUnit == 'sqm' %}
-                        {{row.areaEast|default('')}} x {{row.areaNorth|default('')}} मी. = {{row.totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{row.total_arearinfoot|default('')|round_sqft}} चौ.फु.)</span>
+                    {% if not area_sides(row.areaEast, row.areaNorth) and not has_area(row.total_arearinfoot) and not has_area(row.totalareainmeters) %}
+                    -
+                    {% elif row.housingUnit == 'sqm' %}
+                        {% if area_sides(row.areaEast, row.areaNorth) %}{{ area_sides(row.areaEast, row.areaNorth) }} मी. = {% endif %}{{row.totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{row.total_arearinfoot|default('')|round_sqft}} चौ.फु.)</span>
                     {% else %}
-                        {{row.areaEast|default('')}} x {{row.areaNorth|default('')}} फु. = {{row.total_arearinfoot|default('')|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{row.totalareainmeters|default('')}} चौ.मी.)</span>
+                        {% if area_sides(row.areaEast, row.areaNorth) %}{{ area_sides(row.areaEast, row.areaNorth) }} फु. = {% endif %}{{row.total_arearinfoot|default('')|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{row.totalareainmeters|default('')}} चौ.मी.)</span>
                     {% endif %}
 
                 </div>
