@@ -24,6 +24,7 @@ from Utility.qr_text import build_property_qr_text_short, build_area_lines
 from Utility.tax_rounding import round_tax_amount
 from Utility.area_units import sqm_to_sqft
 from namuna8.calculations.khali_jaga import khali_jaga
+from namuna8.calculations.diva_arogya import diva_arogya_applies, khali_jaga_diva_arogya_allowed
 from Utility import fast_qr
 import threading
 from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no
@@ -1232,6 +1233,8 @@ def get_bulk_edit_property_list(
     if not village_obj:
         return []
     properties = db.query(models.Property).filter(models.Property.village_id == village_obj.id).order_by(models.Property.sort_order).all()
+    # Master "खाली जागेवर दिवा, आरोग्य" - एकदाच
+    khali_diva_allowed = khali_jaga_diva_arogya_allowed(db, gram_panchayat_id)
     # Prepare settings for tax and water calculations - filter by gram_panchayat_id
     settings = db.query(models.Namuna8SettingTax).filter(models.Namuna8SettingTax.gram_panchayat_id == gram_panchayat_id).first()
     water_settings = db.query(models.Namuna8WaterTaxSettings).filter(models.Namuna8WaterTaxSettings.gram_panchayat_id == gram_panchayat_id).first()
@@ -1337,8 +1340,9 @@ def get_bulk_edit_property_list(
         if karLaguNahi:
             total_house_tax = 0
 
-        diva_kar = 0 if karLaguNahi else (get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0)
-        aarogya_kar = 0 if karLaguNahi else (get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0)
+        _diva_on = diva_arogya_applies(p, khali_diva_allowed)
+        diva_kar = get_tax_by_area(total_area, 'light') if _diva_on else 0
+        aarogya_kar = get_tax_by_area(total_area, 'health') if _diva_on else 0
         cleaning_tax = 0 if karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if getattr(p, 'safaiKar', False) else 0)
         toilet_tax = 0 if karLaguNahi else (get_tax_by_area(total_area, 'bathroom') if getattr(p, 'shauchalayKar', False) else 0)
         sapanikar_val = 0 if karLaguNahi else get_water_facility_price(getattr(p, 'waterFacility1', None))
@@ -1750,7 +1754,8 @@ def sync_namuna9_current_year(db, db_property, commit=True):
         return {"error": str(e)}
 
 
-def build_property_response(db_property, db, gram_panchayat_id: int, tax_settings=None, water_settings=None, water_slab_settings=None):
+def build_property_response(db_property, db, gram_panchayat_id: int, tax_settings=None, water_settings=None, water_slab_settings=None,
+                            khali_diva_allowed=None):
     # tax_settings/water_settings/water_slab_settings: पास केले नसतील (जुन्या सगळ्या
     # कॉलर्ससाठी डिफॉल्ट None) तर आधीसारखेच इथे क्वेरी करतो. ज्या ठिकाणी हे फंक्शन
     # शेकडो मालमत्तांसाठी लूपमध्ये वारंवार बोलावलं जातं (नमुना-9 माहिती दाखवा/All/
@@ -1831,13 +1836,18 @@ def build_property_response(db_property, db, gram_panchayat_id: int, tax_setting
     safaiKar = bool(getattr(db_property, 'safaiKar', False))
     shauchalayKar = bool(getattr(db_property, 'shauchalayKar', False))
     karLaguNahi = bool(getattr(db_property, 'karLaguNahi', False))
+    # दिवा/आरोग्य - "कर लागू नाही" / "काढा" / Master "खाली जागेवर दिवा, आरोग्य" (बांधकाम नसलेली
+    # मालमत्ता). नमुना-9 (मागणी, current_year_sync) हाच dict वापरतो.
+    if khali_diva_allowed is None:
+        khali_diva_allowed = khali_jaga_diva_arogya_allowed(db, gram_panchayat_id)
+    diva_on = diva_arogya_applies(db_property, khali_diva_allowed)
     property_dict = {
         **{k: getattr(db_property, k) for k in schemas.PropertyBase.__fields__.keys()},
         "owners": owners,
         "constructions": constructions,
         "sort_order": getattr(db_property, "sort_order", None),
-        "divaKar": 0 if karLaguNahi else (get_tax_by_area(total_area, 'light') if not divaArogyaKar else 0),
-        "aarogyaKar": 0 if karLaguNahi else (get_tax_by_area(total_area, 'health') if not divaArogyaKar else 0),
+        "divaKar": get_tax_by_area(total_area, 'light') if diva_on else 0,
+        "aarogyaKar": get_tax_by_area(total_area, 'health') if diva_on else 0,
         "cleaningTax": 0 if karLaguNahi else (get_tax_by_area(total_area, 'cleaning') if safaiKar else 0),
         "toiletTax": 0.0 if karLaguNahi else (get_tax_by_area(total_area, 'bathroom') if shauchalayKar else 0.0),
         "sapanikar": 0 if karLaguNahi else get_water_facility_price(getattr(db_property, 'waterFacility1', None)),
