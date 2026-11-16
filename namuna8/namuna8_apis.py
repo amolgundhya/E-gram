@@ -23,6 +23,7 @@ from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text_short, build_area_lines
 from Utility.tax_rounding import round_tax_amount
 from Utility.area_units import sqm_to_sqft
+from namuna8.calculations.khali_jaga import khali_jaga
 from Utility import fast_qr
 import threading
 from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no
@@ -1256,18 +1257,13 @@ def get_bulk_edit_property_list(
         if getattr(p, 'vacantLandType', None) not in [None, '', 'null']:
             # बांधकाम लांबी/रुंदी constructionAreaUnit मध्ये असू शकतात, जे areaUnit
             # पेक्षा वेगळं असू शकतं - त्यामुळे used_area साठी वेगळं एकक वापरतो.
-            unit = getattr(p, 'areaUnit', 'sqft') or 'sqft'
-            construction_unit = getattr(p, 'constructionAreaUnit', None) or unit
-            construction_sum = sum((c.length or 0) * (c.width or 0)
-                                    for c in p.constructions
-                                    if (getattr(c, "floor", None) or "").strip() in ("", "तळमजला"))
-            used_area_m = round(construction_sum if construction_unit == 'sqm' else construction_sum * 0.092937, 2)
-            if unit == 'sqm':
-                total_area_m = round(p.totalArea or 0, 2)
-            else:
-                total_area_m = round((p.totalAreaSqFt or 0) * 0.092937, 2)
-            khali_area_m = round(max(total_area_m - used_area_m, 0), 2)
-            khali_area = round(khali_area_m / 0.092937, 2)
+            # खाली जागा = एकूण - फक्त तळमजला; ÷10.764, चौ.मी. 2 दशांश (shared, नमुना-8 print / नमुना-9 सारखंच).
+            khali_construction_type = db.query(models.ConstructionType).filter(
+                models.ConstructionType.name == p.vacantLandType
+            ).first()
+            _kj = khali_jaga(p, p.constructions, khali_construction_type,
+                             lambda v: round_tax_amount(v, db, getattr(p, 'gram_panchayat_id', None)))
+            khali_area, khali_area_m = _kj["khali_sqft"], _kj["khali_sqm"]
 
             # Find the bandhmastache_dar for vacantLandType construction type
             khali_jaga_rate = 0
@@ -1288,43 +1284,7 @@ def get_bulk_edit_property_list(
                         khali_jaga_rate = getattr(similar_construction, 'bandhmastache_dar', 0)
 
             if khali_area > 0:
-                # Use the selected vacant land type for construction type lookup,
-                # same as in property_record_response, instead of hardcoding "खाली जागा"
-                khali_construction_type = db.query(models.ConstructionType).filter(
-                    models.ConstructionType.name == p.vacantLandType
-                ).first()
-
-                if khali_construction_type:
-                    # User formula preference – same as in property_record_response
-                    userFormulaPreference = db.query(settingModels.GeneralSetting).filter_by().first()
-                    if userFormulaPreference:
-                        formula1 = userFormulaPreference.capitalFormula1
-                        formula2 = userFormulaPreference.capitalFormula2
-                    else:
-                        formula1 = None
-                        formula2 = None
-
-                    AreaInMeter = round(khali_area * 1 * 0.092937, 2)
-                    AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                    ConstructionRateAsPerConstruction = khali_construction_type.bandhmastache_dar
-                    depreciationRate = calculate_depreciation_rate(datetime.now().year, khali_construction_type.name)
-
-                    weightage_map = {
-                        row.building_usage: row.weightage
-                        for row in db.query(BuildingUsageWeightage).all()
-                    }
-                    usageBasedBuildingWeightageFactor = weightage_map.get(p.vacantLandType, 1)
-
-                    if formula1:
-                        capital_value = khali_area_m * AnnualLandValueRate
-                    else:
-                        capital_value = AreaInMeter * AnnualLandValueRate
-                    capital_value = round(capital_value, 2)
-
-                    house_tax = round_tax_amount((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value, db, getattr(p, 'gram_panchayat_id', None))
-                else:
-                    capital_value = 0
-                    house_tax = 0
+                capital_value, house_tax = _kj["capital_value"], _kj["house_tax"]
 
                 khaliJaga = [{
                     "constructiontype": p.vacantLandType,
@@ -1341,7 +1301,7 @@ def get_bulk_edit_property_list(
                         getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0
                     ),
                     "totalkhalijagaareainfoot": round(khali_area, 2),
-                    "totalkhalijagaareainmeters": round(khali_area * 0.092937, 2)
+                    "totalkhalijagaareainmeters": khali_area_m
                 }]
 
         # ---------- House tax total (same approach as property_record_response) ----------

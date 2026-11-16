@@ -9,6 +9,7 @@ from namuna8 import namuna8_model
 from namuna8.mastertab import mastertabmodels as settingModels
 from sqlalchemy.exc import IntegrityError
 from namuna8.namuna8_apis import build_property_response
+from namuna8.calculations.khali_jaga import property_house_tax, has_vacant_land
 from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no, _build_qrcode_url
 from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode
 from Utility.QRcodeGeneration import QRCodeGeneration
@@ -1116,36 +1117,14 @@ def get_namuna9_table_data_custom(
         # Check if karLaguNahi is True - if so, set all taxes to zero
         karLaguNahi = bool(getattr(prop, 'karLaguNahi', False))
 
-        # Base total house tax from constructions
-        if karLaguNahi:
-            totalHouseTax = 0
-        else:
-            totalHouseTax = sum([(c.houseTax or 0) for c in constructions])
-            # Khali jaga addition with unit handling similar to Namuna8. बांधकाम
-            # लांबी/रुंदी constructionAreaUnit मध्ये असू शकतात, जे areaUnit पेक्षा वेगळं
-            # असू शकतं - त्यामुळे used_area साठी वेगळं एकक वापरतो.
-            vacant_land_type = getattr(prop, 'vacantLandType', None)
-            if vacant_land_type not in [None, '', 'null']:
-                # tax_calculations.calculate_total_house_tax प्रमाणेच - प्लॉटच्याच
-                # एककात (unit) थेट वजाबाकी, गरज असेल तरच शेअर्ड 10.76 फॅक्टरने रूपांतर.
-                unit = getattr(prop, 'areaUnit', 'sqft') or 'sqft'
-                construction_unit = getattr(prop, 'constructionAreaUnit', None) or unit
-                total_area = (prop.totalArea or 0) if unit == 'sqm' else (prop.totalAreaSqFt or 0)
-                construction_sum = round(sum((c.length or 0) * (c.width or 0) for c in constructions), 2)
-                if construction_unit == unit:
-                    used_area = construction_sum
-                else:
-                    used_area = round(construction_sum * 10.76, 2) if unit == 'sqft' else round(construction_sum / 10.76, 2)
-                khali_area = round(max(total_area - used_area, 0), 2)
-                khali_area_m = khali_area if unit == 'sqm' else round(khali_area / 10.76, 2)
-                if khali_area > 0:
-                    if vacant_land_type not in custom_construction_type_by_name_cache:
-                        custom_construction_type_by_name_cache[vacant_land_type] = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == vacant_land_type).first()
-                    khali_construction_type = custom_construction_type_by_name_cache[vacant_land_type]
-                    if khali_construction_type:
-                        AnnualLandValueRate = getattr(khali_construction_type, 'annualLandValueRate', 1)
-                        capital_value_kj = round(khali_area_m * AnnualLandValueRate, 2)
-                        totalHouseTax += _custom_round_tax((getattr(khali_construction_type, 'rate', 0) / 1000) * capital_value_kj)
+        # नमुना-8 व नमुना-9 screen प्रमाणेच: जतन केलेला बांधकाम कर + खाली जागा (फक्त तळमजला वजा).
+        vacant_land_type = getattr(prop, 'vacantLandType', None)
+        khali_construction_type = None
+        if has_vacant_land(prop):
+            if vacant_land_type not in custom_construction_type_by_name_cache:
+                custom_construction_type_by_name_cache[vacant_land_type] = db.query(namuna8_model.ConstructionType).filter(namuna8_model.ConstructionType.name == vacant_land_type).first()
+            khali_construction_type = custom_construction_type_by_name_cache[vacant_land_type]
+        totalHouseTax = _custom_round_tax(property_house_tax(prop, constructions, khali_construction_type, _custom_round_tax))
         totalHouseTax = round(totalHouseTax, 2)
         # Taxes
         lightingTax = round((prop_data.get('divaKar', 0) or prop_data.get('lightingTax', 0) or 0), 2)

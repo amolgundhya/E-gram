@@ -66,18 +66,33 @@ def demand_context(db, gram_panchayat_id):
     }
 
 
-def current_demand(db, prop, ctx):
+class _TaxOverride:
+    """बांधकाम रो, पण houseTax बदललेला - "कर पुन्हा मोजा" चं पूर्वावलोकन DB बदलण्याआधी
+    नव्या करावरून नमुना-9 मागणी काढण्यासाठी."""
+    def __init__(self, construction, house_tax):
+        self._c = construction
+        self.houseTax = house_tax
+
+    def __getattr__(self, name):
+        return getattr(self._c, name)
+
+
+def current_demand(db, prop, ctx, tax_override=None):
     """मालमत्तेची आत्ताची चालू मागणी - /namuna9/table-data नवीन रो बनवताना वापरतो तेच
     calculate_total_house_tax + build_property_response (घरपट्टी नमुना-8 च्या
-    totalHouseTax शी जुळते)."""
+    totalHouseTax शी जुळते). tax_override: {construction_id: नवा houseTax} - दिल्यास
+    त्या रो साठी जतन केलेल्या ऐवजी तो कर धरतो."""
     from namuna8.namuna8_apis import build_property_response
     gp_id = ctx["gram_panchayat_id"]
     prop_data = build_property_response(
         prop, db, gp_id, tax_settings=ctx["tax_settings"], water_settings=ctx["water_settings"],
         water_slab_settings=ctx["tax_settings"],
     )
+    constructions = prop.constructions
+    if tax_override:
+        constructions = [_TaxOverride(c, tax_override[c.id]) if c.id in tax_override else c for c in constructions]
     house_tax = calculate_total_house_tax(
-        prop, prop.constructions, db, gram_panchayat_id=gp_id,
+        prop, constructions, db, gram_panchayat_id=gp_id,
         general_setting=ctx["general_setting"], weightage_map=ctx["weightage_map"],
         construction_type_cache=ctx["construction_type_cache"], depreciation_rate_cache=ctx["depreciation_rate_cache"],
         rounding_mode=ctx["rounding_mode"], assessment_year=ctx["assessment_year"],
@@ -171,10 +186,11 @@ def sync_property(db, prop, ctx=None, commit=True):
     return {"yearslap": rec.yearslap, "updated": plan["changed"], "overpaid": plan["overpaid"]}
 
 
-def plan_properties(db, properties, ctx):
+def plan_properties(db, properties, ctx, tax_override=None):
     """"कर पुन्हा मोजा" साठी: [(prop, rec, row, plan)] - फक्त ज्यांचा चालू वर्षाचा रो आहे.
-    DB बदलत नाही. calculate_total_house_tax बांधकाम रो वरचा जतन केलेला houseTax वापरत
-    नाही (स्वतः मोजतो), म्हणून बांधकाम रो अद्ययावत होण्याआधीही हाच निकाल येतो."""
+    DB बदलत नाही. calculate_total_house_tax बांधकाम रो वरचा जतन केलेला houseTax वापरतो
+    (नमुना-8 प्रमाणेच), म्हणून बांधकाम रो अद्ययावत होण्याआधी पूर्वावलोकनासाठी नवे कर
+    tax_override ({construction_id: नवा houseTax}) मधून देतो."""
     latest_by_village = {}
     for village_id in {p.village_id for p in properties}:
         latest_by_village[village_id] = latest_year_record(db, village_id)
@@ -191,5 +207,5 @@ def plan_properties(db, properties, ctx):
         row = rows.get((rec.id, prop.id)) if rec is not None else None
         if row is None:
             continue
-        out.append((prop, rec, row, plan_row(row, current_demand(db, prop, ctx))))
+        out.append((prop, rec, row, plan_row(row, current_demand(db, prop, ctx, tax_override))))
     return out
