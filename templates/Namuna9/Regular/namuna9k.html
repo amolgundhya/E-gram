@@ -26,6 +26,10 @@
                 size: A4;
                 margin: 0;
             }
+            /* शिल्लक बाकी (Balance) कॉलम फक्त स्क्रीनवर, प्रिंटमध्ये नाही (सहीसाठी जागा) */
+            .balance-col {
+                display: none !important;
+            }
             #toolbar {
                 display: none !important;
             }
@@ -225,7 +229,7 @@
             <tr class="center bold">
                 <td rowspan="3">कराचे नाव</td>
                 <td colspan="4">वसूल पात्र रकमा</td>
-                <td rowspan="3">शिल्लक बाकी<br>(Balance)</td>
+                <td rowspan="3" class="balance-col">शिल्लक बाकी<br>(Balance)</td>
             </tr>
             <tr class="center bold">
                 <td colspan="2">थकबाकी (रुपये = पै.)</td>
@@ -276,7 +280,7 @@
     <td class="right">{{ "%.2f"|format(0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else dand_value) }}</td>
     <td class="right">{{ "%.2f"|format(current_value) }}</td>
     <td class="right">{{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (magil_value + dand_value + current_value)) }}</td>
-    <td class="right">{{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (magil_value + dand_value + current_value)) }}</td>
+    <td class="right balance-col">{{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (magil_value + dand_value + current_value)) }}</td>
 
     {# Accumulate deduction amount if condition matched #}
     {% if (tax == 'नोटीस फी' and noticeFee == 'false') %}
@@ -293,7 +297,7 @@
     <td class="right">{{ "%.2f"|format(totals.dand) }}</td>
     <td class="right">{{ "%.2f"|format(totals.current) }}</td>
     <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
-    <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
+    <td class="right balance-col">{{ "%.2f"|format(totals.ekun) }}</td>
 </tr>
 <tr class="bold">
     <td colspan="6" style="border:none;">दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') }}</td>
@@ -302,7 +306,8 @@
         <div style="font-size: 12px; margin-top: 3px; padding: 0 4px; line-height: 1.3;">
             हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या आता करावा. अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये आपल्यावर मागणी बजावाण्यात येईल
         </div>
-        <div style="margin-top: 4px; font-size: 12px; padding: 0 4px; text-align: right;">
+        {# सहीसाठी जागा: स्वाक्षरी ओळीच्या वर ~9mm रिकामी जागा; सहीचा फोटो असल्यास तो याच जागेत बसतो (उंची वाढत नाही). 14mm पेक्षा जास्त नको - 3 QR + सैनिक टीप असल्यास दुसरी प्रत पुढच्या पानावर जाते #}
+        <div style="margin-top: 4px; font-size: 12px; padding: 0 4px; text-align: right; min-height: 14mm; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; box-sizing: border-box;">
             {% if record.signature_image %}
             <img src="{{ record.signature_image }}" style="height: 35px; object-fit: contain; display: block; margin-left: auto;" alt="स्वाक्षरी" />
             {% endif %}

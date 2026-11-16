@@ -108,10 +108,18 @@
         z-index: 0;
         pointer-events: none;
       }
+      /* सहीसाठी जागा: स्वाक्षरी ओळीच्या वर ~8mm रिकामी जागा; सहीचा फोटो असल्यास तो याच
+         जागेत बसतो (उंची वाढत नाही). 148mm सेलमध्ये बसेल इतकीच - जास्त केली तर खालचा भाग कापला जातो. */
       .signature {
         margin-top: 4px;
         font-size: 11px;
         text-align: right;
+        min-height: 12mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: flex-end;
+        box-sizing: border-box;
       }
       @media print {
         @page {
@@ -120,6 +128,10 @@
         }
         body {
           margin: 0;
+        }
+        /* शिल्लक बाकी (Balance) कॉलम फक्त स्क्रीनवर, प्रिंटमध्ये नाही (सहीसाठी जागा) */
+        .balance-col {
+          display: none !important;
         }
         #toolbar {
           display: none !important;
@@ -483,7 +495,7 @@
         <tr class="center bold">
           <td rowspan="3">कराचे नाव</td>
           <td colspan="4">वसूल पात्र रकमा</td>
-          <td rowspan="3">शिल्लक बाकी<br />(Balance)</td>
+          <td rowspan="3" class="balance-col">शिल्लक बाकी<br />(Balance)</td>
         </tr>
         <tr class="center bold">
           <td colspan="2">थकबाकी (रुपये = पै.)</td>
@@ -526,7 +538,7 @@
           <td class="right">{{ "%.2f"|format(0 if is_fee else dand_value) }}</td>
           <td class="right">{{ "%.2f"|format(current_value) }}</td>
           <td class="right">{{ "%.2f"|format(current_value if is_fee else (magil_value + dand_value + current_value)) }}</td>
-          <td class="right">{{ "%.2f"|format(current_value if is_fee else (magil_value + dand_value + current_value)) }}</td>
+          <td class="right balance-col">{{ "%.2f"|format(current_value if is_fee else (magil_value + dand_value + current_value)) }}</td>
         </tr>
         {% endfor %}
         <tr class="bold">
@@ -535,7 +547,7 @@
           <td class="right">{{ "%.2f"|format(totals.dand) }}</td>
           <td class="right">{{ "%.2f"|format(totals.current) }}</td>
           <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
-          <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
+          <td class="right balance-col">{{ "%.2f"|format(totals.ekun) }}</td>
         </tr>
         <tr class="bold">
           <td colspan="6" style="border: none">दिनांक : {{ ((rec.currentDate or '') if showN9Date != 'false' else '') }}</td>
