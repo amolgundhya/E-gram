@@ -8,6 +8,7 @@ from database import get_db
 from namuna8.calculations.khali_jaga import khali_jaga
 from namuna8.calculations.diva_arogya import diva_arogya_applies, khali_jaga_diva_arogya_allowed, has_real_construction
 from Utility.area_units import sqft_to_sqm, sqm_to_sqft
+from Utility.occupant import occupant_or_self
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 import math
@@ -376,7 +377,7 @@ def get_property_record(
         "QRcodeURL": None,
         "total_arearinfoot": total_area_sqft,
         "totalareainmeters": total_area_m,
-        "occupantName": owner.occupantName if owner else None,
+        "occupantName": occupant_or_self(owner.occupantName) if owner else None,
         "aadharNumber": owner.aadhaarNumber if owner else None,
         "ownerName": owner.name if owner else None,
         "ownerWifeName":owner.wifeName if owner else None,
@@ -760,7 +761,7 @@ def get_property_records_by_village(
             "QRcodeURL": None,
             "total_arearinfoot": total_area_sqft,
             "totalareainmeters": total_area_m,
-            "occupantName": owner.occupantName if owner else None,
+            "occupantName": occupant_or_self(owner.occupantName) if owner else None,
             "aadharNumber": owner.aadhaarNumber if owner else None,
             "ownerName": owner.name if owner else None,
             "ownerWifeName": owner.wifeName if owner else None,
@@ -1162,7 +1163,7 @@ def get_property_records_by_gram_panchayat(
                 "QRcodeURL": None,
                 "total_arearinfoot": total_area_sqft,
                 "totalareainmeters": total_area_m,
-                "occupantName": owner.occupantName if owner else None,
+                "occupantName": occupant_or_self(owner.occupantName) if owner else None,
                 "aadharNumber": owner.aadhaarNumber if owner else None,
                 "ownerName": owner.name if owner else None,
                 "ownerWifeName":owner.wifeName if owner else None,

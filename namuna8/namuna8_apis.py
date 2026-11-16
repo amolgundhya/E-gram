@@ -23,6 +23,7 @@ import re
 from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text_short, build_area_lines
 from Utility.tax_rounding import round_tax_amount
+from Utility.occupant import occupant_or_self
 from Utility.area_units import sqm_to_sqft
 from namuna8.calculations.khali_jaga import khali_jaga
 from namuna8.calculations.diva_arogya import diva_arogya_applies, khali_jaga_diva_arogya_allowed
@@ -159,7 +160,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                     if owner_data.wifeName is not None:
                         db_owner.wifeName = owner_data.wifeName
                     if owner_data.occupantName is not None:
-                        db_owner.occupantName = owner_data.occupantName
+                        db_owner.occupantName = occupant_or_self(owner_data.occupantName)
                     db.flush()
                     owners.append(db_owner)
                 else:
@@ -173,7 +174,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                         aadhaarNumber=owner_data.aadhaarNumber,
                         mobileNumber=owner_data.mobileNumber,
                         wifeName=owner_data.wifeName,
-                        occupantName=owner_data.occupantName,
+                        occupantName=occupant_or_self(owner_data.occupantName),
                         ownerPhoto=getattr(owner_data, 'ownerPhoto', None) if getattr(owner_data, 'ownerPhoto', None) is not None and isinstance(getattr(owner_data, 'ownerPhoto', None), str) and getattr(owner_data, 'ownerPhoto', None) != '' else None,
                         village_id=owner_data.village_id,
                         district_id=owner_district_id,
@@ -825,7 +826,7 @@ def update_namuna8_entry(
                 if owner_data.wifeName is not None:
                     owner.wifeName = owner_data.wifeName
                 if owner_data.occupantName is not None:
-                    owner.occupantName = owner_data.occupantName
+                    owner.occupantName = occupant_or_self(owner_data.occupantName)
                 owner_photo_val = getattr(owner_data, 'ownerPhoto', None)
                 if owner_photo_val is not None and isinstance(owner_photo_val, str) and owner_photo_val != '':
                     owner.ownerPhoto = owner_photo_val
@@ -841,7 +842,7 @@ def update_namuna8_entry(
                     aadhaarNumber=owner_data.aadhaarNumber,
                     mobileNumber=owner_data.mobileNumber,
                     wifeName=owner_data.wifeName,
-                    occupantName=owner_data.occupantName,
+                    occupantName=occupant_or_self(owner_data.occupantName),
                     ownerPhoto=getattr(owner_data, 'ownerPhoto', None) if getattr(owner_data, 'ownerPhoto', None) is not None and isinstance(getattr(owner_data, 'ownerPhoto', None), str) and getattr(owner_data, 'ownerPhoto', None) != '' else None,
                     village_id=owner_data.village_id,
                     district_id=getattr(property_data, 'district_id', None),
@@ -1223,7 +1224,7 @@ def get_bulk_edit_property_list(
     result = []
     for idx, p in enumerate(properties, start=1):
         owner_name = p.owners[0].name if p.owners else ""
-        occupant_name = p.owners[0].occupantName if p.owners else ""
+        occupant_name = occupant_or_self(p.owners[0].occupantName) if p.owners else ""
         total_area = p.totalAreaSqFt or 0
         divaArogyaKar = bool(getattr(p, 'divaArogyaKar', False))
         karLaguNahi = bool(getattr(p, 'karLaguNahi', False))
@@ -1734,7 +1735,7 @@ def build_property_response(db_property, db, gram_panchayat_id: int, tax_setting
             "aadhaarNumber": o.aadhaarNumber,
             "mobileNumber": o.mobileNumber,
             "wifeName": o.wifeName,
-            "occupantName": o.occupantName,
+            "occupantName": occupant_or_self(o.occupantName),
             "ownerPhoto": o.ownerPhoto,
             "village_id": o.village_id,
             "district_id": o.district_id,
@@ -2586,7 +2587,7 @@ def get_property_search_list(
             "aadhaarNumber": aadhaar,
             "mobileNumber": mobile,
             "wifeName": wife,
-            "occupantName": occupant,
+            "occupantName": occupant_or_self(occupant),
         })
     return [
         {
