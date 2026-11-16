@@ -354,10 +354,11 @@
 {% endfor %}
 
         </table>
-        <div class="receipt-footer" style="font-size: 13px; margin-top: 4px; display: flex; justify-content: space-between;">
+        {# सहीसाठी जागा: "सही सरपंच / ग्रामपंचायत अधिकारी" च्या वर ~10mm रिकामी जागा (ओळ खाली सरकते) #}
+        <div class="receipt-footer" style="font-size: 13px; margin-top: 4px; display: flex; justify-content: space-between; align-items: flex-end;">
             <span>दिनांक : {{ record.pavti_date or '' }}</span>
             <span><b>रक्कम अक्षरी : रुपये {{ ekun_total | marathi_words }} फक्त</b></span>
-            <span>सही सरपंच / ग्रामपंचायत अधिकारी</span>
+            <span style="padding-top: 10mm;">सही सरपंच / ग्रामपंचायत अधिकारी</span>
         </div>
         </div>
         {% if copy == 1 %}
