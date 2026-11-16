@@ -1219,7 +1219,7 @@ def get_bulk_edit_property_list(
             area = 0
         if area <= 300:
             return getattr(settings, field + 'Upto300', 0) or 0
-        elif 301 <= area <= 700:
+        elif area <= 700:  # 300 पेक्षा जास्त ते 700 (दशांशासह, उदा. 300.5) - आधी 300<x<301 '>700' मध्ये जायचं
             return getattr(settings, field + '301_700', 0) or 0
         else:
             return getattr(settings, field + 'Above700', 0) or 0
@@ -1777,7 +1777,7 @@ def build_property_response(db_property, db, gram_panchayat_id: int, tax_setting
             area = 0
         if area <= 300:
             return getattr(tax_settings, field + 'Upto300', 0) or 0
-        elif 301 <= area <= 700:
+        elif area <= 700:  # 300 पेक्षा जास्त ते 700 (दशांशासह, उदा. 300.5) - आधी 300<x<301 '>700' मध्ये जायचं
             return getattr(tax_settings, field + '301_700', 0) or 0
         else:
             return getattr(tax_settings, field + 'Above700', 0) or 0
@@ -1797,9 +1797,9 @@ def build_property_response(db_property, db, gram_panchayat_id: int, tax_setting
             return getattr(water_settings, 'exemptRate', 0)
         elif facility == 'सामान्य पाणीकर १ ते ३०० चौ. फु.':
             return getattr(water_slab_settings, 'generalWaterUpto300', 0)
-        elif facility == ['सामान्य पाणीकर ३०१ ते ७०० चौ. फु.','सामान्य पाणीकर ३०१ ते ७०० चौ. फु.']:
+        elif facility in ['सामान्य पाणीकर ३०१ ते ७०० चौ. फु.','सामान्य पाणीकर ३०१ ते ७०० चौ. फु.']:
             return getattr(water_slab_settings, 'generalWater301_700', 0)
-        elif facility == ['सामान्य पाणीकर ७०० चौ. फु. वरील','सामान्य पाणीकर ७०० चौ. फु. वरील']:
+        elif facility in ['सामान्य पाणीकर ७०० चौ. फु. वरील','सामान्य पाणीकर ७०० चौ. फु. वरील']:
             return getattr(water_slab_settings, 'generalWaterAbove700', 0)
         return 0
     total_area = db_property.totalAreaSqFt or 0
@@ -3141,7 +3141,7 @@ def get_tax_rate_by_area(db: Session, area: float, field: str, gram_panchayat_id
         return 0
     if area <= 300:
         return getattr(settings, field + 'Upto300', 0)
-    elif 301 <= area <= 700:
+    elif area <= 700:  # 300 पेक्षा जास्त ते 700 (दशांशासह, उदा. 300.5) - आधी 300<x<301 '>700' मध्ये जायचं
         return getattr(settings, field + '301_700', 0)
     else:
         return getattr(settings, field + 'Above700', 0)

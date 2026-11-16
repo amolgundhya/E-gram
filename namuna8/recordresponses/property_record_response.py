@@ -289,7 +289,7 @@ def get_property_record(
             area = 0
         if area <= 300:
             return getattr(settings, field + 'Upto300', 0) or 0
-        elif 301 <= area <= 700:
+        elif area <= 700:  # 300 पेक्षा जास्त ते 700 (दशांशासह, उदा. 300.5) - आधी 300<x<301 '>700' मध्ये जायचं
             return getattr(settings, field + '301_700', 0) or 0
         else:
             return getattr(settings, field + 'Above700', 0) or 0
@@ -602,7 +602,7 @@ def get_property_records_by_village(
             area = 0
         if area <= 300:
             return getattr(tax_settings, field + 'Upto300', 0) or 0
-        elif 301 <= area <= 700:
+        elif area <= 700:  # 300 पेक्षा जास्त ते 700 (दशांशासह, उदा. 300.5) - आधी 300<x<301 '>700' मध्ये जायचं
             return getattr(tax_settings, field + '301_700', 0) or 0
         else:
             return getattr(tax_settings, field + 'Above700', 0) or 0
@@ -1071,7 +1071,7 @@ def get_property_records_by_gram_panchayat(
                     area = 0
                 if area <= 300:
                     return getattr(settings, field + 'Upto300', 0) or 0
-                elif 301 <= area <= 700:
+                elif area <= 700:  # 300 पेक्षा जास्त ते 700 (दशांशासह, उदा. 300.5) - आधी 300<x<301 '>700' मध्ये जायचं
                     return getattr(settings, field + '301_700', 0) or 0
                 else:
                     return getattr(settings, field + 'Above700', 0) or 0
