@@ -16,6 +16,22 @@ from sqlalchemy.sql.sqltypes import Boolean
 class license(BaseModel):
     license_key : str
 
+
+# Online Backup (hosted server) वर कधीही न पाठवायचे गुप्त कॉलम (पासवर्ड/hash).
+# Import च्या वेळी hosted डेटामध्ये हे नसतात, म्हणून तिथे स्थानिक मूल्यं जपली जातात.
+SYNC_SECRET_COLUMNS = {
+    "gram_panchayats": {"bank_scanner_password_hash"},
+    "namuna8_setting_checklist": {"exportPassword"},
+}
+
+
+def _is_secret_column(table_name, column_name):
+    """वरच्या यादीतले कॉलम + नावावरून दिसणारे कोणतेही password/secret/hash/token कॉलम."""
+    if column_name in SYNC_SECRET_COLUMNS.get(table_name, set()):
+        return True
+    lowered = column_name.lower()
+    return any(word in lowered for word in ("password", "passwd", "secret", "_hash", "token"))
+
 router = APIRouter()
 @router.get('/generate-license')
 def generate_token():
@@ -300,7 +316,8 @@ def sync_all_tables(db : Session=Depends(database.get_db)):
             'namuna8.property_owner_history_model',
             'namuna8.mastertab.transfer_apis',
             'namuna9.namuna9_model',
-            'reportstab.outward_entries_model'
+            'reportstab.outward_entries_model',
+            'namuna8.staff_model'
         ]
         # Dictionary to store all model classes
         all_models = {}
@@ -338,7 +355,8 @@ def sync_all_tables(db : Session=Depends(database.get_db)):
             'no_benefit_certificates', 'life_certificates', 'good_conduct_certificates', 'niradhar_certificates',
             'unemployment_certificates', 'receipt_certificates', 'owners', 'properties', 'property_owner_association',
             'constructions', 'property_documents', 'property_transfer_logs', 'namuna7', 'outward_entries',
-            'namuna9_property_association', 'namuna9_property_data', 'namuna9_receipts'
+            'namuna9_property_association', 'namuna9_property_data', 'namuna9_receipts',
+            'gram_panchayat_staff'
         ])
 
         for table_name in ordered_tables:
@@ -355,6 +373,8 @@ def sync_all_tables(db : Session=Depends(database.get_db)):
                 for row in rows:
                     row_dict = {}
                     for column in model_class.__table__.columns:
+                        if _is_secret_column(table_name, column.name):
+                            continue
                         value = getattr(row, column.name)
                         if hasattr(value, 'isoformat'):
                             value = value.isoformat()
@@ -559,6 +579,12 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
             "outward_entries",
         ]
 
+        # कर्मचारी (STAFF) टेबल फक्त hosted डेटामध्ये आलं असेल तरच बदलायचं - जुन्या
+        # backup मध्ये ते नसतं, तेव्हा स्थानिक staff जसाच्या तसा ठेवायचा (पुसायचा नाही).
+        if "gram_panchayat_staff" in sync_data:
+            truncate_order.append("gram_panchayat_staff")
+            insert_order.append("gram_panchayat_staff")
+
         # 3. Import models dynamically
         model_modules = [
             "location_management.models",
@@ -587,6 +613,7 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
             "namuna8.mastertab.transfer_apis",
             "namuna9.namuna9_model",
             "reportstab.outward_entries_model",
+            "namuna8.staff_model",
         ]
 
         all_models = {}
@@ -656,15 +683,47 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
         # realizing it wipes the local DB) - so we keep a local recovery
         # point before proceeding, and abort entirely if the backup fails.
         import os
-        import shutil
+        import sqlite3
         db_file_path = os.path.join(database.database_path, "grampanchayat.db")
         backup_dir = os.path.join(database.database_path, "backups_before_import")
         os.makedirs(backup_dir, exist_ok=True)
         backup_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_path = os.path.join(backup_dir, f"grampanchayat_before_import_{backup_timestamp}.db")
         try:
-            db.execute(text("PRAGMA wal_checkpoint(FULL);"))
-            shutil.copy2(db_file_path, backup_path)
+            # बॅकअप वेगळ्या sqlite3 connection ने (sqlite backup API - WAL सह सुसंगत प्रत).
+            # `db` session वर इथे काहीही चालवायचं नाही: SQLAlchemy 2 मध्ये session वरचं
+            # पहिलं execute आपोआप transaction सुरू करतं आणि मग खालचं `with db.begin()`
+            # "A transaction is already begun" देऊन Import कधीच पूर्ण होत नव्हतं.
+            src_conn = sqlite3.connect(db_file_path)
+            dest_conn = sqlite3.connect(backup_path)
+            try:
+                src_conn.backup(dest_conn)
+            finally:
+                dest_conn.close()
+                src_conn.close()
+            check_conn = sqlite3.connect(backup_path)
+            try:
+                backup_ok = check_conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+            finally:
+                check_conn.close()
+            if not backup_ok:
+                raise RuntimeError("बॅकअप प्रत integrity_check मध्ये अयशस्वी")
+            # Online Backup गुप्त कॉलम पाठवत नाही, म्हणून hosted डेटात ते नसतात - Import नंतर
+            # स्थानिक पासवर्ड पुसले जाऊ नयेत म्हणून आधीची मूल्यं (बॅकअप प्रतीतून) वाचून ठेवायची.
+            local_secrets = []
+            secret_conn = sqlite3.connect(backup_path)
+            try:
+                for secret_table, secret_cols in SYNC_SECRET_COLUMNS.items():
+                    existing_cols = {r[1] for r in secret_conn.execute(f'PRAGMA table_info("{secret_table}")')}
+                    for secret_col in secret_cols:
+                        if secret_col not in existing_cols:
+                            continue
+                        for row_id, secret_val in secret_conn.execute(
+                            f'SELECT id, "{secret_col}" FROM "{secret_table}" WHERE "{secret_col}" IS NOT NULL'
+                        ):
+                            local_secrets.append((secret_table, secret_col, row_id, secret_val))
+            finally:
+                secret_conn.close()
         except Exception as backup_error:
             return {
                 "success": False,
@@ -726,6 +785,14 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
                         except Exception as e:
                             print(f"DEBUG: Error inserting {table} row: {e}")
                             pass
+
+            # स्थानिक गुप्त मूल्यं परत (hosted रो मध्ये ती रिकामी असतील तरच)
+            db.flush()
+            for secret_table, secret_col, row_id, secret_val in local_secrets:
+                db.execute(
+                    text(f'UPDATE "{secret_table}" SET "{secret_col}" = :v WHERE id = :id AND "{secret_col}" IS NULL'),
+                    {"v": secret_val, "id": row_id},
+                )
 
         db.commit()
         print("DEBUG: Transaction committed successfully")
