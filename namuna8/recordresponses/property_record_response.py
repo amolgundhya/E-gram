@@ -227,24 +227,24 @@ def get_property_record(
         capital_value = _kj["capital_value"]
         house_tax = _kj["house_tax"]
 
-        # Always emit a khaliJaga entry when vacantLandType is set, even if the
-        # computed area is exactly 0 (e.g. construction covers the whole plot),
-        # so reports show "0" instead of silently omitting the row.
-        khaliJaga = [{
-            "constructiontype": prop.vacantLandType,
-            "length": (khali_area_display),
-            "width": 1,
-            "year": datetime.now().year,
-            "rate": khali_jaga_rate,
-            "floor": "तळमजला",
-            "usage": prop.vacantLandType,
-            "capitalValue": 0 if prop.karLaguNahi else capital_value,
-            "houseTax": 0 if prop.karLaguNahi else house_tax,
-            "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
-            "taxRates": 0 if prop.karLaguNahi else (getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0),
-            "totalkhalijagaareainfoot": round(khali_area_display, 2),
-            "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
-        }]
+        # खाली जागा 0 असेल (बांधकामाने संपूर्ण प्लॉट व्यापला) तर रो देत नाही - जुन्या
+        # व्हर्जनप्रमाणे नमुना-8 प्रिंट्समध्ये "खाली जागा" ओळ/रकाना 0 ने दिसू नये.
+        if (khali_area_display or 0) > 0:
+            khaliJaga = [{
+                "constructiontype": prop.vacantLandType,
+                "length": (khali_area_display),
+                "width": 1,
+                "year": datetime.now().year,
+                "rate": khali_jaga_rate,
+                "floor": "तळमजला",
+                "usage": prop.vacantLandType,
+                "capitalValue": 0 if prop.karLaguNahi else capital_value,
+                "houseTax": 0 if prop.karLaguNahi else house_tax,
+                "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
+                "taxRates": 0 if prop.karLaguNahi else (getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0),
+                "totalkhalijagaareainfoot": round(khali_area_display, 2),
+                "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
+            }]
     # else: khaliJaga remains []
     # Fetch weightage mapping for usage
     weightage_map = {row.building_usage: row.weightage for row in db.query(BuildingUsageWeightage).all()}
@@ -671,23 +671,24 @@ def get_property_records_by_village(
             capital_value = _kj["capital_value"]
             house_tax = _kj["house_tax"]
 
-            # Always emit a khaliJaga entry when vacantLandType is set, even if the
-            # computed area is exactly 0, so reports show "0" instead of omitting the row.
-            khaliJaga = [{
-                "constructiontype": prop.vacantLandType or "खाली जागा",
-                "length": (khali_area_display),
-                "width": 1,
-                "year": datetime.now().year,
-                "rate": khali_jaga_rate,
-                "floor": "तळमजला",
-                "usage": prop.vacantLandType,
-                "capitalValue": 0 if prop.karLaguNahi else capital_value,
-                "houseTax": 0 if prop.karLaguNahi else house_tax,
-                "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
-                "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
-                "totalkhalijagaareainfoot": round(khali_area_display, 2),
-                "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
-            }]
+            # खाली जागा 0 असेल (बांधकामाने संपूर्ण प्लॉट व्यापला) तर रो देत नाही - जुन्या
+            # व्हर्जनप्रमाणे नमुना-8 प्रिंट्समध्ये "खाली जागा" ओळ/रकाना 0 ने दिसू नये.
+            if (khali_area_display or 0) > 0:
+                khaliJaga = [{
+                    "constructiontype": prop.vacantLandType or "खाली जागा",
+                    "length": (khali_area_display),
+                    "width": 1,
+                    "year": datetime.now().year,
+                    "rate": khali_jaga_rate,
+                    "floor": "तळमजला",
+                    "usage": prop.vacantLandType,
+                    "capitalValue": 0 if prop.karLaguNahi else capital_value,
+                    "houseTax": 0 if prop.karLaguNahi else house_tax,
+                    "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
+                    "taxRates": getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
+                    "totalkhalijagaareainfoot": round(khali_area_display, 2),
+                    "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
+                }]
         # else: khaliJaga remains []
         construction_unit_disp_early = getattr(prop, 'constructionAreaUnit', None) or getattr(prop, 'areaUnit', 'sqft') or 'sqft'
         constructionType = [
@@ -1041,23 +1042,24 @@ def get_property_records_by_gram_panchayat(
                 capital_value = _kj["capital_value"]
                 house_tax = _kj["house_tax"]
 
-                # Always emit a khaliJaga entry when vacantLandType is set, even if the
-                # computed area is exactly 0, so reports show "0" instead of omitting the row.
-                khaliJaga = [{
-                    "constructiontype": prop.vacantLandType or "खाली जागा",
-                    "length": round(khali_area_display),
-                    "width": 1,
-                    "year": datetime.now().year,
-                    "rate": khali_jaga_rate,
-                    "floor": "तळमजला",
-                    "usage": prop.vacantLandType,
-                    "capitalValue": 0 if prop.karLaguNahi else capital_value,
-                    "houseTax": 0 if prop.karLaguNahi else house_tax,
-                    "usageBasedBuildingWeightageFactor":  weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
-                    "taxRates": 0 if prop.karLaguNahi else getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
-                    "totalkhalijagaareainfoot": round(khali_area_display, 2),
-                    "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
-                }]
+                # खाली जागा 0 असेल (बांधकामाने संपूर्ण प्लॉट व्यापला) तर रो देत नाही - जुन्या
+                # व्हर्जनप्रमाणे नमुना-8 प्रिंट्समध्ये "खाली जागा" ओळ/रकाना 0 ने दिसू नये.
+                if (khali_area_display or 0) > 0:
+                    khaliJaga = [{
+                        "constructiontype": prop.vacantLandType or "खाली जागा",
+                        "length": round(khali_area_display),
+                        "width": 1,
+                        "year": datetime.now().year,
+                        "rate": khali_jaga_rate,
+                        "floor": "तळमजला",
+                        "usage": prop.vacantLandType,
+                        "capitalValue": 0 if prop.karLaguNahi else capital_value,
+                        "houseTax": 0 if prop.karLaguNahi else house_tax,
+                        "usageBasedBuildingWeightageFactor":  weightage_map.get(getattr(khali_construction_type, 'bharank', None), 1) if khali_construction_type else 1,
+                        "taxRates": 0 if prop.karLaguNahi else getattr(khali_construction_type, 'rate', 0) if khali_area > 0 else 0,
+                        "totalkhalijagaareainfoot": round(khali_area_display, 2),
+                        "totalkhalijagaareainmeters": round(khali_area_m_display, 2)
+                    }]
 
             constructionType = [
                 {
