@@ -52,10 +52,12 @@ def khali_jaga(prop, constructions, khali_construction_type, round_tax):
     total_native = (getattr(prop, "totalArea", None) or 0) if unit == "sqm" else (getattr(prop, "totalAreaSqFt", None) or 0)
 
     ground = [c for c in constructions if is_ground_floor(c)]
-    if ground:
-        used_raw = sum((c.length or 0) * (c.width or 0) for c in ground)
-    else:
-        used_raw = _largest_upper_floor_area(constructions)
+    used_raw = sum((c.length or 0) * (c.width or 0) for c in ground)
+    # खरी (खाली-जागा-प्रकार नसलेली) तळमजला रो नसेल तर वरच्या सगळ्यात मोठ्या मजल्याचा ठसा
+    # सुद्धा वजा. तळमजल्यावर फक्त स्वतः जोडलेली "खाली जागा" रो असेल (उदा. प्लॉट 862 + पहिला
+    # मजला 589 + खाली जागा रो 273) तर ती "तळमजला" धरून जुना नियम लागू होऊ नये.
+    if not any(not _is_khali_type_row(c) for c in ground):
+        used_raw += _largest_upper_floor_area(constructions)
     used_native = convert_area(used_raw, cunit, unit)
     khali_native = max(total_native - used_native, 0)
 
