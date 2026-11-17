@@ -3,7 +3,11 @@
 आणि एकूण घरपट्टी नेहमी सारखीच.
 
 नियम (क्लायंट Nov-2026): खाली जागा = एकूण क्षेत्रफळ - फक्त तळमजल्याचं (मजला "तळमजला"
-किंवा रिकामा) बांधकाम. पहिला/दुसरा मजला खाली जागा कमी करत नाही. वजाबाकी प्लॉटच्याच
+किंवा रिकामा) बांधकाम. तळमजला/रिकामी रो असेल तर पहिला/दुसरा मजला खाली जागा कमी करत नाही.
+तळमजला/रिकामी रो नसून फक्त वरचे मजले असतील (उदा. प्लॉट 862 + फक्त पहिला मजला 589) तर
+सगळ्यात मोठ्या एका मजल्याचं क्षेत्रफळ (इमारतीचा ठसा) वजा - सगळ्या मजल्यांची बेरीज नाही
+(क्लायंट 17-Nov-2026: 862 - 589 = 273). एका मजल्याची अनेक रो असतील तर त्या मजल्याची बेरीज
+हा त्या मजल्याचा आकार. एकूण जागा नसलेले फ्लॅट: खाली जागा 0 (बदल नाही). वजाबाकी प्लॉटच्याच
 एककात (areaUnit) गोल न करता; बांधकाम वेगळ्या एककात (constructionAreaUnit) असेल तरच एकदा
 रूपांतर. भांडवली मूल्यासाठी चौ.मी. क्षेत्रफळ Utility.area_units प्रमाणे (÷10.764, 2 दशांश).
 """
@@ -25,6 +29,18 @@ def has_vacant_land(prop) -> bool:
     return getattr(prop, "vacantLandType", None) not in (None, "", "null")
 
 
+def _largest_upper_floor_area(constructions):
+    """तळमजला/रिकामी रो नसताना: मजल्यानुसार क्षेत्रफळांची बेरीज, त्यातला सगळ्यात मोठा मजला
+    (constructionAreaUnit मध्ये). "खाली जागा" प्रकाराच्या रो इमारतीचा भाग नाहीत, म्हणून वगळल्या."""
+    per_floor = {}
+    for c in constructions:
+        if _is_khali_type_row(c):
+            continue
+        floor = (getattr(c, "floor", None) or "").strip()
+        per_floor[floor] = per_floor.get(floor, 0) + (c.length or 0) * (c.width or 0)
+    return max(per_floor.values(), default=0)
+
+
 def khali_jaga(prop, constructions, khali_construction_type, round_tax):
     """खाली जागेची सर्व मूल्यं dict मध्ये. khali_construction_type: vacantLandType नावाचा
     ConstructionType (नसेल तर None -> कर 0). round_tax: कर रक्कम पूर्ण रुपयात आणणारं फंक्शन
@@ -36,7 +52,11 @@ def khali_jaga(prop, constructions, khali_construction_type, round_tax):
     total_native = (getattr(prop, "totalArea", None) or 0) if unit == "sqm" else (getattr(prop, "totalAreaSqFt", None) or 0)
 
     ground = [c for c in constructions if is_ground_floor(c)]
-    used_native = convert_area(sum((c.length or 0) * (c.width or 0) for c in ground), cunit, unit)
+    if ground:
+        used_raw = sum((c.length or 0) * (c.width or 0) for c in ground)
+    else:
+        used_raw = _largest_upper_floor_area(constructions)
+    used_native = convert_area(used_raw, cunit, unit)
     khali_native = max(total_native - used_native, 0)
 
     # बांधकाम तक्त्यात स्वतः टाकलेली "खाली जागा" प्रकाराची (तळमजला) रो वर "वापरलेली" धरली आहे
