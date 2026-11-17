@@ -2715,9 +2715,16 @@ def serialize_properties(
     db: Session = Depends(database.get_db)
 ):
     """
-    Serialize property anuKramank numbers starting from start_number + 1.
+    Serialize property anuKramank numbers starting from start_number (1 -> 1, 2, 3 ...).
     Updates QR codes and moves owner photos based on new anuKramank.
     """
+    # सुरुवात क्रमांक हाच पहिल्या मालमत्तेचा अनुक्रमांक - 0 (किंवा उणे) दिल्यास अनुक्रमांक 0
+    # पासून लागायचा आणि डिस्प्ले अ.क्र. (1 पासून) शी कधीच जुळायचा नाही. म्हणून 1 पासूनच.
+    if start_number is None or start_number < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="सुरुवात क्रमांक किमान 1 असावा / Start number must be 1 or more",
+        )
     try:
         with db.begin():
             # Validate location hierarchy
