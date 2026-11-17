@@ -294,6 +294,64 @@ def fix_namuna9_total_dand_twice():
 
 fix_namuna9_total_dand_twice()
 
+# नमुना-9: डिलीट झालेल्या सालाचे उरलेले (अनाथ) namuna9_property_data रो एकदाच काढतो.
+# SQLite हाच id पुढच्या नव्या सालाला देतो, त्यामुळे असे रो नव्या सालात "सेव्ह झालेले"
+# म्हणून दिसायचे (उदा. मा.क्र. 773/774 वर जुने दिवा/आरोग्य 50). फक्त खरे अनाथ रो - ज्यांचा
+# namuna9_id कोणत्याही सालात नाही आणि त्या id वर एकही पावती नाही. काढण्याआधी DB चा बॅकअप
+# (Databasessqllite मध्येच) घेतो; बॅकअप न झाल्यास काहीच काढत नाही व पुढच्या वेळी पुन्हा
+# प्रयत्न करतो. प्रत्येक काढलेला रो लॉग होतो.
+MIGRATION_FLAG_NAMUNA9_ORPHAN_ROWS = "namuna9_orphan_rows_cleanup"
+
+def cleanup_namuna9_orphan_rows():
+    import sqlite3
+    from datetime import datetime
+    try:
+        with engine.begin() as conn:
+            conn.exec_driver_sql(
+                "CREATE TABLE IF NOT EXISTS migration_flags (name TEXT PRIMARY KEY, applied_at TEXT)"
+            )
+            if conn.exec_driver_sql(
+                "SELECT 1 FROM migration_flags WHERE name = ?", (MIGRATION_FLAG_NAMUNA9_ORPHAN_ROWS,)
+            ).fetchone():
+                return
+            orphans = conn.exec_driver_sql(
+                "SELECT id, namuna9_id, property_id, total FROM namuna9_property_data "
+                "WHERE namuna9_id NOT IN (SELECT id FROM namuna9)"
+            ).fetchall()
+            ids_with_receipts = {r[0] for r in conn.exec_driver_sql(
+                "SELECT DISTINCT namuna9_id FROM namuna9_receipts WHERE namuna9_id NOT IN (SELECT id FROM namuna9)"
+            ).fetchall()}
+        to_delete = [r for r in orphans if r[1] not in ids_with_receipts]
+        for r in orphans:
+            if r[1] in ids_with_receipts:
+                _safe_print(f"[Migration] namuna9 अनाथ रो ठेवला (त्या id वर पावत्या आहेत): id={r[0]} namuna9_id={r[1]} property_id={r[2]}")
+
+        if to_delete:
+            db_file = engine.url.database
+            backup_file = f"{db_file}.before_namuna9_orphan_cleanup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+            src = sqlite3.connect(db_file)
+            dst = sqlite3.connect(backup_file)
+            try:
+                src.backup(dst)
+            finally:
+                dst.close()
+                src.close()
+            _safe_print(f"[Migration] namuna9 अनाथ रो: बॅकअप {backup_file}")
+
+        with engine.begin() as conn:
+            for row_id, namuna9_id, property_id, total in to_delete:
+                conn.exec_driver_sql("DELETE FROM namuna9_property_data WHERE id = ?", (row_id,))
+                _safe_print(f"[Migration] namuna9 अनाथ रो काढला: id={row_id} namuna9_id={namuna9_id} property_id={property_id} total={total}")
+            conn.exec_driver_sql(
+                "INSERT INTO migration_flags (name, applied_at) VALUES (?, ?)",
+                (MIGRATION_FLAG_NAMUNA9_ORPHAN_ROWS, datetime.now().isoformat()),
+            )
+        _safe_print(f"[Migration] namuna9 अनाथ रो cleanup: {len(to_delete)} काढले (one-time).")
+    except Exception as e:
+        _safe_print(f"[Migration] Could not clean namuna9 orphan rows: {e}")
+
+cleanup_namuna9_orphan_rows()
+
 # Ensure new columns exist for properties (SQLite simple migration)
 def ensure_properties_columns():
     try:

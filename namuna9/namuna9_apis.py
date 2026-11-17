@@ -278,9 +278,55 @@ def delete_namuna9_year_setup(village: str, year: str, db: Session = Depends(dat
     ).first()
     if not db_record:
         raise HTTPException(status_code=404, detail=f"Record for village '{village}' and year '{year}' not found")
+    # पावत्या (रद्द केलेल्यांसह) असलेलं साल डिलीट करू देत नाही - पावत्या namuna9_id ने
+    # सालाशी जोडलेल्या असतात; साल गेलं तर त्या अनाथ होतात आणि पुढे तोच id मिळालेल्या
+    # नव्या सालावर चुकीच्या दिसू शकतात.
+    receipt_count = db.query(namuna9_model.Namuna9Receipt).filter(
+        namuna9_model.Namuna9Receipt.namuna9_id == db_record.id
+    ).count()
+    if receipt_count:
+        cancelled = db.query(namuna9_model.Namuna9Receipt).filter(
+            namuna9_model.Namuna9Receipt.namuna9_id == db_record.id,
+            namuna9_model.Namuna9Receipt.is_deleted == True,
+        ).count()
+        raise HTTPException(
+            status_code=409,
+            detail=(f"{year} या सालात {receipt_count} पावत्या आहेत (त्यापैकी {cancelled} रद्द केलेल्या) - "
+                    f"पावत्या असलेला नमुना-9 डिलीट करता येत नाही."),
+        )
+    # या सालाचे मालमत्ता रो सुद्धा स्पष्टपणे काढतो (मागे काहीही उरू नये - नाहीतर SQLite
+    # हाच id नव्या सालाला देतो आणि जुने रो त्या सालात दिसतात).
+    db.query(namuna9_model.Namuna9PropertyData).filter(
+        namuna9_model.Namuna9PropertyData.namuna9_id == db_record.id
+    ).delete(synchronize_session=False)
     db.delete(db_record)
     db.commit()
     return {"message": f"Record for village '{village}' and year '{year}' deleted successfully."}
+
+
+def _safe_log(msg: str) -> None:
+    # काही क्लायंट PC वर कन्सोल cp1252 - मराठी print() क्रॅश होऊ नये
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        print(msg.encode('ascii', errors='replace').decode('ascii'))
+
+
+def _purge_leftover_rows_for_new_year(db: Session, namuna9_id: int) -> None:
+    """नवं नमुना-9 साल बनवताना: SQLite (AUTOINCREMENT नसल्याने) आधी डिलीट झालेल्या सालाचा
+    id पुन्हा देऊ शकतो. त्या id चे जुने namuna9_property_data रो उरले असतील तर ते नव्या
+    सालात "सेव्ह झालेले" म्हणून दिसतात (उदा. मा.क्र. 773/774 वर जुने दिवा/आरोग्य 50). नवं
+    साल अजून कुणी उघडलेलं नाही, त्यामुळे या id चे सगळे रो उरलेलेच - ते काढतो."""
+    leftover = db.query(namuna9_model.Namuna9PropertyData).filter(
+        namuna9_model.Namuna9PropertyData.namuna9_id == namuna9_id
+    ).delete(synchronize_session=False)
+    if leftover:
+        _safe_log(f"[namuna9] नवं साल id={namuna9_id}: जुन्या (डिलीट झालेल्या) सालाचे {leftover} उरलेले रो काढले")
+    stray_receipts = db.query(namuna9_model.Namuna9Receipt).filter(
+        namuna9_model.Namuna9Receipt.namuna9_id == namuna9_id
+    ).count()
+    if stray_receipts:
+        _safe_log(f"[namuna9] सूचना: नवं साल id={namuna9_id} वर जुन्या सालाच्या {stray_receipts} पावत्या आहेत - त्यांना हात लावलेला नाही")
 
 @router.post("/settings", response_model=Namuna9SettingsRead, status_code=status.HTTP_201_CREATED)
 def create_namuna9_settings(settings: Namuna9SettingsCreate, db: Session = Depends(database.get_db)):
@@ -386,6 +432,8 @@ def create_or_carry_forward_namuna9(
         )
         try:
             db.add(new_namuna9)
+            db.flush()
+            _purge_leftover_rows_for_new_year(db, new_namuna9.id)
             db.commit()
         except IntegrityError:
             db.rollback()
@@ -405,6 +453,8 @@ def create_or_carry_forward_namuna9(
         )
         try:
             db.add(new_namuna9)
+            db.flush()
+            _purge_leftover_rows_for_new_year(db, new_namuna9.id)
             db.commit()
         except IntegrityError:
             db.rollback()
