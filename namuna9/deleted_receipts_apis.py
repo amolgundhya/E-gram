@@ -35,6 +35,7 @@ COLUMNS = [
     ("sapanikar", "सा.पाणी कर"),
     ("vpanikar", "वि.पाणी कर"),
     ("cleaningTax", "सफाई कर"),
+    ("toiletTax", "शौचालय कर"),
     ("dand", "दंड"),
     ("noticeFee", "नोटीस फी"),
     ("warrantFee", "वारंट फी"),
@@ -110,6 +111,7 @@ def _fetch_rows(
                 "vasuliGhar", "vasuliChaluGhar", "vasuliDiva", "vasuliChaluDiva",
                 "vasuliAarogyaKar", "vasuliChaluAarogyaKar", "vasuliSapanikar", "vasuliChaluSapanikar",
                 "vasuliVpanikar", "vasuliChaluVpanikar", "vasuliCleaningTax", "vasuliChaluCleaningTax",
+                "vasuliToiletTax", "vasuliChaluToiletTax",
                 "vasuliDand", "vasuliNoticeFee", "vasuliWarrantFee",
             ))
             sut = round(components_sum - (r.total or 0), 2)
@@ -136,6 +138,7 @@ def _fetch_rows(
                 "sapanikar": round((r.vasuliSapanikar or 0) + (r.vasuliChaluSapanikar or 0), 2),
                 "vpanikar": round((r.vasuliVpanikar or 0) + (r.vasuliChaluVpanikar or 0), 2),
                 "cleaningTax": round((r.vasuliCleaningTax or 0) + (r.vasuliChaluCleaningTax or 0), 2),
+                "toiletTax": round((r.vasuliToiletTax or 0) + (r.vasuliChaluToiletTax or 0), 2),
                 "dand": round(r.vasuliDand or 0, 2),
                 "noticeFee": round(r.vasuliNoticeFee or 0, 2),
                 "warrantFee": round(r.vasuliWarrantFee or 0, 2),
@@ -180,6 +183,7 @@ def _fetch_rows(
                 "sapanikar": None,
                 "vpanikar": None,
                 "cleaningTax": None,
+                "toiletTax": None,
                 "dand": None,
                 "noticeFee": None,
                 "warrantFee": None,

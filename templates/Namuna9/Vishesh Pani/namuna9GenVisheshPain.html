@@ -188,7 +188,7 @@
                 <th rowspan="3" style="min-width:48px;">मिळकत नंबर</th>
                 <th rowspan="3" style="min-width:120px;">ज्या व्यक्तीकडुन कर येणे असेल त्या व्यक्तीचे नाव</th>
                 <th rowspan="3" style="min-width:48px;">‍‍‍‍भोगवटदाराचे नाव</th>
-                <th colspan="10">मागणी</th>
+                <th colspan="13">मागणी</th>
                 <th rowspan="3" style="min-width:48px;">एकूण कर</th>
                 <th rowspan="3" style="min-width:80px;">पावती क्रमांक व तारीख</th>
             </tr>
@@ -196,10 +196,14 @@
                 <th colspan="4">घरकर</th>
                 <th colspan="3">दिवाकर</th>
                 <th colspan="3">आरोग्यकर</th>
+                <th colspan="3">शौचालय कर</th>
             </tr>
             <tr>
                 <th style="min-width:32px;">मागील</th>
                 <th style="min-width:32px;">दंड</th>
+                <th style="min-width:32px;">चालु</th>
+                <th style="min-width:32px;">एकुण</th>
+                <th style="min-width:32px;">मागील</th>
                 <th style="min-width:32px;">चालु</th>
                 <th style="min-width:32px;">एकुण</th>
                 <th style="min-width:32px;">मागील</th>
@@ -228,7 +232,10 @@
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitHealthTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.healthTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalHealthTax}}{% endif %}</td>
-                <td>{% if removePurnaYekun != 'true' %}{{ (row.totaltaxwithoutnoticwarrant) - (row.totalViWaterTax|default(0)) - (row.totalSaWaterTax|default(0)) - (row.totlaToiletTax|default(0)) - (row.totalCleaningTax|default(0)) | round(2)}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.dhakitToiletTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.toiletTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.totalToiletTax}}{% endif %}</td>
+                <td>{% if removePurnaYekun != 'true' %}{{ (row.totaltaxwithoutnoticwarrant) - (row.totalViWaterTax|default(0)) - (row.totalSaWaterTax|default(0)) - (row.totalCleaningTax|default(0)) | round(2)}}{% endif %}</td>
                 <td>{{pavatiSRKivyaTarik}}</td>
             </tr>
             {% endfor  %}
@@ -247,11 +254,14 @@
             <td>{% if removeDhakit != 'true' %}{{ page | sum(attribute='dhakitHealthTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ page | sum(attribute='healthTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ page | sum(attribute='totalHealthTax') }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ page | sum(attribute='dhakitToiletTax') }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ page | sum(attribute='toiletTax') }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ page | sum(attribute='totalToiletTax') }}{% endif %}</td>
             <td>{% if removePurnaYekun != 'true' %}{{
                 (page | sum(attribute='totaltaxwithoutnoticwarrant'))
                 - (page | sum(attribute='totalViWaterTax'))
                 - (page | sum(attribute='totalSaWaterTax'))
-                - (page | sum(attribute='totlaToiletTax'))
+
                 - (page | sum(attribute='totalCleaningTax')) | round(2)
             }}{% endif %}</td>
         </tr>
@@ -269,11 +279,14 @@
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitHealthTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='healthTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalHealthTax') }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitToiletTax') }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='toiletTax') }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalToiletTax') }}{% endif %}</td>
             <td>{% if removePurnaYekun != 'true' %}{{
                 (data | sum(attribute='totaltaxwithoutnoticwarrant'))
                 - (data | sum(attribute='totalViWaterTax'))
                 - (data | sum(attribute='totalSaWaterTax'))
-                - (data | sum(attribute='totlaToiletTax'))
+
                 - (data | sum(attribute='totalCleaningTax')) | round(2)
             }}{% endif %}</td>
         </tr>

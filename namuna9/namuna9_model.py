@@ -41,7 +41,8 @@ class Namuna9PropertyData(Base):
     shaktiAarogyaKar = Column(Float, default=0.0)  # थकित आ.कर.
     shaktiSapanikar = Column(Float, default=0.0)  # थकित सा.पाणी
     shaktiVpanikar = Column(Float, default=0.0)  # थकित वि.पाणी
-    shaktiCleaningTax = Column(Float, default=0.0)  # थकित शौ.कर
+    shaktiCleaningTax = Column(Float, default=0.0)  # थकित सफाई कर (जुनी कमेंट 'शौ.कर' होती - प्रत्यक्षात सगळीकडे सफाई कर)
+    shaktiToiletTax = Column(Float, default=0.0)  # थकित शौचालय कर
     
     # दंड (Penalty) field
     dand = Column(Float, default=0.0)  # दंड
@@ -52,7 +53,8 @@ class Namuna9PropertyData(Base):
     chaluAarogyaKar = Column(Float, default=0.0)  # चालू आ.कर.
     chaluSapanikar = Column(Float, default=0.0)  # चालू सा.पाणी
     chaluVpanikar = Column(Float, default=0.0)  # चालू वि.पाणी
-    chaluCleaningTax = Column(Float, default=0.0)  # चालू शौ.कर
+    chaluCleaningTax = Column(Float, default=0.0)  # चालू सफाई कर
+    chaluToiletTax = Column(Float, default=0.0)  # चालू शौचालय कर
     
     # एकूण (Total) fields
     ekunGhar = Column(Float, default=0.0)  # एकूण घर
@@ -60,7 +62,8 @@ class Namuna9PropertyData(Base):
     ekunAarogyaKar = Column(Float, default=0.0)  # एकूण आ.कर.
     ekunSapanikar = Column(Float, default=0.0)  # एकूण सा.पाणी
     ekunVpanikar = Column(Float, default=0.0)  # एकूण वि.पाणी
-    ekunCleaningTax = Column(Float, default=0.0)  # एकूण शौ.कर
+    ekunCleaningTax = Column(Float, default=0.0)  # एकूण सफाई कर
+    ekunToiletTax = Column(Float, default=0.0)  # एकूण शौचालय कर
     
     # Fees
     warrantFee = Column(Float, default=0.0)  # वारंट फी
@@ -82,6 +85,8 @@ class Namuna9PropertyData(Base):
     vasuliChaluVpanikar = Column(Float, default=0.0)
     vasuliCleaningTax = Column(Float, default=0.0)
     vasuliChaluCleaningTax = Column(Float, default=0.0)
+    vasuliToiletTax = Column(Float, default=0.0)
+    vasuliChaluToiletTax = Column(Float, default=0.0)
     vasuliDand = Column(Float, default=0.0)
     vasuliNoticeFee = Column(Float, default=0.0)
     vasuliWarrantFee = Column(Float, default=0.0)
@@ -147,6 +152,8 @@ class Namuna9Receipt(Base):
     vasuliChaluVpanikar = Column(Float, default=0.0)
     vasuliCleaningTax = Column(Float, default=0.0)
     vasuliChaluCleaningTax = Column(Float, default=0.0)
+    vasuliToiletTax = Column(Float, default=0.0)
+    vasuliChaluToiletTax = Column(Float, default=0.0)
     vasuliDand = Column(Float, default=0.0)
     vasuliNoticeFee = Column(Float, default=0.0)
     vasuliWarrantFee = Column(Float, default=0.0)
