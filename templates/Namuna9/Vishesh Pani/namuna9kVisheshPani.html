@@ -255,7 +255,7 @@
     {% set current_value = record.recoverableAmounts.current['current' ~ loop.index] or 0 %}
     {% set total_value = record.recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
-    <td class="right">{{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value }}</td>
+    <td class="right">{{ current_value }}</td>
     <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
     {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}
         {% set totals.magil = totals.magil + (record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}
@@ -263,7 +263,7 @@
         {% set totals.current = totals.current + current_value %}
         {% set totals.ekun = totals.ekun + total_value %}
     {% else %}
-        {% set totals.ekun = totals.ekun + current_value %}
+        {% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + current_value %}
     {% endif %}
 
     {# Accumulate deduction amount if condition matched #}
@@ -301,6 +301,7 @@
         {% endfor %}
     </div>
     {% endfor %}
+    <script src="/report_assets/fit_sheets.js"></script>
     <script src="/report_assets/report_share.js"></script>
 </body>
 </html>
