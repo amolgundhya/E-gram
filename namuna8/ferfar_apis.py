@@ -7,6 +7,7 @@ from location_management import models as location_models
 from database import get_db
 from namuna8.mastertab.transfer_apis import PropertyTransferLogDB
 import json
+from Utility.area_display import area_text, get_area_round_up
 
 router = APIRouter()
 
@@ -74,6 +75,8 @@ def get_ferfar_record_responses(
     
     # Format the response
     property_transfers = []
+    # क्षेत्रफळ - MASTER "Round Up All Area" नुसार (नमुना-8 प्रिंट्ससारखाच नियम)
+    area_round_up = get_area_round_up(db, gram_panchayat_id)
     
     for log in transfer_logs:
         try:
@@ -117,7 +120,7 @@ def get_ferfar_record_responses(
                 "transaction_date": log.transaction_date.strftime("%d/%m/%Y") if log.transaction_date else "",
                 "roadName": property_details.streetName or property_details.citySurveyOrGatNumber or "",
                 "propertyNumber": str(property_details.anuKramank),
-                "propertyDescription": f"क्षेत्र: {property_details.totalAreaSqFt} चौ.फूट" if property_details.totalAreaSqFt else "",
+                "propertyDescription": f"क्षेत्र: {area_text(property_details.totalAreaSqFt, area_round_up)} चौ.फूट" if property_details.totalAreaSqFt else "",
                 "previousOwnerName": ", ".join(previous_owner_names),
                 "previousOccupantName" : old_owners[0].get("occupantName") if old_owners and old_owners[0].get("occupantName") else "स्वतः",
                 "currentOccupantName"  : new_owners[0].get("occupantName") if new_owners and new_owners[0].get("occupantName") else "स्वतः",

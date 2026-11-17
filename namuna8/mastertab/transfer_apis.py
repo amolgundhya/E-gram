@@ -8,6 +8,7 @@ from namuna8 import namuna8_model as models, namuna8_schemas as schemas
 from database import get_db, Base
 from pydantic import BaseModel, validator
 import json
+from Utility.area_display import area_text, get_area_round_up
 from namuna8.property_owner_history_model import PropertyOwnerHistory
 from namuna8.owner_history_model import OwnerHistory
 from namuna8.namuna8_apis import build_property_response
@@ -770,7 +771,7 @@ def get_transfer_register_response(
                 "transaction_date": log.transaction_date.strftime("%d/%m/%Y") if log.transaction_date else "",
                 "roadName": property_details.streetName or "",
                 "propertyNumber": str(property_details.anuKramank),
-                "propertyDescription": f"क्षेत्र: {property_details.totalAreaSqFt} चौ.फूट" if property_details.totalAreaSqFt else "",
+                "propertyDescription": f"क्षेत्र: {area_text(property_details.totalAreaSqFt, get_area_round_up(db, property_details.gram_panchayat_id))} चौ.फूट" if property_details.totalAreaSqFt else "",
                 "previousOwnerName": ", ".join(previous_owner_names),
                 "currentOwnerName": ", ".join(current_owner_names),
                 "modification_reference_remarks": log.doc_note or "",
@@ -871,7 +872,7 @@ def get_transfer_record_responses(
                 "transaction_date": log.transaction_date.strftime("%d/%m/%Y") if log.transaction_date else "",
                 "roadName": property_details.streetName or "",
                 "propertyNumber": str(property_details.anuKramank),
-                "propertyDescription": f"क्षेत्र: {property_details.totalAreaSqFt} चौ.फूट" if property_details.totalAreaSqFt else "",
+                "propertyDescription": f"क्षेत्र: {area_text(property_details.totalAreaSqFt, get_area_round_up(db, property_details.gram_panchayat_id))} चौ.फूट" if property_details.totalAreaSqFt else "",
                 "previousOwnerName": ", ".join(previous_owner_names),
                 "currentOwnerName": ", ".join(current_owner_names),
                 "modification_reference_remarks": log.doc_note or "",
