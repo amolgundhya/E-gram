@@ -243,7 +243,7 @@
                 <td></td>
                 <td></td>
             </tr>
-            {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर', 'विशेष पाणी कर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %}
+            {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर', 'पाणीकर', 'विशेष पाणी कर', 'सफाई कर', 'शौचालय कर', 'नोटीस फी', 'वारंट फी'] %}
             {% set tax_names = tax_names if tax_names is defined else default_tax_names %}
             {% set ns = namespace(deduction=0) %}
             {# स्तंभनिहाय बेरीज (मागील/दंड/चालू/एकूण/शिल्लक बाकी) - नोटीस/वारंट फी
@@ -253,7 +253,7 @@
             {% for tax in tax_names %}
                 {% if (tax == 'नोटीस फी' or tax == 'वारंट फी') %}
                 {# नोटीस/वारंट फी: ओळीत फक्त चालू/एकूण मध्ये दिसते, तशीच बेरजेतही (स्क्रीनच्या एकूण प्रमाणे).
-                   Thakit7/8 मध्येही फीच असते, म्हणून मागील/दंड मध्ये धरत नाही. #}
+                   Thakit8/9 मध्येही फीच असते, म्हणून मागील/दंड मध्ये धरत नाही. #}
                 {% set t_fee = record.recoverableAmounts.current['current' ~ loop.index] or 0 %}
                 {% set totals.current = totals.current + t_fee %}
                 {% set totals.ekun = totals.ekun + t_fee %}

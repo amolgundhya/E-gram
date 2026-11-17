@@ -423,7 +423,7 @@
           <td></td>
         </tr>
         {% set default_tax_names = ['घरकर', 'दिवाबत्ती कर', 'आरोग्य कर',
-        'पाणीकर', 'विशेष पाणी कर', 'सफाई कर', 'नोटीस फी', 'वारंट फी'] %} {% set tax_names =
+        'पाणीकर', 'विशेष पाणी कर', 'सफाई कर', 'शौचालय कर', 'नोटीस फी', 'वारंट फी'] %} {% set tax_names =
         tax_names if tax_names is defined else default_tax_names %} {% set ns =
         namespace(deduction=0) %} {% for tax in tax_names %}
         <tr>
@@ -463,7 +463,7 @@
         <tr class="bold">
           <td>दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') }}</td>
           <td class="right" colspan="4">
-            एकूण : {{ (record.totalTaxwithoutvipanitoilet or 0) }}
+            एकूण : {{ (record.totalTaxwithoutvipanitoilet or 0) + (record.recoverableAmounts.total.total7 or 0) }}
           </td>
         </tr>
       </table>

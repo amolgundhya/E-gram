@@ -196,7 +196,7 @@
                 <th rowspan="3" style="min-width:48px;">मिळकत नंबर</th>
                 <th rowspan="3" style="min-width:120px;">ज्या व्यक्तीकडुन कर येणे असेल त्या व्यक्तीचे नाव</th>
                 <th rowspan="3" style="min-width:48px;">‍‍‍‍भोगवटदाराचे नाव</th>
-                <th colspan="19">मागणी</th>
+                <th colspan="22">मागणी</th>
                 <th rowspan="3" style="min-width:48px;">एकूण कर</th>
                 <th rowspan="3" style="min-width:80px;">पावती क्रमांक व तारीख</th>
             </tr>
@@ -205,12 +205,16 @@
                 <th colspan="3">दिवाकर</th>
                 <th colspan="3">आरोग्यकर</th>
                 <th colspan="3">सफाई कर</th>
+                <th colspan="3">शौचालय कर</th>
                 <th colspan="3">सा. पाणी कर</th>
                 <th colspan="3">वि. पाणीकर</th>
             </tr>
             <tr>
                 <th style="min-width:32px;">मागील</th>
                 <th style="min-width:32px;">दंड</th>
+                <th style="min-width:32px;">चालु</th>
+                <th style="min-width:32px;">एकुण</th>
+                <th style="min-width:32px;">मागील</th>
                 <th style="min-width:32px;">चालु</th>
                 <th style="min-width:32px;">एकुण</th>
                 <th style="min-width:32px;">मागील</th>
@@ -251,6 +255,9 @@
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitCleaningTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.cleaningTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalCleaningTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.dhakitToiletTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.toiletTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.totalToiletTax}}{% endif %}</td>
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitSaWaterTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.saWaterTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalSaWaterTax}}{% endif %}</td>
@@ -270,6 +277,7 @@
             <td colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+            <td colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">सा. पाणी कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">वि.पाणीकर</td>
             <td style="font-weight:bold; text-align:center;">एकूण </td>
@@ -292,6 +300,9 @@
             <td>{% if removeDhakit != 'true' %}{{ page | sum(attribute='dhakitCleaningTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ page | sum(attribute='cleaningTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ page | sum(attribute='totalCleaningTax') }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ page | sum(attribute='dhakitToiletTax') }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ page | sum(attribute='toiletTax') }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ page | sum(attribute='totalToiletTax') }}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{{ page | sum(attribute='dhakitSaWaterTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ page | sum(attribute='saWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ page | sum(attribute='totalSaWaterTax') }}{% endif %}</td>
@@ -307,6 +318,7 @@
             <td colspan="3" style="font-weight:bold; text-align:center;">दिवा कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+            <td colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">सा. पाणी कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">वि.पाणीकर</td>
             <td style="font-weight:bold; text-align:center;">एकूण </td>
@@ -329,6 +341,9 @@
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitCleaningTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='cleaningTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalCleaningTax') }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitToiletTax') }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='toiletTax') }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalToiletTax') }}{% endif %}</td>
             <td>{% if removeDhakit != 'true' %}{{ data | sum(attribute='dhakitSaWaterTax') }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='saWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalSaWaterTax') }}{% endif %}</td>

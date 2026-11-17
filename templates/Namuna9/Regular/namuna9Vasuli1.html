@@ -204,10 +204,10 @@
                 <th rowspan="3" style="min-width:56px;">मिळकत नंबर</th>
                 <th rowspan="3" style="min-width:80px;">मालकाचे नाव</th>
                 <th rowspan="3" style="min-width:56px;">‍‍‍‍भोगवटदाराचे नाव</th>
-                <th colspan="16">वसुली</th>
+                <th colspan="19">वसुली</th>
                 <th rowspan="3" style="min-width:48px;">एकुण</th>
-                <th rowspan="2" colspan="5" style="min-width:56px;">सुट</th>
-                <th rowspan="2" colspan="5" style="min-width:100px;">बाकी</th>
+                <th rowspan="2" colspan="6" style="min-width:56px;">सुट</th>
+                <th rowspan="2" colspan="6" style="min-width:100px;">बाकी</th>
                 <th rowspan="3" >सुट मजुर करणा-या आदेशासह शेरा</th>
 
             </tr>
@@ -217,6 +217,7 @@
                 <th colspan="3">आरोग्यकर</th>
                 <th colspan="3">पाणीकर</th>
                 <th colspan="3">सफाई कर</th>
+                <th colspan="3">शौचालय कर</th>
             </tr>
             <tr>
                 <th style="min-width:40px;">मागील</th>
@@ -235,16 +236,21 @@
                 <th style="min-width:40px;">मागील</th>
                 <th style="min-width:40px;">चालु</th>
                 <th style="min-width:40px;">एकुण</th>
+                <th style="min-width:40px;">मागील</th>
+                <th style="min-width:40px;">चालु</th>
+                <th style="min-width:40px;">एकुण</th>
                 <th style="min-width:40px;">घर</th>
                 <th style="min-width:40px;">दिवा</th>
                 <th style="min-width:40px;">आरोग्य</th>
                 <th style="min-width:40px;">पाणी</th>
                 <th style="min-width:40px;">सफाई</th>
+                <th style="min-width:40px;">शौचालय</th>
                 <th style="min-width:40px;">घर</th>
                 <th style="min-width:40px;">दिवा</th>
                 <th style="min-width:40px;">आरोग्य</th>
                 <th style="min-width:40px;">पाणी</th>
                 <th style="min-width:40px;">सफाई</th>
+                <th style="min-width:40px;">शौचालय</th>
             </tr>
         </thead>
         <tbody>
@@ -271,7 +277,12 @@
                 <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitCleaningTax | blankzero(blankZero)}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.vasuliCleaningTax | blankzero(blankZero)}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.vasuliTotalCleaningTax | blankzero(blankZero)}}{% endif %}</td>
-                <td>{% if removePurnaYekun != 'true' %}{{ (((row.vasuliTotalTax) - (row.vasuliTotalViWaterTax|default(0)) - (row.totlaToiletTax|default(0))) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitToiletTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliToiletTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalToiletTax | blankzero(blankZero)}}{% endif %}</td>
+                <td>{% if removePurnaYekun != 'true' %}{{ (((row.vasuliTotalTax) - (row.vasuliTotalViWaterTax|default(0))) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
+                <td></td>
+                <td></td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -294,7 +305,10 @@
             <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">पाणी कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+            <td colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
+            <td></td>
             <td></td>
             <td></td>
             <td></td>
@@ -328,7 +342,12 @@
             <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='vasuliDhakitCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='vasuliCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='vasuliTotalCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (page | sum(attribute='vasuliDhakitToiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (page | sum(attribute='vasuliToiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='vasuliTotalToiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td>{% if removePurnaYekun != 'true' %}{{ (((page | map(attribute='vasuliTotalTax') | sum) - (page | map(attribute='vasuliTotalViWaterTax') | sum)) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
+            <td></td>
+            <td></td>
             <td></td>
             <td></td>
             <td></td>
@@ -349,7 +368,10 @@
             <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">पाणी कर</td>
             <td colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+            <td colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
+            <td></td>
             <td></td>
             <td></td>
             <td></td>
@@ -383,7 +405,12 @@
             <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='vasuliDhakitCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='vasuliCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='vasuliTotalCleaningTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeDhakit != 'true' %}{{ (data | sum(attribute='vasuliDhakitToiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeChalu != 'true' %}{{ (data | sum(attribute='vasuliToiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
+            <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='vasuliTotalToiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td>{% if removePurnaYekun != 'true' %}{{ (((data | map(attribute='vasuliTotalTax') | sum) - (data | map(attribute='vasuliTotalViWaterTax') | sum)) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
+            <td></td>
+            <td></td>
             <td></td>
             <td></td>
             <td></td>

@@ -181,15 +181,16 @@
                 <th rowspan="3" style="min-width:56px;">मालमत्ता क्रमांक</th>
                 <th rowspan="3" style="min-width:120px;">मालमत्ता धारकाचे नाव</th>
                 <th rowspan="3" style="min-width:48px;">‍‍भोगवटदाराचे नाव</th>
-                <th colspan="9" style="min-width:32px;">वसुली</th>
-                <th rowspan="2" colspan="3" style="min-width:48px;">सुट</th>
-                <th rowspan="2" colspan="3" style="min-width:120px;">बाकी</th>
+                <th colspan="12" style="min-width:32px;">वसुली</th>
+                <th rowspan="2" colspan="4" style="min-width:48px;">सुट</th>
+                <th rowspan="2" colspan="4" style="min-width:120px;">बाकी</th>
                 <th rowspan="3" >सुट मजुर करणा-या आदेशासह शेरा</th>
             </tr>
             <tr>
                 <th colspan="3">घरकर</th>
                 <th colspan="3">दिवाकर</th>
                 <th colspan="3">आरोग्यकर</th>
+                <th colspan="3">शौचालय कर</th>
             </tr>
             <tr>
                 <th>मागील</th>
@@ -201,12 +202,17 @@
                 <th>मागील</th>
                 <th>चालु</th>
                 <th>एकुण</th>
+                <th>मागील</th>
+                <th>चालु</th>
+                <th>एकुण</th>
                 <th>घर</th>
                 <th>दिवा</th>
                 <th>आरोग्य</th>
+                <th>शौचालय</th>
                 <th>घर</th>
                 <th>दिवा</th>
                 <th>आरोग्य</th>
+                <th>शौचालय</th>
             </tr>
         </thead>
         <tbody>
@@ -226,6 +232,11 @@
                 <td>{% if removeDhakit != 'true' %}{{row.dhakitHealthTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.healthTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.totalHealthTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.dhakitToiletTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.toiletTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.totalToiletTax}}{% endif %}</td>
+                <td></td>
+                <td></td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -240,6 +251,11 @@
             <tr>
                 <td colspan="5"></td>
                 <td style="font-weight:normal; text-align:right;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>

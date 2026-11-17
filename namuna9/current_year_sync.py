@@ -27,6 +27,7 @@ HEADS = (
     ("Sapanikar", "chaluSapanikar", "vasuliChaluSapanikar", "सामान्य पाणी"),
     ("Vpanikar", "chaluVpanikar", "vasuliChaluVpanikar", "विशेष पाणी"),
     ("CleaningTax", "chaluCleaningTax", "vasuliChaluCleaningTax", "सफाई कर"),
+    ("ToiletTax", "chaluToiletTax", "vasuliChaluToiletTax", "शौचालय कर"),
 )
 
 
@@ -104,6 +105,7 @@ def current_demand(db, prop, ctx, tax_override=None):
         "Sapanikar": round(prop_data.get('sapanikar', 0) or 0, 2),
         "Vpanikar": round(prop_data.get('vpanikar', 0) or 0, 2),
         "CleaningTax": round(prop_data.get('cleaningTax', 0) or 0, 2),
+        "ToiletTax": round(prop_data.get('toiletTax', 0) or 0, 2),
     }
 
 
@@ -117,6 +119,7 @@ def _ekun_total(row, chalu):
         "Sapanikar": (row.shaktiSapanikar or 0) + chalu["Sapanikar"],
         "Vpanikar": (row.shaktiVpanikar or 0) + chalu["Vpanikar"],
         "CleaningTax": (row.shaktiCleaningTax or 0) + chalu["CleaningTax"],
+        "ToiletTax": (row.shaktiToiletTax or 0) + chalu["ToiletTax"],
     }
     ekun = {k: round(v, 2) for k, v in ekun.items()}
     total = round(sum(ekun.values()) + (row.noticeFee or 0) + (row.warrantFee or 0), 2)

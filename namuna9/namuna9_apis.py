@@ -67,6 +67,7 @@ def _compute_thakit_source_amounts(db: Session, source_rec, property_id: int, gr
             'sapanikar': round((saved.shaktiSapanikar or 0) + (saved.chaluSapanikar or 0), 2),
             'vpanikar': round((saved.shaktiVpanikar or 0) + (saved.chaluVpanikar or 0), 2),
             'cleaningTax': round((saved.shaktiCleaningTax or 0) + (saved.chaluCleaningTax or 0), 2),
+            'toiletTax': round((saved.shaktiToiletTax or 0) + (saved.chaluToiletTax or 0), 2),
         }
     prop = db.query(namuna8_model.Property).filter(namuna8_model.Property.id == property_id).first()
     if not prop:
@@ -83,6 +84,7 @@ def _compute_thakit_source_amounts(db: Session, source_rec, property_id: int, gr
         'sapanikar': round(0 if karLaguNahi else (prop_data.get('sapanikar', 0) or 0), 2),
         'vpanikar': round(0 if karLaguNahi else (prop_data.get('vpanikar', 0) or 0), 2),
         'cleaningTax': round(0 if karLaguNahi else (prop_data.get('cleaningTax', 0) or 0), 2),
+        'toiletTax': round(0 if karLaguNahi else (prop_data.get('toiletTax', 0) or 0), 2),
     }
 
 
@@ -177,12 +179,13 @@ def copy_from_year(
                 func.coalesce(func.sum(namuna9_model.Namuna9Receipt.vasuliSapanikar), 0.0),
                 func.coalesce(func.sum(namuna9_model.Namuna9Receipt.vasuliVpanikar), 0.0),
                 func.coalesce(func.sum(namuna9_model.Namuna9Receipt.vasuliCleaningTax), 0.0),
+                func.coalesce(func.sum(namuna9_model.Namuna9Receipt.vasuliToiletTax), 0.0),
             ).filter(
                 namuna9_model.Namuna9Receipt.namuna9_id == target.id,
                 namuna9_model.Namuna9Receipt.property_id == row.property_id,
                 namuna9_model.Namuna9Receipt.is_deleted == False
             ).first()
-            coll_ghar, coll_diva, coll_aarogya, coll_sapani, coll_vpani, coll_clean = already_collected
+            coll_ghar, coll_diva, coll_aarogya, coll_sapani, coll_vpani, coll_clean, coll_toilet = already_collected
 
             row.shaktiGhar = round(max(source_amounts['ghar'] - (coll_ghar or 0), 0), 2)
             row.shaktiDiva = round(max(source_amounts['diva'] - (coll_diva or 0), 0), 2)
@@ -190,6 +193,7 @@ def copy_from_year(
             row.shaktiSapanikar = round(max(source_amounts['sapanikar'] - (coll_sapani or 0), 0), 2)
             row.shaktiVpanikar = round(max(source_amounts['vpanikar'] - (coll_vpani or 0), 0), 2)
             row.shaktiCleaningTax = round(max(source_amounts['cleaningTax'] - (coll_clean or 0), 0), 2)
+            row.shaktiToiletTax = round(max(source_amounts['toiletTax'] - (coll_toilet or 0), 0), 2)
 
             # शक्ती बदलल्यामुळे एकूण/total पुन्हा काढतो - चालू/दंड जसेच्या तसे ठेवतो.
             row.ekunGhar = round(max(row.shaktiGhar, 0) + max(row.chaluGhar or 0, 0) + max(row.dand or 0, 0), 2)
@@ -198,9 +202,10 @@ def copy_from_year(
             row.ekunSapanikar = round(max(row.shaktiSapanikar + (row.chaluSapanikar or 0), 0), 2)
             row.ekunVpanikar = round(max(row.shaktiVpanikar + (row.chaluVpanikar or 0), 0), 2)
             row.ekunCleaningTax = round(max(row.shaktiCleaningTax + (row.chaluCleaningTax or 0), 0), 2)
+            row.ekunToiletTax = round(max(row.shaktiToiletTax + (row.chaluToiletTax or 0), 0), 2)
             row.total = round(
                 row.ekunGhar + row.ekunDiva + row.ekunAarogyaKar + row.ekunSapanikar +
-                row.ekunVpanikar + row.ekunCleaningTax + (row.warrantFee or 0) + (row.noticeFee or 0),
+                row.ekunVpanikar + row.ekunCleaningTax + row.ekunToiletTax + (row.warrantFee or 0) + (row.noticeFee or 0),
                 2
             )
             thakit_rows_updated += 1
@@ -579,6 +584,7 @@ def get_table_data(
                     'chaluSapanikar': round((saved.shaktiSapanikar or 0) + (saved.chaluSapanikar or 0), 2),
                     'chaluVpanikar': round((saved.shaktiVpanikar or 0) + (saved.chaluVpanikar or 0), 2),
                     'chaluCleaningTax': round((saved.shaktiCleaningTax or 0) + (saved.chaluCleaningTax or 0), 2),
+                    'chaluToiletTax': round((saved.shaktiToiletTax or 0) + (saved.chaluToiletTax or 0), 2),
                 }
 
             # मागच्या सालात कधीच saved row नसलेल्या मालमत्तांसाठीच (उदा. त्या वर्षी कधीच
@@ -603,9 +609,10 @@ def get_table_data(
                 thakit_sapanikar = 0 if thakit_karLaguNahi else (thakit_prop_data.get('sapanikar', 0) or 0)
                 thakit_vpanikar = 0 if thakit_karLaguNahi else (thakit_prop_data.get('vpanikar', 0) or 0)
                 thakit_cleaning_tax = 0 if thakit_karLaguNahi else (thakit_prop_data.get('cleaningTax', 0) or 0)
+                thakit_toilet_tax = 0 if thakit_karLaguNahi else (thakit_prop_data.get('toiletTax', 0) or 0)
 
                 # Calculate total for thakit year
-                thakit_total = thakit_house_tax + thakit_lighting_tax + thakit_health_tax + thakit_sapanikar + thakit_vpanikar + thakit_cleaning_tax
+                thakit_total = thakit_house_tax + thakit_lighting_tax + thakit_health_tax + thakit_sapanikar + thakit_vpanikar + thakit_cleaning_tax + thakit_toilet_tax
                 thakit_total = round(thakit_total, 2)
 
                 thakit_data[thakit_prop.id] = {
@@ -615,6 +622,7 @@ def get_table_data(
                     'chaluSapanikar': thakit_sapanikar,
                     'chaluVpanikar': thakit_vpanikar,
                     'chaluCleaningTax': thakit_cleaning_tax,
+                    'chaluToiletTax': thakit_toilet_tax,
                     'total': thakit_total
                 }
 
@@ -696,6 +704,7 @@ def get_table_data(
         sapanikar = round(prop_data.get('sapanikar', 0) or 0, 2)
         vpanikar = round(prop_data.get('vpanikar', 0) or 0, 2)
         cleaningTax = round(prop_data.get('cleaningTax', 0) or 0, 2)
+        toiletTax = round(prop_data.get('toiletTax', 0) or 0, 2)
         
         # Check if we have saved data for this property
         saved_data = saved_data_map.get(prop.id)
@@ -708,6 +717,7 @@ def get_table_data(
             shaktiSapanikar = round(saved_data.shaktiSapanikar or 0, 2)
             shaktiVpanikar = round(saved_data.shaktiVpanikar or 0, 2)
             shaktiCleaningTax = round(saved_data.shaktiCleaningTax or 0, 2)
+            shaktiToiletTax = round(saved_data.shaktiToiletTax or 0, 2)
             dand = round(saved_data.dand or 0, 2)
             # Use saved values directly, even if they are 0 or negative (don't fallback to calculated taxes)
             chaluGhar = round(saved_data.chaluGhar, 2) if saved_data.chaluGhar is not None else round(totalHouseTax, 2)
@@ -716,6 +726,7 @@ def get_table_data(
             chaluSapanikar = round(saved_data.chaluSapanikar, 2) if saved_data.chaluSapanikar is not None else round(sapanikar, 2)
             chaluVpanikar = round(saved_data.chaluVpanikar, 2) if saved_data.chaluVpanikar is not None else round(vpanikar, 2)
             chaluCleaningTax = round(saved_data.chaluCleaningTax, 2) if saved_data.chaluCleaningTax is not None else round(cleaningTax, 2)
+            chaluToiletTax = round(saved_data.chaluToiletTax, 2) if saved_data.chaluToiletTax is not None else round(toiletTax, 2)
             warrantFee = saved_data.warrantFee if saved_data.warrantFee is not None else warrant_fee
             noticeFee = saved_data.noticeFee if saved_data.noticeFee is not None else notice_fee
         else:
@@ -725,6 +736,7 @@ def get_table_data(
             shaktiSapanikar = 0
             shaktiVpanikar = 0
             shaktiCleaningTax = 0
+            shaktiToiletTax = 0
             dand = 0
             chaluGhar = totalHouseTax
             chaluDiva = lightingTax
@@ -732,6 +744,7 @@ def get_table_data(
             chaluSapanikar = sapanikar
             chaluVpanikar = vpanikar
             chaluCleaningTax = cleaningTax
+            chaluToiletTax = toiletTax
             warrantFee = warrant_fee
             noticeFee = notice_fee
         
@@ -749,6 +762,7 @@ def get_table_data(
                 shaktiSapanikar = round(thakit_prop_data['chaluSapanikar'], 2)
                 shaktiVpanikar = round(thakit_prop_data['chaluVpanikar'], 2)
                 shaktiCleaningTax = round(thakit_prop_data['chaluCleaningTax'], 2)
+                shaktiToiletTax = round(thakit_prop_data['chaluToiletTax'], 2)
             elif thakit_values == "yekun":
                 # Use total values from thakit year as shakti
                 shaktiGhar = round(thakit_prop_data['chaluGhar'], 2)  # Total house tax
@@ -757,6 +771,7 @@ def get_table_data(
                 shaktiSapanikar = round(thakit_prop_data['chaluSapanikar'], 2)  # Total sapanikar
                 shaktiVpanikar = round(thakit_prop_data['chaluVpanikar'], 2)  # Total vpanikar
                 shaktiCleaningTax = round(thakit_prop_data['chaluCleaningTax'], 2)  # Total cleaning tax
+                shaktiToiletTax = round(thakit_prop_data["chaluToiletTax"], 2)  # Total toilet tax
             elif thakit_values == "thakit":
                 # Use thakit values (same as chaluGhar for now)
                 shaktiGhar = round(thakit_prop_data['chaluGhar'], 2)
@@ -765,6 +780,7 @@ def get_table_data(
                 shaktiSapanikar = round(thakit_prop_data['chaluSapanikar'], 2)
                 shaktiVpanikar = round(thakit_prop_data['chaluVpanikar'], 2)
                 shaktiCleaningTax = round(thakit_prop_data['chaluCleaningTax'], 2)
+                shaktiToiletTax = round(thakit_prop_data['chaluToiletTax'], 2)
         
         # Calculate ekun (total) values - use saved data if available
         if saved_data:
@@ -775,6 +791,7 @@ def get_table_data(
             ekunSapanikar = round(max(saved_data.ekunSapanikar or (shaktiSapanikar + chaluSapanikar), 0), 2)
             ekunVpanikar = round(max(saved_data.ekunVpanikar or (shaktiVpanikar + chaluVpanikar), 0), 2)
             ekunCleaningTax = round(max(saved_data.ekunCleaningTax or (shaktiCleaningTax + chaluCleaningTax), 0), 2)
+            ekunToiletTax = round(max(saved_data.ekunToiletTax or (shaktiToiletTax + chaluToiletTax), 0), 2)
         else:
             # Include dand in ekunGhar when no saved_data - ensure no negative values
             ekunGhar = round(max(totalHouseTax + (max(dand,0) or 0), (max(shaktiGhar,0) + max(chaluGhar,0) + (max(dand,0) or 0)), 0), 2)
@@ -783,6 +800,7 @@ def get_table_data(
             ekunSapanikar = round(max(shaktiSapanikar + chaluSapanikar, 0), 2)
             ekunVpanikar = round(max(shaktiVpanikar + chaluVpanikar, 0), 2)
             ekunCleaningTax = round(max(shaktiCleaningTax + chaluCleaningTax, 0), 2)
+            ekunToiletTax = round(max(shaktiToiletTax + chaluToiletTax, 0), 2)
         
         # एकूण = थकित + दंड + चालू एकदाच: दंड ekunGhar मध्ये आधीच आहे, म्हणून total = सर्व
         # एकूण + फी. साठवलेला saved_data.total वापरत नाही - जुन्या रो मध्ये दंड दोनदा
@@ -794,6 +812,7 @@ def get_table_data(
                 (ekunSapanikar or 0) +
                 (ekunVpanikar or 0) +
                 (ekunCleaningTax or 0) +
+                (ekunToiletTax or 0) +
                 (warrantFee or 0) +
                 (noticeFee or 0)
         )
@@ -807,18 +826,21 @@ def get_table_data(
             shaktiSapanikar = 0
             shaktiVpanikar = 0
             shaktiCleaningTax = 0
+            shaktiToiletTax = 0
             chaluGhar = 0
             chaluDiva = 0
             chaluAarogyaKar = 0
             chaluSapanikar = 0
             chaluVpanikar = 0
             chaluCleaningTax = 0
+            chaluToiletTax = 0
             ekunGhar = 0
             ekunDiva = 0
             ekunAarogyaKar = 0
             ekunSapanikar = 0
             ekunVpanikar = 0
             ekunCleaningTax = 0
+            ekunToiletTax = 0
             totalHouseTax = 0
             total = warrantFee + noticeFee  # Only fees remain, no taxes
         
@@ -858,8 +880,11 @@ def get_table_data(
             "chaluVpanikar": round(max(chaluVpanikar, 0), 2),
             "ekunVpanikar": round(max(ekunVpanikar, 0), 2),
             "shaktiCleaningTax": round(max(shaktiCleaningTax, 0), 2),
+            "shaktiToiletTax": round(max(shaktiToiletTax, 0), 2),
             "chaluCleaningTax": round(max(chaluCleaningTax, 0), 2),
+            "chaluToiletTax": round(max(chaluToiletTax, 0), 2),
             "ekunCleaningTax": round(max(ekunCleaningTax, 0), 2),
+            "ekunToiletTax": round(max(ekunToiletTax, 0), 2),
             "warrantFee": max(warrantFee, 0),
             "noticeFee": max(noticeFee, 0),
             "total": round(max(total, 0), 2),
@@ -878,6 +903,7 @@ def get_table_data(
             shaktiSapanikar = row["shaktiSapanikar"],
             shaktiVpanikar = row["shaktiVpanikar"],
             shaktiCleaningTax = row["shaktiCleaningTax"],
+            shaktiToiletTax = row["shaktiToiletTax"],
 
             dand = row["dand"],
 
@@ -887,6 +913,7 @@ def get_table_data(
             chaluSapanikar = row["chaluSapanikar"],
             chaluVpanikar = row["chaluVpanikar"],
             chaluCleaningTax = row["chaluCleaningTax"],
+            chaluToiletTax = row["chaluToiletTax"],
 
             ekunGhar = row["ekunGhar"],
             ekunDiva = row["ekunDiva"],
@@ -894,6 +921,7 @@ def get_table_data(
             ekunSapanikar = row["ekunSapanikar"],
             ekunVpanikar = row["ekunVpanikar"],
             ekunCleaningTax = row["ekunCleaningTax"],
+            ekunToiletTax = row["ekunToiletTax"],
 
             warrantFee = row["warrantFee"],
             noticeFee = row["noticeFee"],
@@ -1050,6 +1078,7 @@ def get_namuna9_table_data_custom(
                 'chaluSapanikar': round((saved.shaktiSapanikar or 0) + (saved.chaluSapanikar or 0), 2),
                 'chaluVpanikar': round((saved.shaktiVpanikar or 0) + (saved.chaluVpanikar or 0), 2),
                 'chaluCleaningTax': round((saved.shaktiCleaningTax or 0) + (saved.chaluCleaningTax or 0), 2),
+                'chaluToiletTax': round((saved.shaktiToiletTax or 0) + (saved.chaluToiletTax or 0), 2),
             }
 
         missing_ids = [pid for pid in thakit_property_ids if pid not in thakit_saved_map]
@@ -1071,13 +1100,15 @@ def get_namuna9_table_data_custom(
             t_sa = 0 if thakit_karLaguNahi else (thakit_prop_data.get('sapanikar', 0) or 0)
             t_vi = 0 if thakit_karLaguNahi else (thakit_prop_data.get('vpanikar', 0) or 0)
             t_clean = 0 if thakit_karLaguNahi else (thakit_prop_data.get('cleaningTax', 0) or 0)
+            t_toilet = 0 if thakit_karLaguNahi else (thakit_prop_data.get('toiletTax', 0) or 0)
             thakit_data[thakit_prop.id] = {
                 'chaluGhar': t_house_tax,
                 'chaluDiva': t_lighting,
                 'chaluAarogyaKar': t_health,
                 'chaluSapanikar': t_sa,
                 'chaluVpanikar': t_vi,
-                'chaluCleaningTax': t_clean
+                'chaluCleaningTax': t_clean,
+                'chaluToiletTax': t_toilet,
             }
 
     properties = query_all_in_chunks(
@@ -1148,6 +1179,7 @@ def get_namuna9_table_data_custom(
             shaktiSapanikar = round(saved_data.shaktiSapanikar or 0, 2)
             shaktiVpanikar = round(saved_data.shaktiVpanikar or 0, 2)
             shaktiCleaningTax = round(saved_data.shaktiCleaningTax or 0, 2)
+            shaktiToiletTax = round(saved_data.shaktiToiletTax or 0, 2)
             dand = round(saved_data.dand or 0, 2)
             chaluGhar = round(saved_data.chaluGhar, 2) if saved_data.chaluGhar is not None else round(totalHouseTax, 2)
             chaluDiva = round(saved_data.chaluDiva, 2) if saved_data.chaluDiva is not None else round(lightingTax, 2)
@@ -1155,6 +1187,7 @@ def get_namuna9_table_data_custom(
             chaluSapanikar = round(saved_data.chaluSapanikar, 2) if saved_data.chaluSapanikar is not None else round(saWaterTax, 2)
             chaluVpanikar = round(saved_data.chaluVpanikar, 2) if saved_data.chaluVpanikar is not None else round(viWaterTax, 2)
             chaluCleaningTax = round(saved_data.chaluCleaningTax, 2) if saved_data.chaluCleaningTax is not None else round(cleaningTax, 2)
+            chaluToiletTax = round(saved_data.chaluToiletTax, 2) if saved_data.chaluToiletTax is not None else round(toiletTax, 2)
             warrantFee = saved_data.warrantFee if saved_data.warrantFee is not None else warrant_fee
             noticeFee = saved_data.noticeFee if saved_data.noticeFee is not None else notice_fee
         else:
@@ -1164,6 +1197,7 @@ def get_namuna9_table_data_custom(
             shaktiSapanikar = 0
             shaktiVpanikar = 0
             shaktiCleaningTax = 0
+            shaktiToiletTax = 0
             dand = 0
             chaluGhar = totalHouseTax
             chaluDiva = lightingTax
@@ -1171,6 +1205,7 @@ def get_namuna9_table_data_custom(
             chaluSapanikar = saWaterTax
             chaluVpanikar = viWaterTax
             chaluCleaningTax = cleaningTax
+            chaluToiletTax = toiletTax
             warrantFee = warrant_fee
             noticeFee = notice_fee
 
@@ -1184,6 +1219,7 @@ def get_namuna9_table_data_custom(
                 shaktiSapanikar = round(tdata['chaluSapanikar'], 2)
                 shaktiVpanikar = round(tdata['chaluVpanikar'], 2)
                 shaktiCleaningTax = round(tdata['chaluCleaningTax'], 2)
+                shaktiToiletTax = round(tdata['chaluToiletTax'], 2)
             elif thakit_values in ("yekun", "thakit"):
                 shaktiGhar = round(tdata['chaluGhar'], 2)
                 shaktiDiva = round(tdata['chaluDiva'], 2)
@@ -1191,6 +1227,7 @@ def get_namuna9_table_data_custom(
                 shaktiSapanikar = round(tdata['chaluSapanikar'], 2)
                 shaktiVpanikar = round(tdata['chaluVpanikar'], 2)
                 shaktiCleaningTax = round(tdata['chaluCleaningTax'], 2)
+                shaktiToiletTax = round(tdata['chaluToiletTax'], 2)
 
         # Map to your response field names and compute totals like table-data total
         ekunGhar = round(shaktiGhar + chaluGhar + (dand or 0), 2)
@@ -1199,10 +1236,12 @@ def get_namuna9_table_data_custom(
         ekunSapanikar = round(shaktiSapanikar + chaluSapanikar, 2)
         ekunVpanikar = round(shaktiVpanikar + chaluVpanikar, 2)
         ekunCleaningTax = round(shaktiCleaningTax + chaluCleaningTax, 2)
+        ekunToiletTax = round(shaktiToiletTax + chaluToiletTax, 2)
 
         total = (
             (max(0,ekunGhar) or 0) + (max(0,ekunDiva) or 0) + (max(0,ekunAarogyaKar) or 0) +
             (max(0,ekunSapanikar) or 0) + (max(0,ekunVpanikar) or 0) + (max(0,ekunCleaningTax) or 0) +
+            (max(0,ekunToiletTax) or 0) +
             (max(0,warrantFee) or 0) + (max(0,noticeFee) or 0)
         )
         total = round(total, 2)
@@ -1215,18 +1254,21 @@ def get_namuna9_table_data_custom(
             shaktiSapanikar = 0
             shaktiVpanikar = 0
             shaktiCleaningTax = 0
+            shaktiToiletTax = 0
             chaluGhar = 0
             chaluDiva = 0
             chaluAarogyaKar = 0
             chaluSapanikar = 0
             chaluVpanikar = 0
             chaluCleaningTax = 0
+            chaluToiletTax = 0
             ekunGhar = 0
             ekunDiva = 0
             ekunAarogyaKar = 0
             ekunSapanikar = 0
             ekunVpanikar = 0
             ekunCleaningTax = 0
+            ekunToiletTax = 0
             totalHouseTax = 0
             total = warrantFee + noticeFee  # Only fees remain, no taxes
 
@@ -1245,7 +1287,9 @@ def get_namuna9_table_data_custom(
         vasuliDhakitViWaterTax = _paid('vasuliVpanikar')
         vasuliViWaterTax = _paid('vasuliChaluVpanikar')
         vasuliDhakitCleaningTax = _paid('vasuliCleaningTax')
+        vasuliDhakitToiletTax = _paid('vasuliToiletTax')
         vasuliCleaningTax = _paid('vasuliChaluCleaningTax')
+        vasuliToiletTax = _paid('vasuliChaluToiletTax')
 
         row = {
             "id": str(prop.anuKramank),
@@ -1278,11 +1322,11 @@ def get_namuna9_table_data_custom(
             "viWaterTax": round(chaluVpanikar, 2), 
             "totalViWaterTax": round(ekunVpanikar, 2), 
             "dhakitCleaningTax": round(shaktiCleaningTax, 2),
+            "dhakitToiletTax": round(shaktiToiletTax, 2),
             "cleaningTax": round(chaluCleaningTax, 2),
+            "toiletTax": round(chaluToiletTax, 2),
             "totalCleaningTax": round(ekunCleaningTax, 2),
-            "dhakitToiletTax": 0,
-            "toiletTax": round(toiletTax, 2),
-            "totlaToiletTax": 0,
+            "totalToiletTax": round(ekunToiletTax, 2),
             "totaltax": round(total, 2),
             "totaltaxwithoutnoticwarrant": round(total - (warrantFee or 0) - (noticeFee or 0), 2),
             "totaltaxwithoutspanivpaninoticewaraant": round(
@@ -1317,8 +1361,11 @@ def get_namuna9_table_data_custom(
             "vasuliViWaterTax": vasuliViWaterTax,
             "vasuliTotalViWaterTax": round(vasuliDhakitViWaterTax + vasuliViWaterTax, 2),
             "vasuliDhakitCleaningTax": vasuliDhakitCleaningTax,
+            "vasuliDhakitToiletTax": vasuliDhakitToiletTax,
             "vasuliCleaningTax": vasuliCleaningTax,
+            "vasuliToiletTax": vasuliToiletTax,
             "vasuliTotalCleaningTax": round(vasuliDhakitCleaningTax + vasuliCleaningTax, 2),
+            "vasuliTotalToiletTax": round(vasuliDhakitToiletTax + vasuliToiletTax, 2),
             # वसुली प्रिंट्समधला "एकुण" - totaltaxwithoutnoticwarrant / totaltaxwithoutspanivpaninoticewaraant चे वसुली रूप
             "vasuliTotalTax": round(
                 vasuliDhakitHouseTax + vasuliDandHouseTax + vasuliHouseTax
@@ -1326,12 +1373,14 @@ def get_namuna9_table_data_custom(
                 + vasuliDhakitHealthTax + vasuliHealthTax
                 + vasuliDhakitSaWaterTax + vasuliSaWaterTax
                 + vasuliDhakitViWaterTax + vasuliViWaterTax
-                + vasuliDhakitCleaningTax + vasuliCleaningTax, 2),
+                + vasuliDhakitCleaningTax + vasuliCleaningTax
+                + vasuliDhakitToiletTax + vasuliToiletTax, 2),
             "vasuliTotalTaxWithoutPani": round(
                 vasuliDhakitHouseTax + vasuliDandHouseTax + vasuliHouseTax
                 + vasuliDhakitLightingTax + vasuliLightingTax
                 + vasuliDhakitHealthTax + vasuliHealthTax
-                + vasuliDhakitCleaningTax + vasuliCleaningTax, 2),
+                + vasuliDhakitCleaningTax + vasuliCleaningTax
+                + vasuliDhakitToiletTax + vasuliToiletTax, 2),
             "pavatiSRKivyaTarik": 0
         }
         rows.append(row)
@@ -1483,15 +1532,16 @@ def get_property_records_by_village_regular(
     for r in table_rows:
         # शिल्लक बाकी नमुना-10 पावती प्रमाणेच पूर्ण दिसावी म्हणून विशेष पाणी कर
         # (Thakit5/current5) इथेही समाविष्ट केला - सफाई/नोटीस/वारंट एका जागेने पुढे सरकले.
-        thakit = {f"Thakit{i}": 0 for i in range(1, 9)}
+        thakit = {f"Thakit{i}": 0 for i in range(1, 10)}
         thakit["Thakit1"] = r.get('shaktiGhar', 0)
         thakit["Thakit2"] = r.get('shaktiDiva', 0)
         thakit["Thakit3"] = r.get('shaktiAarogyaKar', 0)
         thakit["Thakit4"] = r.get('shaktiSapanikar', 0)
         thakit["Thakit5"] = r.get('shaktiVpanikar', 0)
         thakit["Thakit6"] = r.get('shaktiCleaningTax', 0)
-        thakit["Thakit7"] = r.get('noticeFee', 0)
-        thakit["Thakit8"] = r.get('warrantFee', 0)
+        thakit["Thakit7"] = r.get('shaktiToiletTax', 0)
+        thakit["Thakit8"] = r.get('noticeFee', 0)
+        thakit["Thakit9"] = r.get('warrantFee', 0)
 
         current = {
             "current1": r.get('chaluGhar', 0),
@@ -1500,8 +1550,9 @@ def get_property_records_by_village_regular(
             "current4": r.get('chaluSapanikar', 0),
             "current5": r.get('chaluVpanikar', 0),
             "current6": r.get('chaluCleaningTax', 0),
-            "current7": r.get('noticeFee', 0),
-            "current8": r.get('warrantFee', 0)
+            "current7": r.get('chaluToiletTax', 0),
+            "current8": r.get('noticeFee', 0),
+            "current9": r.get('warrantFee', 0)
         }
         total = {
             "total1": round(r.get('ekunGhar', 0)),
@@ -1510,18 +1561,19 @@ def get_property_records_by_village_regular(
             "total4": round(r.get('ekunSapanikar', 0)),
             "total5": round(r.get('ekunVpanikar', 0)),
             "total6": round(r.get('ekunCleaningTax', 0)),
+            "total7": round(r.get('ekunToiletTax', 0)),
             # For fees, show only the fee amount once in the last column
-            "total7": round(r.get('noticeFee', 0)),
-            "total8": round(r.get('warrantFee', 0))
+            "total8": round(r.get('noticeFee', 0)),
+            "total9": round(r.get('warrantFee', 0))
         }
         # Build Dand map sourced from table row (use dand in house column)
-        dand_map = {f"Dand{i}": 0 for i in range(1, 9)}
+        dand_map = {f"Dand{i}": 0 for i in range(1, 10)}
         dand_map["Dand1"] = r.get('dand', 0)
 
         # भरलेली रक्कम - या मालमत्तेच्या सर्व पावत्यांमधून (थकित+चालू दोन्ही मिळून)
         # आजवर प्रत्यक्ष जमा झालेली एकूण रक्कम, कर-प्रकारानुसार. चालू कॉलमसाठी
         # वापरतो (नमुना-10 पावतीत जसं "भरलेली" रक्कम दिसते तशीच इथेही दिसावी).
-        paid_map = {f"paid{i}": 0 for i in range(1, 9)}
+        paid_map = {f"paid{i}": 0 for i in range(1, 10)}
         try:
             all_receipts = receipts_by_property.get(r.get('property_id'), [])
             paid_map["paid1"] = round(sum((rcpt.vasuliGhar or 0) + (rcpt.vasuliChaluGhar or 0) for rcpt in all_receipts), 2)
@@ -1530,8 +1582,9 @@ def get_property_records_by_village_regular(
             paid_map["paid4"] = round(sum((rcpt.vasuliSapanikar or 0) + (rcpt.vasuliChaluSapanikar or 0) for rcpt in all_receipts), 2)
             paid_map["paid5"] = round(sum((rcpt.vasuliVpanikar or 0) + (rcpt.vasuliChaluVpanikar or 0) for rcpt in all_receipts), 2)
             paid_map["paid6"] = round(sum((rcpt.vasuliCleaningTax or 0) + (rcpt.vasuliChaluCleaningTax or 0) for rcpt in all_receipts), 2)
-            paid_map["paid7"] = round(sum((rcpt.vasuliNoticeFee or 0) for rcpt in all_receipts), 2)
-            paid_map["paid8"] = round(sum((rcpt.vasuliWarrantFee or 0) for rcpt in all_receipts), 2)
+            paid_map["paid7"] = round(sum((rcpt.vasuliToiletTax or 0) + (rcpt.vasuliChaluToiletTax or 0) for rcpt in all_receipts), 2)
+            paid_map["paid8"] = round(sum((rcpt.vasuliNoticeFee or 0) for rcpt in all_receipts), 2)
+            paid_map["paid9"] = round(sum((rcpt.vasuliWarrantFee or 0) for rcpt in all_receipts), 2)
         except Exception:
             pass
 
@@ -1598,6 +1651,7 @@ def get_property_records_by_village_regular(
                 "आरोग्य कर": r.get('chaluAarogyaKar', 0),
                 "पाणीकर": r.get('chaluSapanikar', 0),
                 "सफाई कर": r.get('chaluCleaningTax', 0),
+                "शौचालय कर": r.get('chaluToiletTax', 0),
                 "नोटीस फी": r.get('noticeFee', 0),
                 "वारंट फी": r.get('warrantFee', 0)
             },
@@ -1614,6 +1668,7 @@ def get_property_records_by_village_regular(
                 + (r.get('ekunAarogyaKar', 0) or 0)
                 + (r.get('ekunSapanikar', 0) or 0)
                 + (r.get('ekunCleaningTax', 0) or 0)
+                + (r.get('ekunToiletTax', 0) or 0)
                 + (r.get('warrantFee', 0) or 0)
                 + (r.get('noticeFee', 0) or 0)
             ),
@@ -1709,16 +1764,17 @@ def get_property_records_by_village_visheshpani(
     for r in table_rows:
         # Build arrears/current/total same as regular
         # विशेष पाणी ९क/९क२ - सफाई कर रकाना regular ९क प्रमाणेच (क्लायंट Nov-2026): सफाई 6 व्या
-        # जागी, नोटीस/वारंट फी एका जागेने पुढे (7, 8). हा API फक्त हेच दोन प्रिंट वापरतात.
-        thakit = {f"Thakit{i}": 0 for i in range(1, 9)}
+        # जागी, शौचालय कर 7 व्या, नोटीस/वारंट फी 8, 9. हा API फक्त हेच दोन प्रिंट वापरतात.
+        thakit = {f"Thakit{i}": 0 for i in range(1, 10)}
         thakit["Thakit1"] = r.get('shaktiGhar', 0)
         thakit["Thakit2"] = r.get('shaktiDiva', 0)
         thakit["Thakit3"] = r.get('shaktiAarogyaKar', 0)
         thakit["Thakit4"] = r.get('shaktiSapanikar', 0)
         thakit["Thakit5"] = r.get('shaktiVpanikar', 0)
         thakit["Thakit6"] = r.get('shaktiCleaningTax', 0)
-        thakit["Thakit7"] = r.get('noticeFee', 0)
-        thakit["Thakit8"] = r.get('warrantFee', 0)
+        thakit["Thakit7"] = r.get('shaktiToiletTax', 0)
+        thakit["Thakit8"] = r.get('noticeFee', 0)
+        thakit["Thakit9"] = r.get('warrantFee', 0)
 
         current = {
             "current1": r.get('chaluGhar', 0),
@@ -1727,8 +1783,9 @@ def get_property_records_by_village_visheshpani(
             "current4": r.get('chaluSapanikar', 0),
             "current5": r.get('chaluVpanikar', 0),
             "current6": r.get('chaluCleaningTax', 0),
-            "current7": r.get('noticeFee', 0),
-            "current8": r.get('warrantFee', 0)
+            "current7": r.get('chaluToiletTax', 0),
+            "current8": r.get('noticeFee', 0),
+            "current9": r.get('warrantFee', 0)
         }
         total = {
             "total1": round(r.get('ekunGhar', 0)),
@@ -1737,8 +1794,9 @@ def get_property_records_by_village_visheshpani(
             "total4": round(r.get('ekunSapanikar', 0)),
             "total5": round(r.get('ekunVpanikar', 0)),
             "total6": round(r.get('ekunCleaningTax', 0)),
-            "total7": round(r.get('noticeFee', 0)),
-            "total8": round(r.get('warrantFee', 0))
+            "total7": round(r.get('ekunToiletTax', 0)),
+            "total8": round(r.get('noticeFee', 0)),
+            "total9": round(r.get('warrantFee', 0))
         }
 
         # Resolve gram panchayat and occupant like regular
@@ -1790,7 +1848,7 @@ def get_property_records_by_village_visheshpani(
             "propertyQrUrl": property_qr_url,
             "houseNumber": r.get('malmattaKramank', ''),
             "recoverableAmounts": {
-                "arrears": {"Thakit": thakit, "Dand": {"Dand1": r.get('dand', 0), "Dand2": 0, "Dand3": 0, "Dand4": 0, "Dand5": 0, "Dand6": 0, "Dand7": 0, "Dand8": 0}},
+                "arrears": {"Thakit": thakit, "Dand": {"Dand1": r.get('dand', 0), "Dand2": 0, "Dand3": 0, "Dand4": 0, "Dand5": 0, "Dand6": 0, "Dand7": 0, "Dand8": 0, "Dand9": 0}},
                 "current": current,
                 "total": total
             },
@@ -1802,6 +1860,7 @@ def get_property_records_by_village_visheshpani(
                 + (r.get('ekunSapanikar', 0) or 0)
                 + (r.get('ekunVpanikar', 0) or 0)
                 + (r.get('ekunCleaningTax', 0) or 0)
+                + (r.get('ekunToiletTax', 0) or 0)
                 + (r.get('warrantFee', 0) or 0)
                 + (r.get('noticeFee', 0) or 0)
             ),

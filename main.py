@@ -232,6 +232,12 @@ def ensure_namuna9_property_data_columns():
                 ("vasuliDand", "REAL"),
                 ("vasuliNoticeFee", "REAL"),
                 ("vasuliWarrantFee", "REAL"),
+                # शौचालय कर (नमुना-8 shauchalayKar) - नमुना-9 मध्ये स्वतंत्र रकाना
+                ("shaktiToiletTax", "REAL"),
+                ("chaluToiletTax", "REAL"),
+                ("ekunToiletTax", "REAL"),
+                ("vasuliToiletTax", "REAL"),
+                ("vasuliChaluToiletTax", "REAL"),
             ]
             for col, coltype in to_add:
                 if col not in existing:
@@ -527,6 +533,8 @@ try:
             ("vasuliChaluVpanikar", "REAL"),
             ("vasuliCleaningTax", "REAL"),
             ("vasuliChaluCleaningTax", "REAL"),
+            ("vasuliToiletTax", "REAL DEFAULT 0"),
+            ("vasuliChaluToiletTax", "REAL DEFAULT 0"),
             ("vasuliDand", "REAL"),
             ("vasuliNoticeFee", "REAL"),
             ("vasuliWarrantFee", "REAL"),

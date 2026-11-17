@@ -194,9 +194,9 @@
                 <th rowspan="3" style="min-width:56px;">मिळकत नंबर</th>
                 <th rowspan="3" style="min-width:56px;">मालकाचे नाव</th>
                 <th rowspan="3" style="min-width:48px;">‍‍भोगवटदाराचे नाव</th>
-                <th colspan="16" style="min-width:32px;">वसुली</th>
-                <th rowspan="2" colspan="5" style="min-width:48px;">सुट</th>
-                <th rowspan="2" colspan="5" style="min-width:120px;">बाकी</th>
+                <th colspan="19" style="min-width:32px;">वसुली</th>
+                <th rowspan="2" colspan="6" style="min-width:48px;">सुट</th>
+                <th rowspan="2" colspan="6" style="min-width:120px;">बाकी</th>
                 <th rowspan="3" >सुट मजुर करणा-या आदेशासह शेरा</th>
             </tr>
             <tr>
@@ -205,6 +205,7 @@
                 <th colspan="3">आरोग्यकर</th>
                 <th colspan="3">सामान्य पाणीकर</th>
                 <th colspan="3">विशेष पाणीकर</th>
+                <th colspan="3">शौचालय कर</th>
             </tr>
             <tr>
                 <th>मागील</th>
@@ -223,16 +224,21 @@
                 <th>मागील</th>
                 <th>चालु</th>
                 <th>एकुण</th>
+                <th>मागील</th>
+                <th>चालु</th>
+                <th>एकुण</th>
                 <th>घर</th>
                 <th>दिवा</th>
                 <th>आरोग्य</th>
                 <th>पाणी</th>
                 <th>सफाई</th>
+                <th>शौचालय</th>
                 <th>घर</th>
                 <th>दिवा</th>
                 <th>आरोग्य</th>
                 <th>पाणी</th>
                 <th>सफाई</th>
+                <th>शौचालय</th>
             </tr>
         </thead>
         <tbody>
@@ -259,6 +265,11 @@
                 <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitViWaterTax}}{% endif %}</td>
                 <td>{% if removeChalu != 'true' %}{{row.vasuliViWaterTax}}{% endif %}</td>
                 <td>{% if removeYekun != 'true' %}{{row.vasuliTotalViWaterTax}}{% endif %}</td>
+                <td>{% if removeDhakit != 'true' %}{{row.vasuliDhakitToiletTax}}{% endif %}</td>
+                <td>{% if removeChalu != 'true' %}{{row.vasuliToiletTax}}{% endif %}</td>
+                <td>{% if removeYekun != 'true' %}{{row.vasuliTotalToiletTax}}{% endif %}</td>
+                <td></td>
+                <td></td>
                 <td></td>
                 <td></td>
                 <td></td>
@@ -277,6 +288,11 @@
             <tr>
                 <td colspan="5"></td>
                 <td style="font-weight:normal; text-align:right;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
+                <td style="font-weight:normal; text-align:center;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>
                 <td style="font-weight:normal; text-align:center;"></td>

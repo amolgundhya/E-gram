@@ -51,7 +51,8 @@ def create_property_data(property_data: Namuna9PropertyDataCreate, db: Session =
         existing.ekunSapanikar = (existing.shaktiSapanikar or 0) + (existing.chaluSapanikar or 0)
         existing.ekunVpanikar = (existing.shaktiVpanikar or 0) + (existing.chaluVpanikar or 0)
         existing.ekunCleaningTax = (existing.shaktiCleaningTax or 0) + (existing.chaluCleaningTax or 0)
-        existing.total = (existing.ekunGhar or 0) + (existing.ekunDiva or 0) + (existing.ekunAarogyaKar or 0) + (existing.ekunSapanikar or 0) + (existing.ekunVpanikar or 0) + (existing.ekunCleaningTax or 0) + (existing.noticeFee or 0) + (existing.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
+        existing.ekunToiletTax = (existing.shaktiToiletTax or 0) + (existing.chaluToiletTax or 0)
+        existing.total = (existing.ekunGhar or 0) + (existing.ekunDiva or 0) + (existing.ekunAarogyaKar or 0) + (existing.ekunSapanikar or 0) + (existing.ekunVpanikar or 0) + (existing.ekunCleaningTax or 0) + (existing.ekunToiletTax or 0) + (existing.noticeFee or 0) + (existing.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
         db.commit()
         db.refresh(existing)
         return existing
@@ -70,7 +71,8 @@ def create_property_data(property_data: Namuna9PropertyDataCreate, db: Session =
     db_property_data.ekunSapanikar = (db_property_data.shaktiSapanikar or 0) + (db_property_data.chaluSapanikar or 0)
     db_property_data.ekunVpanikar = (db_property_data.shaktiVpanikar or 0) + (db_property_data.chaluVpanikar or 0)
     db_property_data.ekunCleaningTax = (db_property_data.shaktiCleaningTax or 0) + (db_property_data.chaluCleaningTax or 0)
-    db_property_data.total = (db_property_data.ekunGhar or 0) + (db_property_data.ekunDiva or 0) + (db_property_data.ekunAarogyaKar or 0) + (db_property_data.ekunSapanikar or 0) + (db_property_data.ekunVpanikar or 0) + (db_property_data.ekunCleaningTax or 0) + (db_property_data.noticeFee or 0) + (db_property_data.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
+    db_property_data.ekunToiletTax = (db_property_data.shaktiToiletTax or 0) + (db_property_data.chaluToiletTax or 0)
+    db_property_data.total = (db_property_data.ekunGhar or 0) + (db_property_data.ekunDiva or 0) + (db_property_data.ekunAarogyaKar or 0) + (db_property_data.ekunSapanikar or 0) + (db_property_data.ekunVpanikar or 0) + (db_property_data.ekunCleaningTax or 0) + (db_property_data.ekunToiletTax or 0) + (db_property_data.noticeFee or 0) + (db_property_data.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
     db.add(db_property_data)
     db.commit()
     db.refresh(db_property_data)
@@ -97,6 +99,7 @@ def update_property_data(property_data_id: int, property_data: Namuna9PropertyDa
     db_property_data.ekunSapanikar = (db_property_data.shaktiSapanikar or 0) + (db_property_data.chaluSapanikar or 0)
     db_property_data.ekunVpanikar = (db_property_data.shaktiVpanikar or 0) + (db_property_data.chaluVpanikar or 0)
     db_property_data.ekunCleaningTax = (db_property_data.shaktiCleaningTax or 0) + (db_property_data.chaluCleaningTax or 0)
+    db_property_data.ekunToiletTax = (db_property_data.shaktiToiletTax or 0) + (db_property_data.chaluToiletTax or 0)
     db_property_data.total = (
         (db_property_data.ekunGhar or 0) +
         (db_property_data.ekunDiva or 0) +
@@ -104,6 +107,7 @@ def update_property_data(property_data_id: int, property_data: Namuna9PropertyDa
         (db_property_data.ekunSapanikar or 0) +
         (db_property_data.ekunVpanikar or 0) +
         (db_property_data.ekunCleaningTax or 0) +
+        (db_property_data.ekunToiletTax or 0) +
         (db_property_data.noticeFee or 0) +
         (db_property_data.warrantFee or 0)
         # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
@@ -186,7 +190,8 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
             existing.ekunSapanikar = (existing.shaktiSapanikar or 0) + (existing.chaluSapanikar or 0)
             existing.ekunVpanikar = (existing.shaktiVpanikar or 0) + (existing.chaluVpanikar or 0)
             existing.ekunCleaningTax = (existing.shaktiCleaningTax or 0) + (existing.chaluCleaningTax or 0)
-            existing.total = (existing.ekunGhar or 0) + (existing.ekunDiva or 0) + (existing.ekunAarogyaKar or 0) + (existing.ekunSapanikar or 0) + (existing.ekunVpanikar or 0) + (existing.ekunCleaningTax or 0) + (existing.noticeFee or 0) + (existing.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
+            existing.ekunToiletTax = (existing.shaktiToiletTax or 0) + (existing.chaluToiletTax or 0)
+            existing.total = (existing.ekunGhar or 0) + (existing.ekunDiva or 0) + (existing.ekunAarogyaKar or 0) + (existing.ekunSapanikar or 0) + (existing.ekunVpanikar or 0) + (existing.ekunCleaningTax or 0) + (existing.ekunToiletTax or 0) + (existing.noticeFee or 0) + (existing.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
             updated_count += 1
         else:
             new_data = namuna9_model.Namuna9PropertyData(
@@ -202,7 +207,8 @@ def bulk_update_property_data(bulk_data: Namuna9BulkPropertyDataUpdate, db: Sess
             new_data.ekunSapanikar = (new_data.shaktiSapanikar or 0) + (new_data.chaluSapanikar or 0)
             new_data.ekunVpanikar = (new_data.shaktiVpanikar or 0) + (new_data.chaluVpanikar or 0)
             new_data.ekunCleaningTax = (new_data.shaktiCleaningTax or 0) + (new_data.chaluCleaningTax or 0)
-            new_data.total = (new_data.ekunGhar or 0) + (new_data.ekunDiva or 0) + (new_data.ekunAarogyaKar or 0) + (new_data.ekunSapanikar or 0) + (new_data.ekunVpanikar or 0) + (new_data.ekunCleaningTax or 0) + (new_data.noticeFee or 0) + (new_data.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
+            new_data.ekunToiletTax = (new_data.shaktiToiletTax or 0) + (new_data.chaluToiletTax or 0)
+            new_data.total = (new_data.ekunGhar or 0) + (new_data.ekunDiva or 0) + (new_data.ekunAarogyaKar or 0) + (new_data.ekunSapanikar or 0) + (new_data.ekunVpanikar or 0) + (new_data.ekunCleaningTax or 0) + (new_data.ekunToiletTax or 0) + (new_data.noticeFee or 0) + (new_data.warrantFee or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
             db.add(new_data)
             created_count += 1
     
@@ -277,7 +283,9 @@ def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(data
     apply('shaktiVpanikar', 'vasuliVpanikar', payload.vasuliVpanikar)
     apply_chalu('chaluVpanikar', 'vasuliChaluVpanikar', payload.vasuliChaluVpanikar)
     apply('shaktiCleaningTax', 'vasuliCleaningTax', payload.vasuliCleaningTax)
+    apply('shaktiToiletTax', 'vasuliToiletTax', payload.vasuliToiletTax)
     apply_chalu('chaluCleaningTax', 'vasuliChaluCleaningTax', payload.vasuliChaluCleaningTax)
+    apply_chalu('chaluToiletTax', 'vasuliChaluToiletTax', payload.vasuliChaluToiletTax)
     # dand and fees
     apply('dand', 'vasuliDand', payload.vasuliDand)
     apply('noticeFee', 'vasuliNoticeFee', payload.vasuliNoticeFee)
@@ -290,6 +298,7 @@ def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(data
         'shaktiSapanikar', 'chaluSapanikar',
         'shaktiVpanikar', 'chaluVpanikar',
         'shaktiCleaningTax', 'chaluCleaningTax',
+        'shaktiToiletTax', 'chaluToiletTax',
         'dand', 'noticeFee', 'warrantFee'
     ]
     for field in clamp_fields:
@@ -306,7 +315,8 @@ def collect_property_amounts(payload: Namuna9Collect, db: Session = Depends(data
     data.ekunSapanikar = (max(data.shaktiSapanikar,0) or 0) + (max(0,data.chaluSapanikar) or 0)
     data.ekunVpanikar = (max(0,data.shaktiVpanikar) or 0) + (max(0,data.chaluVpanikar) or 0)
     data.ekunCleaningTax = (max(0,data.shaktiCleaningTax) or 0) + (max(0,data.chaluCleaningTax) or 0)
-    data.total = (max(0,data.ekunGhar) or 0) + (max(0,data.ekunDiva) or 0) + (max(0,data.ekunAarogyaKar) or 0) + (max(0,data.ekunSapanikar) or 0) + (max(0,data.ekunVpanikar) or 0) + (max(0,data.ekunCleaningTax) or 0) + (max(0,data.noticeFee) or 0) + (max(0,data.warrantFee) or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
+    data.ekunToiletTax = (max(0,data.shaktiToiletTax) or 0) + (max(0,data.chaluToiletTax) or 0)
+    data.total = (max(0,data.ekunGhar) or 0) + (max(0,data.ekunDiva) or 0) + (max(0,data.ekunAarogyaKar) or 0) + (max(0,data.ekunSapanikar) or 0) + (max(0,data.ekunVpanikar) or 0) + (max(0,data.ekunCleaningTax) or 0) + (max(0,data.ekunToiletTax) or 0) + (max(0,data.noticeFee) or 0) + (max(0,data.warrantFee) or 0)  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
 
     db.commit()
     db.refresh(data)
@@ -346,7 +356,9 @@ VASULI_TO_PROPERTY_FIELD = {
     'vasuliVpanikar': 'shaktiVpanikar',
     'vasuliChaluVpanikar': 'chaluVpanikar',
     'vasuliCleaningTax': 'shaktiCleaningTax',
+    'vasuliToiletTax': 'shaktiToiletTax',
     'vasuliChaluCleaningTax': 'chaluCleaningTax',
+    'vasuliChaluToiletTax': 'chaluToiletTax',
     'vasuliDand': 'dand',
     'vasuliNoticeFee': 'noticeFee',
     'vasuliWarrantFee': 'warrantFee',
@@ -388,8 +400,9 @@ def _adjust_property_data_for_receipt(db: Session, namuna9_id: int, property_id:
         row.ekunSapanikar = (row.shaktiSapanikar or 0) + (row.chaluSapanikar or 0)
         row.ekunVpanikar = (row.shaktiVpanikar or 0) + (row.chaluVpanikar or 0)
         row.ekunCleaningTax = (row.shaktiCleaningTax or 0) + (row.chaluCleaningTax or 0)
+        row.ekunToiletTax = (row.shaktiToiletTax or 0) + (row.chaluToiletTax or 0)
         row.total = (row.ekunGhar + row.ekunDiva + row.ekunAarogyaKar + row.ekunSapanikar +
-                     row.ekunVpanikar + row.ekunCleaningTax + (row.noticeFee or 0) +
+                     row.ekunVpanikar + row.ekunCleaningTax + (row.ekunToiletTax or 0) + (row.noticeFee or 0) +
                      (row.warrantFee or 0))  # दंड ekunGhar मध्येच - पुन्हा जोडत नाही
         db.commit()
 
@@ -459,7 +472,9 @@ def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database
                 (cand.vasuliVpanikar or 0) == (payload.vasuliVpanikar or 0) and
                 (cand.vasuliChaluVpanikar or 0) == (payload.vasuliChaluVpanikar or 0) and
                 (cand.vasuliCleaningTax or 0) == (payload.vasuliCleaningTax or 0) and
+                (cand.vasuliToiletTax or 0) == (payload.vasuliToiletTax or 0) and
                 (cand.vasuliChaluCleaningTax or 0) == (payload.vasuliChaluCleaningTax or 0) and
+                (cand.vasuliChaluToiletTax or 0) == (payload.vasuliChaluToiletTax or 0) and
                 (cand.vasuliDand or 0) == (payload.vasuliDand or 0) and
                 (cand.vasuliNoticeFee or 0) == (payload.vasuliNoticeFee or 0) and
                 (cand.vasuliWarrantFee or 0) == (payload.vasuliWarrantFee or 0) and
@@ -495,7 +510,9 @@ def create_receipt(payload: Namuna9ReceiptCreate, db: Session = Depends(database
         vasuliVpanikar=payload.vasuliVpanikar,
         vasuliChaluVpanikar=payload.vasuliChaluVpanikar,
         vasuliCleaningTax=payload.vasuliCleaningTax,
+        vasuliToiletTax=payload.vasuliToiletTax,
         vasuliChaluCleaningTax=payload.vasuliChaluCleaningTax,
+        vasuliChaluToiletTax=payload.vasuliChaluToiletTax,
         vasuliDand=payload.vasuliDand,
         vasuliNoticeFee=payload.vasuliNoticeFee,
         vasuliWarrantFee=payload.vasuliWarrantFee,
@@ -749,12 +766,13 @@ def list_receipts(
             rec.remainingSapanikar = round((ledger_row.shaktiSapanikar or 0) + (ledger_row.chaluSapanikar or 0), 2)
             rec.remainingVpanikar = round((ledger_row.shaktiVpanikar or 0) + (ledger_row.chaluVpanikar or 0), 2)
             rec.remainingCleaningTax = round((ledger_row.shaktiCleaningTax or 0) + (ledger_row.chaluCleaningTax or 0), 2)
+            rec.remainingToiletTax = round((ledger_row.shaktiToiletTax or 0) + (ledger_row.chaluToiletTax or 0), 2)
             # नोटीस/वारंट फी - पावतीने collect() ही ledger मधूनच कमी करतं, म्हणून उरलेली फी = ledger ची.
             rec.remainingNoticeFee = round(max(ledger_row.noticeFee or 0, 0), 2)
             rec.remainingWarrantFee = round(max(ledger_row.warrantFee or 0, 0), 2)
             rec.remainingTotal = round(
                 rec.remainingGhar + rec.remainingDiva + rec.remainingAarogyaKar +
-                rec.remainingSapanikar + rec.remainingVpanikar + rec.remainingCleaningTax +
+                rec.remainingSapanikar + rec.remainingVpanikar + rec.remainingCleaningTax + rec.remainingToiletTax +
                 rec.remainingNoticeFee + rec.remainingWarrantFee, 2
             )
 
@@ -937,12 +955,13 @@ def get_receipt(receipt_id: int, db: Session = Depends(database.get_db)):
         result.remainingSapanikar = round((ledger_row.shaktiSapanikar or 0) + (ledger_row.chaluSapanikar or 0), 2)
         result.remainingVpanikar = round((ledger_row.shaktiVpanikar or 0) + (ledger_row.chaluVpanikar or 0), 2)
         result.remainingCleaningTax = round((ledger_row.shaktiCleaningTax or 0) + (ledger_row.chaluCleaningTax or 0), 2)
+        result.remainingToiletTax = round((ledger_row.shaktiToiletTax or 0) + (ledger_row.chaluToiletTax or 0), 2)
         # नोटीस/वारंट फी - पावतीने collect() ही ledger मधूनच कमी करतं, म्हणून उरलेली फी = ledger ची.
         result.remainingNoticeFee = round(max(ledger_row.noticeFee or 0, 0), 2)
         result.remainingWarrantFee = round(max(ledger_row.warrantFee or 0, 0), 2)
         result.remainingTotal = round(
             result.remainingGhar + result.remainingDiva + result.remainingAarogyaKar +
-            result.remainingSapanikar + result.remainingVpanikar + result.remainingCleaningTax +
+            result.remainingSapanikar + result.remainingVpanikar + result.remainingCleaningTax + result.remainingToiletTax +
             result.remainingNoticeFee + result.remainingWarrantFee, 2
         )
     return result
