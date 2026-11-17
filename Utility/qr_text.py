@@ -4,6 +4,7 @@ sticker QR, नाव प्लेट QR) समान, वाचनीय plain
 
 सर्व 4 ठिकाणी हाच एक function वापरायचा, जेणेकरून मजकुराचं स्वरूप कायम सुसंगत राहील.
 """
+from Utility.area_display import area_text
 
 
 def _unit_label(unit: str) -> str:
@@ -44,6 +45,11 @@ def build_area_lines(record: dict, decimals: int = 2, short_names: bool = True, 
     include_type=True हाच राहतो)."""
     unit = record.get("areaUnit") or "sqft"
     construction_unit = record.get("constructionAreaUnit") or unit
+    # क्षेत्रफळ MASTER "Round Up All Area" नुसार (Utility/area_display): चालू = वरचा पूर्ण
+    # आकडा, बंद = अचूक (कमाल 2 दशांश, शेवटची शून्यं नाहीत). record मधले एकूण/खाली जागा
+    # आकडे बॅकएंडने आधीच याच नियमाने केलेले असतात; areaRoundUp नसेल तर जसे आहेत तसे.
+    # (decimals हा जुना पॅरामीटर आता वापरत नाही - सगळीकडे एकच नियम.)
+    round_up = record.get("areaRoundUp")
     unit_lbl = _unit_label(unit)
     c_unit_lbl = _unit_label(construction_unit)
 
@@ -57,7 +63,7 @@ def build_area_lines(record: dict, decimals: int = 2, short_names: bool = True, 
 
     lines = []
     if total_area:
-        total_area_fmt = f"%.{decimals}f" % float(total_area)
+        total_area_fmt = area_text(total_area, round_up)
         if avg_length and avg_width:
             lines.append(f"एकूण क्षेत्रफळ : {_fmt_num(avg_length)} X {_fmt_num(avg_width)} = {total_area_fmt} {unit_lbl}")
         else:
@@ -67,7 +73,9 @@ def build_area_lines(record: dict, decimals: int = 2, short_names: bool = True, 
         c_type_raw = (c.get("type") or "").strip()
         length = c.get("length") or 0
         width = c.get("width") or 0
-        area = round(length * width, 2)
+        # बॅकएंडने नियमानुसार केलेलं बांधकाम क्षेत्रफळ (areaSqm/areaSqft) असल्यास तेच.
+        area_key = "areaSqm" if construction_unit == "sqm" else "areaSqft"
+        area = c.get(area_key) if c.get(area_key) not in (None, "") else round(length * width, 2)
         if not c_type_raw or c_type_raw.startswith("खाली जागा"):
             # खाली-जागा-प्रकारची construction रो "बांधकाम" म्हणून दाखवायची नाही - ती
             # जागा get_property_record मध्येच खाली जागाच्या एकूण बेरजेत आधी धरलेली
@@ -76,7 +84,7 @@ def build_area_lines(record: dict, decimals: int = 2, short_names: bool = True, 
             continue
         if not area:
             continue
-        area_fmt = f"%.{decimals}f" % area
+        area_fmt = area_text(area, round_up)
         if include_type:
             c_type = _short_construction_name(c_type_raw) if short_names else c_type_raw
             lines.append(f"बांधकाम : {_fmt_num(length)} X {_fmt_num(width)} = {area_fmt} {c_unit_lbl} ({c_type})")
@@ -91,7 +99,7 @@ def build_area_lines(record: dict, decimals: int = 2, short_names: bool = True, 
         khali_area = khali[0].get("totalkhalijagaareainmeters") if unit == "sqm" else khali[0].get("totalkhalijagaareainfoot")
         khali_area = khali_area or 0.0
         if khali_area:
-            khali_fmt = f"%.{decimals}f" % float(khali_area)
+            khali_fmt = area_text(khali_area, round_up)
             lines.append(f"खाली जागा : {khali_fmt} {unit_lbl}")
 
     return lines

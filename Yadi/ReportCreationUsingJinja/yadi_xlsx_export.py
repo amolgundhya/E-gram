@@ -6,6 +6,7 @@ Sheet 2 "बांधकाम तपशील": एक ओळ प्रति �
 
 पासवर्ड सेट असेल तरच msoffcrypto-tool ने .xlsx एन्क्रिप्ट करतो; नसेल तर साधा .xlsx.
 """
+from Utility.area_display import area_value
 import io
 from typing import TYPE_CHECKING
 from Utility.benefit_year import financial_year_full
@@ -93,6 +94,16 @@ SHEET2_COLUMNS = [
     ("weightage", "भारांक", "num"),
     ("usage", "वापर", "text"),
 ]
+
+# क्षेत्रफळ कॉलम्स - MASTER "Round Up All Area" नुसार (Utility/area_display): चालू = वरचा पूर्ण
+# आकडा, बंद = अचूक (कमाल 2 दशांश, शेवटची शून्यं नाहीत). आकडे बॅकएंडने आधीच नियमानुसार केलेले
+# असतात; Excel मध्ये "0.00" ऐवजी "General" स्वरूप - म्हणजे 598.5 / 401.04 / 1000 जसेच्या तसे.
+AREA_COLUMNS = {
+    "total_arearinfoot", "totalareainmeters", "totalconstructionareainfoot",
+    "khaliJagaFt", "khaliJagaM", "area",
+}
+AREA_NUMBER_FORMAT = "General"
+
 
 def _num(value):
     try:
@@ -221,7 +232,7 @@ def build_namuna8_register_workbook(properties: list) -> "Workbook":
                     totals[key] += value
                 cell = ws1.cell(row=row_idx, column=col_idx, value=value)
                 if value is not None:
-                    cell.number_format = "0.00"
+                    cell.number_format = AREA_NUMBER_FORMAT if key in AREA_COLUMNS else "0.00"
             elif kind == "int":
                 cell = ws1.cell(row=row_idx, column=col_idx, value=value if value not in (None, "") else None)
             elif kind == "bool_yn":
@@ -240,9 +251,12 @@ def build_namuna8_register_workbook(properties: list) -> "Workbook":
     ws1.merge_cells(start_row=total_row, start_column=1, end_row=total_row, end_column=8)
     for col_idx, (key, _, kind) in enumerate(SHEET1_COLUMNS, start=1):
         if key in SHEET1_TOTAL_COLUMNS:
-            cell = ws1.cell(row=total_row, column=col_idx, value=round(totals[key], 2))
+            total_value = round(totals[key], 2)
+            if key in AREA_COLUMNS:
+                total_value = area_value(total_value, False)
+            cell = ws1.cell(row=total_row, column=col_idx, value=total_value)
             cell.font = TOTAL_FONT
-            cell.number_format = "0.00"
+            cell.number_format = AREA_NUMBER_FORMAT if key in AREA_COLUMNS else "0.00"
     # बेरीज ओळ फिल्टर/स्क्रोलमुळे चुकून डेटा समजू नये म्हणून थोडी वेगळी दिसावी.
     for col_idx in range(1, len(SHEET1_COLUMNS) + 1):
         ws1.cell(row=total_row, column=col_idx).font = TOTAL_FONT
@@ -261,7 +275,15 @@ def build_namuna8_register_workbook(properties: list) -> "Workbook":
         for item in construction_list:
             length = _num(item.get("length"))
             width = _num(item.get("width"))
-            area = round(length * width, 2) if (length is not None and width is not None) else None
+            # बांधकाम क्षेत्रफळ - बॅकएंडने नियमानुसार केलेलं (areaSqm/areaSqft) असल्यास तेच,
+            # नाहीतर लांबी x रुंदी वरून त्याच नियमाने.
+            area_key = "areaSqm" if construction_unit == "sqm" else "areaSqft"
+            if item.get(area_key) not in (None, ""):
+                area = area_value(item.get(area_key), False)
+            elif length is not None and width is not None:
+                area = area_value(length * width, bool(prop.get("areaRoundUp")))
+            else:
+                area = None
             row_values = {
                 "srNo": sr,
                 "propertyNumber": prop.get("propertyNumber"),
@@ -279,7 +301,7 @@ def build_namuna8_register_workbook(properties: list) -> "Workbook":
                 value = row_values.get(key)
                 cell = ws2.cell(row=row_idx, column=col_idx, value=value if value not in (None, "") else None)
                 if kind == "num" and value is not None:
-                    cell.number_format = "0.00"
+                    cell.number_format = AREA_NUMBER_FORMAT if key in AREA_COLUMNS else "0.00"
             row_idx += 1
             sr += 1
 

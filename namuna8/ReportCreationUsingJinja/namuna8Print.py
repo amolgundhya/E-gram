@@ -1,4 +1,5 @@
 from jinja2 import Environment, FileSystemLoader, Undefined
+from Utility.area_display import jinja_area
 import os
 import re
 import requests
@@ -38,6 +39,10 @@ def round_sqft(value):
     return round(v, 2)
 
 env.filters['round_sqft'] = round_sqft
+# क्षेत्रफळ (एकूण/बांधकाम/खाली जागा, चौ.फु./चौ.मी.) - बॅकएंडने MASTER "Round Up All Area"
+# नुसार आधीच केलेला आकडा फक्त स्वरूपात (598.5, 401.04, 1000) - round_sqft सारखा 0.05
+# जवळचा आकडा पूर्ण करत नाही (बंद असताना अचूक आकडा हवा). round_sqft फक्त लांबी/रुंदीसाठी.
+env.filters['area'] = jinja_area
 
 # रिकामी (None) value प्रिंटवर "None" म्हणून दिसू नये - |default('') फक्त undefined
 # साठी चालतो, None साठी नाही. finalize प्रत्येक {{ }} output वर लागतो.

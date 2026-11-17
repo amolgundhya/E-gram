@@ -241,9 +241,9 @@
                     {% if not area_sides(areaEast, areaNorth) and not has_area(total_arearinfoot) and not has_area(totalareainmeters) %}
                     -
                     {% elif housingUnit == 'sqm' %}
-                        {% if area_sides(areaEast, areaNorth) %}{{ area_sides(areaEast, areaNorth) }} मी. = {% endif %}{{totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{total_arearinfoot|default('')|round_sqft}} चौ.फु.)</span>
+                        {% if area_sides(areaEast, areaNorth) %}{{ area_sides(areaEast, areaNorth) }} मी. = {% endif %}{{totalareainmeters|default('')}} चौ.मी. <span style="font-size: 11px;">({{total_arearinfoot|default('')|area}} चौ.फु.)</span>
                     {% else %}
-                        {% if area_sides(areaEast, areaNorth) %}{{ area_sides(areaEast, areaNorth) }} फु. = {% endif %}{{total_arearinfoot|default('')|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{totalareainmeters|default('')}} चौ.मी.)</span>
+                        {% if area_sides(areaEast, areaNorth) %}{{ area_sides(areaEast, areaNorth) }} फु. = {% endif %}{{total_arearinfoot|default('')|area}} चौ.फु. <span style="font-size: 11px;">({{totalareainmeters|default('')}} चौ.मी.)</span>
                     {% endif %}
 
                 </div>
@@ -273,14 +273,14 @@
                                     {% if item.length and item.width and not (item.type or '').strip().startswith('खाली जागा') %}
                                         {% if n8b.n > 2 %}
                                             {% if constructionAreaUnit == 'sqm' %}
-                                                <div class="n8-row" style="white-space: nowrap;">{{ (item.length|string)[:-2] if (item.length|string).endswith('.0') else (item.length|string) }}x{{ (item.width|string)[:-2] if (item.width|string).endswith('.0') else (item.width|string) }} = {{ item.areaSqm }} चौ.मी. ({{ item.areaSqft|round_sqft }} चौ.फु.)</div>
+                                                <div class="n8-row" style="white-space: nowrap;">{{ (item.length|string)[:-2] if (item.length|string).endswith('.0') else (item.length|string) }}x{{ (item.width|string)[:-2] if (item.width|string).endswith('.0') else (item.width|string) }} = {{ item.areaSqm }} चौ.मी. ({{ item.areaSqft|area }} चौ.फु.)</div>
                                             {% else %}
-                                                <div class="n8-row" style="white-space: nowrap;">{{ (item.length|string)[:-2] if (item.length|string).endswith('.0') else (item.length|string) }}x{{ (item.width|string)[:-2] if (item.width|string).endswith('.0') else (item.width|string) }} = {{ item.areaSqft|round_sqft }} चौ.फु. ({{ item.areaSqm }} चौ.मी.)</div>
+                                                <div class="n8-row" style="white-space: nowrap;">{{ (item.length|string)[:-2] if (item.length|string).endswith('.0') else (item.length|string) }}x{{ (item.width|string)[:-2] if (item.width|string).endswith('.0') else (item.width|string) }} = {{ item.areaSqft|area }} चौ.फु. ({{ item.areaSqm }} चौ.मी.)</div>
                                             {% endif %}
                                         {% elif constructionAreaUnit == 'sqm' %}
-                                            {{ item.length }} x {{ item.width }} मी. = {{ item.areaSqm }} चौ.मी. <span style="font-size: 0.8em;">({{ item.areaSqft|round_sqft }} चौ.फु.)</span><br>
+                                            {{ item.length }} x {{ item.width }} मी. = {{ item.areaSqm }} चौ.मी. <span style="font-size: 0.8em;">({{ item.areaSqft|area }} चौ.फु.)</span><br>
                                         {% else %}
-                                            {{ item.length }} x {{ item.width }} फु. = {{ item.areaSqft|round_sqft }} चौ.फु. <span style="font-size: 0.8em;">({{ item.areaSqm }} चौ.मी.)</span><br>
+                                            {{ item.length }} x {{ item.width }} फु. = {{ item.areaSqft|area }} चौ.फु. <span style="font-size: 0.8em;">({{ item.areaSqm }} चौ.मी.)</span><br>
                                         {% endif %}
                                     {% endif %}
                                 {% endfor %}
@@ -291,9 +291,9 @@
                             खुली जागा <br>
                             {% if khaliJaga and khaliJaga|length > 0 %}
                                 {% if housingUnit == 'sqm' %}
-                                    {{khaliJaga[0].totalkhalijagaareainmeters}} चौ.मी. <span style="font-size: 11px;">({{khaliJaga[0].totalkhalijagaareainfoot|round_sqft}} चौ.फु.)</span>
+                                    {{khaliJaga[0].totalkhalijagaareainmeters}} चौ.मी. <span style="font-size: 11px;">({{khaliJaga[0].totalkhalijagaareainfoot|area}} चौ.फु.)</span>
                                 {% else %}
-                                    {{khaliJaga[0].totalkhalijagaareainfoot|round_sqft}} चौ.फु. <span style="font-size: 11px;">({{khaliJaga[0].totalkhalijagaareainmeters}} चौ.मी.)</span>
+                                    {{khaliJaga[0].totalkhalijagaareainfoot|area}} चौ.फु. <span style="font-size: 11px;">({{khaliJaga[0].totalkhalijagaareainmeters}} चौ.मी.)</span>
                                 {% endif %}
                             {% endif %}
                         </div>

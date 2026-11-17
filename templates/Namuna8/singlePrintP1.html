@@ -228,7 +228,7 @@
         </td>
         <td rowspan="2">{% for ct_row in (constructionType or []) %}{{ct_row.year if constructionType and constructionType|length > 0 else ''}}{% if not loop.last %} <br>{% endif %}{% endfor %}<br/> </td>
         <td rowspan="2">{{ area_sides(areaEast, areaNorth) }}</td>
-        <td rowspan="2">{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length|round_sqft if khaliJaga and khaliJaga|length > 0 else ''}}</td>
+        <td rowspan="2">{{khaliJaga[0].rate if khaliJaga and khaliJaga|length > 0 else ''}}-{{khaliJaga[0].length|area if khaliJaga and khaliJaga|length > 0 else ''}}</td>
         <td rowspan="2"></td>
     </tr>
     <tr>
@@ -256,10 +256,10 @@
         <td></td>
         {% else %}
         <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस फुट </td>
-        <td> {{total_arearinfoot|default('')|round_sqft}} </td>
-        <td> {{khaliJaga[0].totalkhalijagaareainfoot|round_sqft if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td> {{total_arearinfoot|default('')|area}} </td>
+        <td> {{khaliJaga[0].totalkhalijagaareainfoot|area if khaliJaga and khaliJaga|length > 0 else ''}} </td>
         <td></td>
-        <td>{{totalconstructionareainfoot|default('')|round_sqft}}</td>
+        <td>{{totalconstructionareainfoot|default('')|area}}</td>
         <td></td>
         <td></td>
         {% endif %}
@@ -269,10 +269,10 @@
         <td>{% if mobileNumberAdd %}{{mobileNumber|default('', true)}}{% endif %}</td>
         {% if areaUnit == 'sqm' %}
         <td colspan="5" style="text-align: right; font-weight: bold;">एकूण चौरस फुट </td>
-        <td> {{total_arearinfoot|default('')|round_sqft}} </td>
-        <td> {{khaliJaga[0].totalkhalijagaareainfoot|round_sqft if khaliJaga and khaliJaga|length > 0 else ''}} </td>
+        <td> {{total_arearinfoot|default('')|area}} </td>
+        <td> {{khaliJaga[0].totalkhalijagaareainfoot|area if khaliJaga and khaliJaga|length > 0 else ''}} </td>
         <td></td>
-        <td>{{totalconstructionareainfoot|default('')|round_sqft}}</td>
+        <td>{{totalconstructionareainfoot|default('')|area}}</td>
         <td></td>
         <td></td>
         {% else %}
