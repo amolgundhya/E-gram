@@ -444,8 +444,7 @@
           record.recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
           <td class="right">
-            {{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else current_value
-            }}
+            {{ current_value }}
           </td>
           <td class="right">
             {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
@@ -483,6 +482,7 @@
       {% endif %} {% endfor %}
     </div>
     {% endfor %}
+      <script src="/report_assets/fit_sheets.js"></script>
       <script src="/report_assets/report_share.js"></script>
 </body>
 </html>

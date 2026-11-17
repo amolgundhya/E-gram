@@ -506,15 +506,14 @@
                 ~ loop.index] or 0 %}
 
                 <td class="right">
-                  {{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  current_value }}
+                  {{ current_value }}
                 </td>
                 <td class="right">
                   {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
                   else total_value }}
                 </td>
 
-                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
+                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
                 {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
                 ns.deduction = ns.deduction + total_value %} {% elif (tax ==
                 'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
@@ -641,15 +640,14 @@
                 ~ loop.index] or 0 %}
 
                 <td class="right">
-                  {{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  current_value }}
+                  {{ current_value }}
                 </td>
                 <td class="right">
                   {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
                   else total_value }}
                 </td>
 
-                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
+                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
                 {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
                 ns.deduction = ns.deduction + total_value %} {% elif (tax ==
                 'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
@@ -778,15 +776,14 @@
                 data[i+1].recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
                 <td class="right">
-                  {{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  current_value }}
+                  {{ current_value }}
                 </td>
                 <td class="right">
                   {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
                   else total_value }}
                 </td>
 
-                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
+                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
                 {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
                 ns.deduction = ns.deduction + total_value %} {% elif (tax ==
                 'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
@@ -915,15 +912,14 @@
                 data[i+1].recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
                 <td class="right">
-                  {{ 0 if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  current_value }}
+                  {{ current_value }}
                 </td>
                 <td class="right">
                   {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
                   else total_value }}
                 </td>
 
-                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
+                {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
                 {% if (tax == 'नोटीस फी' and noticeFee == 'false') %} {% set
                 ns.deduction = ns.deduction + total_value %} {% elif (tax ==
                 'वारंट फी' and warrantFee == 'false') %} {% set ns.deduction =
@@ -952,6 +948,7 @@
       </div>
       {% endfor %}
     </div>
+      <script src="/report_assets/fit_sheets.js"></script>
       <script src="/report_assets/report_share.js"></script>
 </body>
 </html>
