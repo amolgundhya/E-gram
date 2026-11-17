@@ -200,6 +200,7 @@
                 <th>दिवाकर</th>
                 <th>आरोग्यकर</th>
                 <th>पाणीकर</th>
+                <th>शौचालय कर</th>
                 <th>एकूण कर रुपये </th>
             </tr>
         </thead>
@@ -215,9 +216,12 @@
                 <td>{{ row.lightingTax }}</td>
                 <td>{{ row.healthTax }}</td>
                 <td>{{ row.sapanikar }}</td>
-                <td>{{ (row.totalHouseTax|default(0)) + (row.lightingTax|default(0)) + (row.healthTax|default(0)) + (row.sapanikar|default(0)) }}</td>
+                <td>{{ row.toiletTax or 0 }}</td>
+                <td>{{ (row.totalHouseTax|default(0)) + (row.lightingTax|default(0)) + (row.healthTax|default(0)) + (row.sapanikar|default(0)) + (row.toiletTax or 0) }}</td>
             </tr>
             {% endfor %}
+            {# शौचालय कर एकूण (नमुना-8 shauchalayKar) - काही रेकॉर्डमध्ये नसेल तर 0 #}
+            {% set toilet_total = namespace(v=0) %}{% for r in data %}{% set toilet_total.v = toilet_total.v + (r.toiletTax or 0) %}{% endfor %}
             <!-- Totals row: each total below its respective column -->
             <tr>
                 <td colspan="3" style="text-align:right;"><b>एकूण :</b></td>
@@ -225,7 +229,8 @@
                 <td>{{ data | sum(attribute='lightingTax') }}</td>
                 <td>{{ data | sum(attribute='healthTax') }}</td>
                 <td>{{ data | sum(attribute='sapanikar') }}</td>
-                <td><b>{{ (data | sum(attribute='totalHouseTax')) + (data | sum(attribute='lightingTax')) + (data | sum(attribute='healthTax')) + (data | sum(attribute='sapanikar')) }}</b></td>
+                <td>{{ toilet_total.v }}</td>
+                <td><b>{{ (data | sum(attribute='totalHouseTax')) + (data | sum(attribute='lightingTax')) + (data | sum(attribute='healthTax')) + (data | sum(attribute='sapanikar')) + toilet_total.v }}</b></td>
             </tr>
         </tbody>
     </table>
