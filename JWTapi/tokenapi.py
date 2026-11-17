@@ -25,6 +25,13 @@ SYNC_SECRET_COLUMNS = {
 }
 
 
+# या संगणकावरच्या फाईल्सचे पत्ते (QR / स्वाक्षरी फोटो) - hosted डेटात रिकामे आले तर Import
+# नंतर स्थानिक मूल्यच ठेवायचं (फाईल्स इथेच आहेत; नाहीतर प्रिंटवरचे QR गायब होतात).
+SYNC_KEEP_LOCAL_IF_EMPTY = {
+    "gram_panchayats": {"house_tax_qr_url", "water_tax_qr_url", "signature_url"},
+}
+
+
 def _is_secret_column(table_name, column_name):
     """वरच्या यादीतले कॉलम + नावावरून दिसणारे कोणतेही password/secret/hash/token कॉलम."""
     if column_name in SYNC_SECRET_COLUMNS.get(table_name, set()):
@@ -713,7 +720,10 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
             local_secrets = []
             secret_conn = sqlite3.connect(backup_path)
             try:
-                for secret_table, secret_cols in SYNC_SECRET_COLUMNS.items():
+                keep_local = {t: set(c) for t, c in SYNC_SECRET_COLUMNS.items()}
+                for keep_table, keep_cols in SYNC_KEEP_LOCAL_IF_EMPTY.items():
+                    keep_local.setdefault(keep_table, set()).update(keep_cols)
+                for secret_table, secret_cols in keep_local.items():
                     existing_cols = {r[1] for r in secret_conn.execute(f'PRAGMA table_info("{secret_table}")')}
                     for secret_col in secret_cols:
                         if secret_col not in existing_cols:
@@ -796,10 +806,20 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
 
         db.commit()
         print("DEBUG: Transaction committed successfully")
+
+        # जुन्या/नवीन कॉलम न ठेवणाऱ्या बॅकअपमधून आलेले रिकामे नवीन कॉलम (sort_order -> अ.क्र.
+        # क्रम, is_deleted, इ.) लगेच भरायचे - सर्व्हर पुन्हा सुरू होण्याची वाट न पाहता.
+        try:
+            from Utility.new_column_defaults import apply_new_column_defaults
+            defaults_filled = apply_new_column_defaults()
+        except Exception as defaults_error:
+            defaults_filled = {"error": str(defaults_error)}
+
         return {
             "success": True,
             "message": "Local DB replaced with hosted data",
             "backup_path": backup_path,
+            "defaults_filled": defaults_filled,
         }
 
     except Exception as e:

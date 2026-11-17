@@ -409,38 +409,15 @@ ensure_property_sort_order_column()
 # केला तरी सुरक्षितपणे पुन्हा चालतं (idempotent) - हीच पद्धत इतर क्लायंटच्या डेटाबेसवरही
 # आपोआप एकदा चालून मालमत्ता यादीला sort_order देईल.
 def backfill_property_sort_order():
+    # sort_order बॅकफिल + इतर नवीन कॉलमचे रिकामे (NULL) रो - Utility/new_column_defaults.py
+    # (तेच Import नंतरही चालतं). फक्त NULL रो भरतो, बाकी कशालाही स्पर्श नाही.
     try:
-        from database import SessionLocal
-        from namuna8 import namuna8_model as namuna8_models
-        from natural_sort import malmatta_kramank_sort_key
-        db = SessionLocal()
-        try:
-            villages_with_gaps = (
-                db.query(namuna8_models.Property.village_id)
-                .filter(namuna8_models.Property.sort_order.is_(None))
-                .distinct()
-                .all()
-            )
-            for (village_id,) in villages_with_gaps:
-                props = (
-                    db.query(namuna8_models.Property)
-                    .filter(namuna8_models.Property.village_id == village_id)
-                    .all()
-                )
-                props_needing_order = [p for p in props if p.sort_order is None]
-                if not props_needing_order:
-                    continue
-                existing_max = max(
-                    [p.sort_order for p in props if p.sort_order is not None], default=0
-                )
-                ordered = sorted(props_needing_order, key=lambda p: malmatta_kramank_sort_key(p.malmattaKramank))
-                for i, p in enumerate(ordered, start=1):
-                    p.sort_order = existing_max + i * 10.0
-            db.commit()
-        finally:
-            db.close()
+        from Utility.new_column_defaults import apply_new_column_defaults
+        filled = apply_new_column_defaults(engine)
+        if filled:
+            print("[Migration] Filled empty new columns:", filled)
     except Exception as e:
-        print("[Migration] Could not backfill properties.sort_order:", e)
+        print("[Migration] Could not fill empty new columns:", e)
 
 backfill_property_sort_order()
 
