@@ -138,6 +138,46 @@ def _deep_round_numbers(obj):
             elif isinstance(v, (dict, list)):
                 _deep_round_numbers(v)
 
+
+# क्षेत्रफळ (चौ.फु./चौ.मी.) डिस्प्ले - MASTER > नमुना ८ प्रिंट सेटिंग "Round Up All Area"
+# (Namuna8SettingChecklist.roundupArea) नुसार, फक्त खालील क्षेत्रफळ फील्ड्सना:
+#   - टिक केलेला  -> नेहमी वरचा पूर्ण आकडा (598.5 -> 599, 598.1 -> 599)
+#   - टिक नसलेला -> जुन्या (Aditya) व्हर्जनप्रमाणेच: एकूण/खाली जागा = पायथनचा round()
+#                  (598.5 -> 598, 599.5 -> 600), बांधकाम क्षेत्रफळ = HALF_UP पूर्ण आकडा.
+# कर/भांडवली मूल्य यातून जात नाहीत - कर आधीच कच्च्या क्षेत्रफळावरून मोजलेला असतो.
+# 'length'/'width' (उदा. खाली जागा "1480-1099.96") बदलत नाहीत.
+AREA_KEYS_ROUND_LIKE_OLD = {
+    "total_arearinfoot", "totalareainmeters", "totalArea", "totalAreaSqFt",
+    "totalkhalijagaareainfoot", "totalkhalijagaareainmeters",
+}
+AREA_KEYS_HALF_UP_LIKE_OLD = {
+    "totalconstructionareainfoot", "totalconstructionareainmeter", "areaSqft", "areaSqm",
+}
+
+
+def _round_area_value(v, round_up: bool, half_up: bool):
+    if round_up:
+        # 2 दशांशावर आधी गोल करतो - float चा 1200.0000001 सारखा कचरा 1201 होऊ नये.
+        return int(math.ceil(round(float(v), 2)))
+    if half_up:
+        return int(Decimal(str(v)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    return int(round(v))
+
+
+def _round_area_fields(obj, round_up: bool):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if isinstance(v, (dict, list)):
+                _round_area_fields(v, round_up)
+            elif isinstance(v, (int, float)) and not isinstance(v, bool) and (
+                k in AREA_KEYS_ROUND_LIKE_OLD or k in AREA_KEYS_HALF_UP_LIKE_OLD
+            ):
+                obj[k] = _round_area_value(v, round_up, k in AREA_KEYS_HALF_UP_LIKE_OLD)
+    elif isinstance(obj, list):
+        for item in obj:
+            if isinstance(item, (dict, list)):
+                _round_area_fields(item, round_up)
+
 @router.get("/property_record/{anuKramank}")
 def get_property_record(
     anuKramank: int, 
@@ -489,6 +529,8 @@ def get_property_record(
 
     # Coerce all numeric fields to integers except 'length' and 'width' -
     # only when the gram panchayat's "Round Up All Area" checklist setting is on.
+    # क्षेत्रफळ - "Round Up All Area" नुसार (चालू = वरचा आकडा, बंद = जुन्या व्हर्जनप्रमाणे).
+    _round_area_fields(response, bool(checklist and checklist.roundupArea))
     if checklist and checklist.roundupArea:
         _deep_round_numbers(response)
     return response
@@ -873,6 +915,8 @@ def get_property_records_by_village(
         response['exServicemanTip'] = bool(getattr(prop, 'exServiceman', False))
         # Coerce all numeric fields to integers except 'length' and 'width' -
         # only when the gram panchayat's "Round Up All Area" checklist setting is on.
+        # क्षेत्रफळ - "Round Up All Area" नुसार (चालू = वरचा आकडा, बंद = जुन्या व्हर्जनप्रमाणे).
+        _round_area_fields(response, bool(checklist and checklist.roundupArea))
         if checklist and checklist.roundupArea:
             _deep_round_numbers(response)
         results.append(response)
@@ -1268,6 +1312,8 @@ def get_property_records_by_gram_panchayat(
 
             # Coerce all numeric fields to integers except 'length' and 'width' -
             # only when the gram panchayat's "Round Up All Area" checklist setting is on.
+            # क्षेत्रफळ - "Round Up All Area" नुसार (चालू = वरचा आकडा, बंद = जुन्या व्हर्जनप्रमाणे).
+            _round_area_fields(response, bool(checklist and checklist.roundupArea))
             if checklist and checklist.roundupArea:
                 _deep_round_numbers(response)
             response.update(checklist_fields)
