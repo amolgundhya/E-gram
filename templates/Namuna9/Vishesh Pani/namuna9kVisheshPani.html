@@ -227,7 +227,7 @@
             <tr>
                 <td class="bold">मालकाचे नाव : {{ record.ownerName or '' }}</td>
                 <td class="bold">भोगवटदार : {{ record.occupantName or '' }}</td>
-                <td class="bold">दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') }}</td>
+                <td class="bold">दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') | dmy }}</td>
             </tr>
         </table>
         <table style="margin-top: 2px; width:100%;">
@@ -291,7 +291,7 @@
     <td class="right">{{ totals.ekun }}</td>
 </tr>
 <tr class="bold">
-    <td colspan="5" style="border:none;">दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') }}</td>
+    <td colspan="5" style="border:none;">दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') | dmy }}</td>
 </tr>
         </table>
         <div style="font-size: 12px; margin-top: 3px; padding: 0 4px; line-height: 1.3;">
