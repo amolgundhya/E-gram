@@ -41,10 +41,14 @@ router = APIRouter(
 # must not trigger the "- भोगवटदार :" suffix - only a real occupant name should.
 # No brackets around the owner name (client-reported bug - see conversation
 # history around 2026-09-30).
+# मालमत्ता धारक रिकामा (फक्त भोगवटदार भरलेला) असेल तर फक्त "भोगवटदार : X" - पुढे
+# " – " डॅश नको (क्लायंट, नोव्हें 2026).
 def _owner_display_name(owner: dict) -> str:
-    name = owner.get('name', '') or ''
+    name = (owner.get('name', '') or '').strip()
     occupant = (owner.get('occupantName') or '').strip()
     if occupant and occupant != 'स्वतः':
+        if not name:
+            return f"भोगवटदार : {occupant}"
         return f"{name} – भोगवटदार : {occupant}"
     return name
 backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
