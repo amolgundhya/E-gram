@@ -396,6 +396,14 @@
         showPage(totalPages);
       }
       function printPage() {
+        // QR फक्त दिसणाऱ्या बिलांचे लोड होतात (report_pages.js) - प्रिंटआधी From..To चे QR लोड करून मग हाच printPage
+        if (window.ReportPages && !printPage.qrReady) {
+          ReportPages.ready(ReportPages.inRange(), function () {
+            printPage.qrReady = true;
+            try { printPage(); } finally { printPage.qrReady = false; }
+          });
+          return;
+        }
         // Get page range from input
         const fromPage =
           parseInt(document.getElementById("fromPage").value) || 1;
@@ -464,7 +472,7 @@
             {% if rec.houseTaxQrUrl %}{% set _ = qrs.append((rec.houseTaxQrUrl, 'घर कर')) %}{% endif %}
             {% if rec.waterTaxQrUrl %}{% set _ = qrs.append((rec.waterTaxQrUrl, 'पाणी कर')) %}{% endif %}
             {% for qr_url, qr_label in qrs %}
-            <span class="qr-box"><img src="{{ qr_url }}" /><div class="bold">{{ qr_label }}</div></span>
+            <span class="qr-box"><img data-src="{{ qr_url }}" /><div class="bold">{{ qr_label }}</div></span>
             {% else %}
             <span class="qr-box"><span class="qr-empty"></span></span>
             {% endfor %}
@@ -579,6 +587,7 @@
       </div>
       {% endfor %}
     </div>
+      <script src="/report_assets/report_pages.js" data-unit=".report-grid"></script>
       <script src="/report_assets/fit_sheets.js"></script>
       <script src="/report_assets/report_share.js"></script>
 </body>

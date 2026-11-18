@@ -590,6 +590,14 @@ try:
 except Exception as e:
     _safe_print(f"[Migration] Could not fix bharank names: {e}")
 
+# मालमत्ता QR cache: DB बदलला की (triggers) जतन केलेले QR पुन्हा तपासले जातात - Utility/qr_cache.py.
+# सगळ्या migrations नंतर (टेबल पुन्हा बनल्यास triggers पुन्हा लागावेत); Import नंतरही चालतो.
+try:
+    from Utility.qr_cache import ensure_qr_cache
+    ensure_qr_cache(engine)
+except Exception as e:
+    _safe_print(f"[Migration] Could not set up QR cache triggers: {e}")
+
 # Create folders the app needs at startup (they may not exist on a new PC)
 import os as _os
 for _folder in ("reports", "uploaded_images"):

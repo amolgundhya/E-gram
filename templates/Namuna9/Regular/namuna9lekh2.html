@@ -309,6 +309,14 @@
       }
 
       function printPage() {
+        // QR फक्त दिसणाऱ्या बिलांचे लोड होतात (report_pages.js) - प्रिंटआधी From..To चे QR लोड करून मग हाच printPage
+        if (window.ReportPages && !printPage.qrReady) {
+          ReportPages.ready(ReportPages.inRange(), function () {
+            printPage.qrReady = true;
+            try { printPage(); } finally { printPage.qrReady = false; }
+          });
+          return;
+        }
         // Get page range from input
         const fromPage =
           parseInt(document.getElementById("fromPage").value) || 1;
@@ -389,7 +397,7 @@
           <td rowspan="3" style="border: none; width: 1%; white-space: nowrap; text-align: center; vertical-align: middle; padding: 0 2px;">
             {% for qr_url, qr_label in qrs %}
             <div style="display: inline-block; text-align: center; margin: 0 3px; vertical-align: top;">
-              <img src="{{ qr_url }}" style="width: 52px; height: 52px; object-fit: contain; display: block;" />
+              <img data-src="{{ qr_url }}" style="width: 52px; height: 52px; object-fit: contain; display: block;" />
               <div class="bold" style="font-size: 10px; line-height: 1.1;">{{ qr_label }}</div>
             </div>
             {% endfor %}
@@ -482,6 +490,7 @@
       {% endif %} {% endfor %}
     </div>
     {% endfor %}
+      <script src="/report_assets/report_pages.js" data-unit=".outer-border"></script>
       <script src="/report_assets/fit_sheets.js"></script>
       <script src="/report_assets/report_share.js"></script>
 </body>

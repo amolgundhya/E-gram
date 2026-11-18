@@ -376,6 +376,14 @@
         showPage(totalPages);
       }
       function printPage() {
+        // QR फक्त दिसणाऱ्या बिलांचे लोड होतात (report_pages.js) - प्रिंटआधी From..To चे QR लोड करून मग हाच printPage
+        if (window.ReportPages && !printPage.qrReady) {
+          ReportPages.ready(ReportPages.inRange(), function () {
+            printPage.qrReady = true;
+            try { printPage(); } finally { printPage.qrReady = false; }
+          });
+          return;
+        }
         // Get page range from input
         const fromPage =
           parseInt(document.getElementById("fromPage").value) || 1;
@@ -452,7 +460,7 @@
                   <span style="display:inline-flex; gap:3px; justify-content:center; margin-bottom:2px;">
                     {% for qr_url, qr_label in [(data[i].propertyQrUrl, 'मालमत्ता'), (data[i].houseTaxQrUrl, 'घर कर'), (data[i].waterTaxQrUrl, 'पाणी कर')] if qr_url %}
                     <span style="display:inline-block; text-align:center;">
-                      <img src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
+                      <img data-src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
                       <span style="font-size:7px;">{{ qr_label }}</span>
                     </span>
                     {% endfor %}
@@ -586,7 +594,7 @@
                   <span style="display:inline-flex; gap:3px; justify-content:center; margin-bottom:2px;">
                     {% for qr_url, qr_label in [(data[i].propertyQrUrl, 'मालमत्ता'), (data[i].houseTaxQrUrl, 'घर कर'), (data[i].waterTaxQrUrl, 'पाणी कर')] if qr_url %}
                     <span style="display:inline-block; text-align:center;">
-                      <img src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
+                      <img data-src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
                       <span style="font-size:7px;">{{ qr_label }}</span>
                     </span>
                     {% endfor %}
@@ -722,7 +730,7 @@
                   <span style="display:inline-flex; gap:3px; justify-content:center; margin-bottom:2px;">
                     {% for qr_url, qr_label in [(data[i+1].propertyQrUrl, 'मालमत्ता'), (data[i+1].houseTaxQrUrl, 'घर कर'), (data[i+1].waterTaxQrUrl, 'पाणी कर')] if qr_url %}
                     <span style="display:inline-block; text-align:center;">
-                      <img src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
+                      <img data-src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
                       <span style="font-size:7px;">{{ qr_label }}</span>
                     </span>
                     {% endfor %}
@@ -858,7 +866,7 @@
                   <span style="display:inline-flex; gap:3px; justify-content:center; margin-bottom:2px;">
                     {% for qr_url, qr_label in [(data[i+1].propertyQrUrl, 'मालमत्ता'), (data[i+1].houseTaxQrUrl, 'घर कर'), (data[i+1].waterTaxQrUrl, 'पाणी कर')] if qr_url %}
                     <span style="display:inline-block; text-align:center;">
-                      <img src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
+                      <img data-src="{{ qr_url }}" style="width:36px; height:36px; object-fit:contain; border:1px solid #000; display:block;" />
                       <span style="font-size:7px;">{{ qr_label }}</span>
                     </span>
                     {% endfor %}
@@ -948,6 +956,7 @@
       </div>
       {% endfor %}
     </div>
+      <script src="/report_assets/report_pages.js" data-unit=".report-grid"></script>
       <script src="/report_assets/fit_sheets.js"></script>
       <script src="/report_assets/report_share.js"></script>
 </body>

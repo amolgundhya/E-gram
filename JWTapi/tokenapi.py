@@ -814,6 +814,12 @@ def download_and_replace_all_tables(db: Session = Depends(database.get_db)):
             defaults_filled = apply_new_column_defaults()
         except Exception as defaults_error:
             defaults_filled = {"error": str(defaults_error)}
+        # मालमत्ता QR: सगळा डेटा बदलला - triggers पुन्हा (Utility/qr_cache.py), सगळे QR पुन्हा तपासले जातील
+        try:
+            from Utility.qr_cache import ensure_qr_cache
+            ensure_qr_cache()
+        except Exception as qr_cache_error:
+            print("QR cache setup after import failed:", qr_cache_error)
 
         return {
             "success": True,

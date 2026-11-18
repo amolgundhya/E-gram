@@ -47,6 +47,30 @@
         else alert('PDF \u092c\u0928\u0935\u0924\u093e\u0928\u093e \u0924\u094d\u0930\u0941\u091f\u0940 \u0906\u0932\u0940 - backend \u091a\u093e\u0932\u0942 \u0906\u0939\u0947 \u0915\u093e \u0924\u0947 \u0924\u092a\u093e\u0938\u093e.');  // PDF बनवताना त्रुटी आली - backend चालू आहे का ते तपासा.
     }
 
+    // नमुना ९ क / ९ क-2 / लेख वगैरे (report_pages.js असलेले viewer): PDF मध्ये फक्त From..To ची
+    // पानं - आधी सगळी (उदा. 916) बिलं पाठवली जायची आणि PDF ला दोन मिनिटं लागायची. HTML ची
+    // inert प्रत (DOMParser - images/scripts चालत नाहीत) बनवून बाकीची पानं काढतो; राहिलेल्या
+    // पानांचे QR (data-src) src मध्ये. बाकीचे रिपोर्ट (report_pages.js नसलेले) पूर्वीसारखेच.
+    function selectedPagesHtml() {
+        var rp = window.ReportPages;
+        if (!rp || !window.DOMParser) return null;
+        var r = rp.range();
+        if (!r.total) return null;
+        var doc = new DOMParser().parseFromString(document.documentElement.outerHTML, 'text/html');
+        var units = doc.querySelectorAll(rp.unit);
+        if (units.length !== r.total) return null;
+        for (var i = units.length - 1; i >= 0; i--) {
+            if (i + 1 < r.from || i + 1 > r.to) units[i].parentNode.removeChild(units[i]);
+            else units[i].style.display = '';
+        }
+        var imgs = doc.querySelectorAll('img[data-src]');
+        for (var j = 0; j < imgs.length; j++) {
+            imgs[j].setAttribute('src', imgs[j].getAttribute('data-src'));
+            imgs[j].removeAttribute('data-src');
+        }
+        return '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+    }
+
     function share(btn) {
         if (btn.disabled) return;
         btn.disabled = true;
@@ -58,7 +82,14 @@
             btn.style.opacity = '';
         }
 
-        var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        var html;
+        try {
+            html = selectedPagesHtml();
+        } catch (e) {
+            if (window.console) console.error('share: From..To', e);
+            html = null;
+        }
+        if (!html) html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
         var xhr = new XMLHttpRequest();
         xhr.open('POST', '/reports/share-pdf');
         xhr.setRequestHeader('Content-Type', 'application/json');
