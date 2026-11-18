@@ -246,9 +246,18 @@
                 <td style="border:none; width: 34%;">मालमत्ता नंबर : {{ record.malmatta_kramank or '' }}</td>
                 <td style="border:none;">पावती बुक नं : {{ record.pa_book_kramank or '' }}</td>
             </tr>
+            {# मालमत्ता धारक रिकामा (फक्त भोगवटदार भरलेला) असेल तर "श्री/सौ : मालकाचे नाव" placeholder ऐवजी
+               "भोगवटदार : X" (नमुना-9 सारखं), शेजारचा भोगवटदार रकाना रिकामा (नाव दोनदा नको). मालक भरलेला असेल तर पूर्वीसारखंच. #}
+            {% set _pv_owner = (record.owner_name or '')|trim %}
+            {% set _pv_occ = (record.occupant or '')|trim %}
             <tr>
+                {% if not _pv_owner and _pv_occ and _pv_occ != 'स्वतः' %}
+                <td class="bold" style="border:none;">भोगवटदार : {{ _pv_occ }}</td>
+                <td class="bold" style="border:none;"></td>
+                {% else %}
                 <td class="bold" style="border:none;">श्री/सौ : {{ record.owner_name or 'मालकाचे नाव' }}</td>
                 <td class="bold" style="border:none;">भोगवटदार : {{ record.occupant or 'भोगवटदाराचे नाव' }}</td>
+                {% endif %}
                 <td style="border:none;">पावती नं : {{ record.pavti_kramank or '' }}</td>
             </tr>
         </table>
