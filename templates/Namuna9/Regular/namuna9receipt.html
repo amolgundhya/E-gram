@@ -282,7 +282,7 @@
                 <td></td>
                 <td></td>
             </tr>
-            {% set default_tax_names = ['घर कर', 'दिवा कर', 'आरोग्य कर', 'सामान्य पाणी कर', 'विशेष पाणी कर', 'सफाई कर', 'शौचालय कर', 'नोटीस फी', 'वारंट फी', 'एकूण देय रक्कम', 'सवलत / सूट असल्यास (66%)', 'सूट नंतर एकूण देय रक्कम'] %}
+            {% set default_tax_names = ['घर कर', 'दिवा कर', 'आरोग्य कर', 'सामान्य पाणी कर', 'विशेष पाणी कर', 'सफाई कर', 'शौचालय कर', 'नोटीस फी', 'वारंट फी', 'एकूण देय रक्कम', 'सवलत / सूट असल्यास', 'सूट नंतर एकूण देय रक्कम'] %}
             {% set thakit_total = (record.vasuliGhar or 0) + (record.vasuliDiva or 0) + (record.vasuliAarogyaKar or 0) + (record.vasuliSapanikar or 0) + (record.vasuliVpanikar or 0) + (record.vasuliCleaningTax or 0) + (record.vasuliToiletTax or 0) %}
             {% set dand_total = (record.vasuliDand or 0) %}
             {# नोटीस / वारंट फी - पावतीत जमा झालेली फी चालू रकान्यात (९ क प्रमाणे) आणि एकूण / अक्षरी रकमेत.
@@ -290,12 +290,17 @@
             {% set fee_total = (record.vasuliNoticeFee or 0) + (record.vasuliWarrantFee or 0) %}
             {% set chalu_total = (record.vasuliChaluGhar or 0) + (record.vasuliChaluDiva or 0) + (record.vasuliChaluAarogyaKar or 0) + (record.vasuliChaluSapanikar or 0) + (record.vasuliChaluVpanikar or 0) + (record.vasuliChaluCleaningTax or 0) + (record.vasuliChaluToiletTax or 0) + fee_total %}
             {% set ekun_total = thakit_total + dand_total + chalu_total %}
+            {# सवलत / सूट: पावतीवर सूट स्वतंत्र साठवली जात नाही - सर्व कर/फी रकमांच्या बेरजेपेक्षा पावतीची एकूण
+               (record.total) कमी असेल तर तो फरक म्हणजे सूट (रद्द पावत्या रिपोर्टप्रमाणेच). आधी लेबलवर "(66%)"
+               hard-coded होतं (मूळ पावती, Sep-2025) - आता खरी टक्केवारी, सूट 0 असेल तर टक्केवारी नाही. #}
+            {% set sut_amt = ((ekun_total - record.total) if record.total is not none and ekun_total - record.total > 0.005 else 0) %}
+            {% set sut_pct = ((sut_amt * 100 / ekun_total) if ekun_total else 0) %}
             {% set tax_names = tax_names if tax_names is defined else default_tax_names %}
             {% set ns = namespace(deduction=0) %}
 
 {% for tax in tax_names %}
 <tr>
-    <td>{{ tax }}</td>
+    <td>{{ tax }}{% if tax == 'सवलत / सूट असल्यास' and sut_amt > 0 %} ({{ sut_pct | amount }}%){% endif %}</td>
     {% if tax == 'नोटीस फी' or tax == 'वारंट फी' %}
         {% set fee_paid = (record.vasuliNoticeFee if tax == 'नोटीस फी' else record.vasuliWarrantFee) or 0 %}
         {% set fee_left = (record.remainingNoticeFee if tax == 'नोटीस फी' else record.remainingWarrantFee) %}
@@ -304,11 +309,11 @@
         <td class="right">{{ fee_paid | amount }}</td>
         <td class="right">{{ fee_paid | amount }}</td>
         <td class="right balance-col">{{ (fee_left if fee_left is not none else 0) | amount }}</td>
-    {% elif tax == 'सवलत / सूट असल्यास (66%)' %}
+    {% elif tax == 'सवलत / सूट असल्यास' %}
         <td class="right">0</td>
         <td class="right"></td>
         <td class="right"></td>
-        <td class="right"></td>
+        <td class="right">{{ (sut_amt | amount) if sut_amt > 0 else '' }}</td>
         <td class="right balance-col"></td>
     {% elif tax == 'एकूण देय रक्कम' %}
         <td class="right">{{ (thakit_total) | amount }}</td>
@@ -320,7 +325,7 @@
         <td class="right">{{ (thakit_total) | amount }}</td>
         <td class="right">{{ (dand_total) | amount }}</td>
         <td class="right">{{ (chalu_total) | amount }}</td>
-        <td class="right">{{ (ekun_total) | amount }}</td>
+        <td class="right">{{ (ekun_total - sut_amt) | amount }}</td>
         <td class="right balance-col">{{ (record.remainingTotal if record.remainingTotal is not none else 0) | amount }}</td>
     {% else %}
         {% if loop.index == 1 %}
