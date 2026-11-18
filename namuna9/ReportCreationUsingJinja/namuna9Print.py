@@ -7,6 +7,7 @@ import httpx
 from datetime import date as _date
 from namuna9.namuna9_sort import sort_rows_by_owner_name, is_true
 from namuna9.namuna9_pagination import paginate_by_height
+from Utility.date_display import to_dmy
 
 router = APIRouter()
 # Load templates from the 'templates' folder (adjust path as needed)
@@ -124,6 +125,10 @@ def blank_if_zero(value, enabled='false'):
     return value
 
 regularEnv.filters['blankzero'] = blank_if_zero
+
+# पावती / ९ क / ९ क-2 वरची तारीख DD-MM-YYYY (फक्त दाखवणे; साठवलेली किंमत YYYY-MM-DD तशीच)
+regularEnv.filters['dmy'] = to_dmy
+visheshPaniEnv.filters['dmy'] = to_dmy
 
 localhost = "http://127.0.0.1:8000"
 
@@ -282,8 +287,9 @@ async def namuna10_hishob_by_village(request: Request):
         context = {
             "village": village_label,
             "allVillages": all_villages,
-            "stateDate": from_date or "",
-            "endDate": to_date or "",
+            # "... पासून ते ... पर्यंत" - DD-MM-YYYY (स्क्रीन YYYY-MM-DD पाठवते; फक्त दाखवणे)
+            "stateDate": to_dmy(from_date or ""),
+            "endDate": to_dmy(to_date or ""),
             # प्रिंटचा "दिनांक" = सर्व्हर (PC) ची स्थानिक आजची तारीख, DD-MM-YYYY. ब्राउझर पाठवत
             # असलेलं currentDate (new Date().toISOString() = UTC) वापरत नाही - ते पहाटे
             # 5:30 (IST) पूर्वी एक दिवस मागचं येतं आणि YYYY-MM-DD स्वरूपात असतं.
