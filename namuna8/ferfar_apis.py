@@ -119,7 +119,10 @@ def get_ferfar_record_responses(
                 "village": village_data.name if village_data else "",
                 "transaction_date": log.transaction_date.strftime("%d/%m/%Y") if log.transaction_date else "",
                 "roadName": property_details.streetName or property_details.citySurveyOrGatNumber or "",
-                "propertyNumber": str(property_details.anuKramank),
+                # मालमत्ता क्रमांक = खरा malmattaKramank (आधी अंतर्गत anuKramank छापला जायचा, उदा. TEST-1 ऐवजी 911 -
+                # 31-Jul-2025 पासूनचा मूळ कोड). malmattaKramank रिकामा असेल तरच anuKramank.
+                "propertyNumber": (str(property_details.malmattaKramank).strip() if property_details.malmattaKramank not in (None, "") and str(property_details.malmattaKramank).strip() else str(property_details.anuKramank)),
+                "_propertyKey": property_details.id,
                 "propertyDescription": f"क्षेत्र: {area_text(property_details.totalAreaSqFt, area_round_up)} चौ.फूट" if property_details.totalAreaSqFt else "",
                 "previousOwnerName": ", ".join(previous_owner_names),
                 "previousOccupantName" : old_owners[0].get("occupantName") if old_owners and old_owners[0].get("occupantName") else "स्वतः",
@@ -133,11 +136,23 @@ def get_ferfar_record_responses(
     
     # Top-level village not required in response
 
-    # Group by property number (as per your format)
+    # Group by property (मालमत्ता) - प्रिंटमधला "मालमत्ता क्रमांक : X" हा key च असतो. एकाच
+    # malmattaKramank च्या दोन वेगळ्या मालमत्ता (उदा. वेगवेगळी गावं) एकत्र होऊ नयेत म्हणून गट
+    # मालमत्तेच्या id ने; key मध्ये तसा क्रमांक आधीच असेल तर गावाचं नाव जोडतो.
     grouped_transfers = {}
+    key_by_property = {}
     for transfer in property_transfers:
-        property_num = transfer["propertyNumber"]
-        if property_num not in grouped_transfers:
+        pid = transfer.pop("_propertyKey", None)
+        property_num = key_by_property.get(pid)
+        if property_num is None:
+            property_num = transfer["propertyNumber"]
+            if property_num in grouped_transfers or property_num in village_info:
+                property_num = f"{property_num} ({transfer.get('village') or ''})"
+                n = 2
+                base = property_num
+                while property_num in grouped_transfers:
+                    property_num = f"{base} {n}"; n += 1
+            key_by_property[pid] = property_num
             grouped_transfers[property_num] = []
         grouped_transfers[property_num].append(transfer)
     
