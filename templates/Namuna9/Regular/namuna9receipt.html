@@ -200,30 +200,34 @@
                     सन : {{ record.yearslap or '' }}
                 </td>
                 {% if record.QRcodeURL or record.houseTaxQrUrl or record.waterTaxQrUrl %}
+                <td class="center bold" style="vertical-align: middle;">
+                    <div style="display:flex; justify-content:center; align-items:flex-start; gap:14px; padding-left:60px;">
                 {% if record.QRcodeURL %}
-                <td class="center bold" style="text-align:center;">
-                    <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img class="qr-img" src="{{ record.QRcodeURL }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    <div style="text-align:center;">
+                        <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                            <img class="qr-img" src="{{ record.QRcodeURL }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                        </div>
+                        <div style="font-size:10px; margin-top:2px;">मालमत्ता QR</div>
                     </div>
-                    <div style="font-size:10px; margin-top:2px;">मालमत्ता QR</div>
-                </td>
                 {% endif %}
                 {% if record.houseTaxQrUrl %}
-                <td class="center bold" style="text-align:center;">
-                    <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img class="qr-img" src="{{ record.houseTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    <div style="text-align:center;">
+                        <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                            <img class="qr-img" src="{{ record.houseTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                        </div>
+                        <div style="font-size:10px; margin-top:2px;">घर कर</div>
                     </div>
-                    <div style="font-size:10px; margin-top:2px;">घर कर</div>
-                </td>
                 {% endif %}
                 {% if record.waterTaxQrUrl %}
-                <td class="center bold" style="text-align:center;">
-                    <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img class="qr-img" src="{{ record.waterTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                    <div style="text-align:center;">
+                        <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                            <img class="qr-img" src="{{ record.waterTaxQrUrl }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                        </div>
+                        <div style="font-size:10px; margin-top:2px;">पाणी कर</div>
                     </div>
-                    <div style="font-size:10px; margin-top:2px;">पाणी कर</div>
-                </td>
                 {% endif %}
+                    </div>
+                </td>
                 {% else %}
                 <td>
                     <div class="center bold qr-box" style="border: 1px solid #000; width: 100px; height: 100px; margin: 0 auto; overflow:hidden;"></div>
@@ -259,7 +263,7 @@
                 <td rowspan="3" class="balance-col">शिल्लक बाकी<br>(Balance)</td>
             </tr>
             <tr class="center bold">
-                <td colspan="2">थकित (रुपये = पै.)</td>
+                <td colspan="2">मागील (रुपये = पै.)</td>
                 <td>चालू (रुपये = पै.)</td>
                 <td>एकूण (रुपये = पै.)</td>
             </tr>
