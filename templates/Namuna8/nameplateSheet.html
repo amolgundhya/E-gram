@@ -2,6 +2,16 @@
 <html>
 <head>
   <meta charset="UTF-8" />
+  {# A4 वर छपाई (क्लायंट 18-Nov): एक record-page (2 x 3 प्लेट्स) एका A4 portrait पानावर, 10mm
+     margin आत - डिझाइन तेच, फक्त प्रमाणात लहान (print मध्ये .sheet ला zoom). स्क्रीनवर बदल नाही.
+     ओळी/शीट तोच नियम (खाली rows_per_sheet). #}
+  {% set _pw = (plate_width_in|default(6))|float %}
+  {% set _ph = (plate_height_in|default(5))|float %}
+  {% set _cols = (plates_per_row|default(2))|int %}
+  {% set _rows = [((17.6 + 0.1) / (_ph + 0.1))|int, 1]|max %}
+  {% set _grid_w = _cols * _pw + (_cols - 1) * 0.1 %}
+  {% set _grid_h = _rows * _ph + (_rows - 1) * 0.1 %}
+  {% set a4_zoom = ([(190 / 25.4) / _grid_w, (277 / 25.4) / _grid_h, 1.0]|min * 0.99 * 1000)|int / 1000 %}
   <title>Digital Name Plates</title>
   <style>
     :root {
@@ -227,7 +237,9 @@
     }
 
     @media print {
-      @page { size: 12in 18in; margin: 0.2in; }
+      /* आधी 12in x 18in शीट (PDF 864x1296 pt) - A4 वर उजवीकडचा रकाना कापला जायचा */
+      @page { size: A4 portrait; margin: 10mm; }
+      .sheet { zoom: {{ a4_zoom }}; }
       body { background: #fff; padding: 0; }
       #toolbar {
         display: none !important;
@@ -702,6 +714,7 @@
       window.addEventListener('beforeprint', fitAll);
     })();
   </script>
+    <script src="/report_assets/report_pages.js" data-unit=".record-page"></script>
     <script src="/report_assets/report_share.js"></script>
 </body>
 </html>
