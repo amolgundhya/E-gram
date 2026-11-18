@@ -354,7 +354,7 @@ def build_report_workbook(summary, prop_rows, cons_rows, n9_plans=()):
         ("नमुना-9 बदलणारे रो", "%s / %s" % (summary["namuna9"]["rows_changed"], summary["namuna9"]["rows_total"])),
         ("नमुना-9 एकूण चालू - आधी / नंतर", "%s / %s" % (summary["namuna9"]["chalu_total_before"], summary["namuna9"]["chalu_total_after"])),
         ("नमुना-9 जादा वसुली (मागणीपेक्षा जास्त)", len(summary["namuna9"]["overpaid"])),
-        ("टीप", "पावत्या, वसुली, थकित, दंड/फी व जुनी नमुना-9 वर्षं बदललेली नाहीत. कर लागू नाही असलेल्या मालमत्तांची प्रिंट/नमुना-9 घरपट्टी 0 च राहते."),
+        ("टीप", "पावत्या, वसुली, मागील बाकी, दंड/फी व जुनी नमुना-9 वर्षं बदललेली नाहीत. कर लागू नाही असलेल्या मालमत्तांची प्रिंट/नमुना-9 घरपट्टी 0 च राहते."),
     ]
     for r, (k, v) in enumerate(lines, start=2):
         ws.cell(row=r, column=1, value=k).font = _HEAD_FONT
