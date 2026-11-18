@@ -28,6 +28,7 @@ from Utility.area_units import sqm_to_sqft
 from namuna8.calculations.khali_jaga import khali_jaga
 from namuna8.calculations.diva_arogya import diva_arogya_applies, khali_jaga_diva_arogya_allowed
 from Utility import fast_qr
+from Utility import qr_cache
 import threading
 from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no
 from namuna8.mastertab.mastertabmodels import GeneralSetting, BuildingUsageWeightage
@@ -3385,6 +3386,20 @@ def get_property_qrcode(
     # मालकाचा मजकूर) तर तीच फाईल पुन्हा लिहितो; मजकूर तोच असेल तर फाईल जशीच्या तशी वापरतो.
     # कोणता मजकूर लिहिला ते शेजारच्या qrcode.txt मध्ये ठेवतो.
     text_path = os.path.join(os.path.dirname(qr_path), "qrcode.txt")
+    # जलद मार्ग: शेवटच्या तपासणीनंतर QR वर परिणाम करणारा कुठलाही बदल DB मध्ये झाला नाही (triggers ->
+    # qr_cache_state.gen), तारीखही तीच, आणि PNG तशीच - तर तीच PNG (Utility/qr_cache.py). नाहीतर खाली
+    # पूर्वीसारखी पूर्ण तपासणी. token मजकूर काढायच्या आधीच वाचतो.
+    cache_token = qr_cache.current_token(db)
+    if os.path.exists(qr_path) and qr_cache.is_fresh(qr_path, cache_token):
+        return FileResponse(
+            qr_path,
+            media_type="image/png",
+            headers={
+                "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
     try:
         record_response = get_property_record(anu_kramank, village_id, district_id, taluka_id, gram_panchayat_id, db)
         parent_gp_name_qr = getattr(gram_panchayat, 'parent_gram_panchayat_name', None)
@@ -3404,6 +3419,7 @@ def get_property_qrcode(
             os.replace(qr_path + "." + tmp, qr_path)
             os.replace(text_path + "." + tmp, text_path)
             logging.info("QR code (re)generated for property %s: %s", anu_kramank, qr_path)
+        qr_cache.write_stamp(qr_path, cache_token)
     except Exception:
         logging.exception("QR code could not be generated for property %s", anu_kramank)
         if not os.path.exists(qr_path):

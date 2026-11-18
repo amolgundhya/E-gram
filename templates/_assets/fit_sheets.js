@@ -47,9 +47,14 @@
 
     function px(v) { return parseFloat(v) || 0; }
 
-    function fit() {
-        var sheets = document.querySelectorAll('.outer-border');
-        if (!sheets.length) return;
+    function visible(el) { return el.getClientRects().length > 0; }
+
+    // फक्त दिसणारी (स्क्रीनवरचं पान / प्रिंटसाठी निवडलेली From..To) बिलं मोजतो - आधी सगळी
+    // (उदा. 916) बिलं क्षणभर दाखवून प्रत्येकी एक layout व्हायचा, त्यामुळे एका बिलाच्या Print
+    // लाही 10+ सेकंद लागायचे. आता: आधी सगळ्यांचा zoom काढतो, मग एकाच layout मध्ये सगळ्यांच्या
+    // उंच्या वाचतो, मग zoom लावतो (मधे लिहिणं-वाचणं आलटून पालटून नाही).
+    function fit(list) {
+        if (!list.length) return;
         var de = document.documentElement;
         var oldWidth = de.style.width;
         var restore = emulatePrintMedia();
@@ -57,10 +62,9 @@
         var plan = [];
         try {
             de.style.width = (PAPER_W_MM * PX_PER_MM) + 'px';
-            for (var i = 0; i < sheets.length; i++) {
-                var el = sheets[i];
-                el.style.zoom = '';
-                if (!el.getClientRects().length) continue; // लपवलेलं (स्क्रीनवर दुसरं पान)
+            for (var i = 0; i < list.length; i++) list[i].style.zoom = '';
+            for (var k = 0; k < list.length; k++) {
+                var el = list[k];
                 var cs = window.getComputedStyle(el);
                 var total = el.getBoundingClientRect().height + px(cs.marginTop) + px(cs.marginBottom);
                 if (total > limit) plan.push([el, limit / total]);
@@ -69,27 +73,64 @@
             de.style.width = oldWidth;
             restore();
         }
-        for (var j = 0; j < plan.length; j++) plan[j][0].style.zoom = String(Math.floor(plan[j][1] * 1000) / 1000);
+        for (var j = 0; j < list.length; j++) list[j].__fitZoom = '';
+        for (var n = 0; n < plan.length; n++) {
+            var z = String(Math.floor(plan[n][1] * 1000) / 1000);
+            plan[n][0].style.zoom = z;
+            plan[n][0].__fitZoom = z;
+        }
     }
 
-    // लपवलेली (स्क्रीनवर दुसऱ्या पानावरची) बिलं मोजता येत नाहीत - प्रत्येक बिल मोजण्यासाठी
-    // क्षणभर सगळी दाखवतो, मोजून झाल्यावर पुन्हा जसं होतं तसं.
-    function fitAll() {
-        var sheets = document.querySelectorAll('.outer-border');
-        var display = [];
-        for (var i = 0; i < sheets.length; i++) {
-            display.push(sheets[i].style.display);
-            if (sheets[i].style.display === 'none') sheets[i].style.display = '';
-        }
+    function visibleSheets() {
+        var sheets = document.querySelectorAll('.outer-border'), out = [];
+        for (var i = 0; i < sheets.length; i++) if (visible(sheets[i])) out.push(sheets[i]);
+        return out;
+    }
+
+    function fitVisible() {
         try {
-            fit();
+            var list = visibleSheets();
+            for (var i = 0; i < list.length; i++) list[i].__fitSeen = true;
+            fit(list);
         } catch (e) {
             if (window.console) console.error('fit sheets:', e);
-        } finally {
-            for (var k = 0; k < sheets.length; k++) sheets[k].style.display = display[k];
         }
     }
 
-    window.addEventListener('load', fitAll);
-    window.addEventListener('beforeprint', fitAll);
+    // स्क्रीनवर नवीन दिसलेली बिलं (पुढचं पान वगैरे) - आधी लोड वेळी सगळी बिलं मोजली जायची,
+    // आता पहिल्यांदा दिसताना. वापरकर्त्याने Zoom +/- केलं असेल (zoom आपण लावलेला नाही) तर
+    // तसंच ठेवतो - आधीही Zoom सगळ्या बिलांवर लागायचा.
+    function fitNewlyVisible() {
+        try {
+            var sheets = document.querySelectorAll('.outer-border'), list = [];
+            for (var i = 0; i < sheets.length; i++) {
+                var el = sheets[i];
+                var shown = visible(el);
+                if (shown && !el.__fitSeen) {
+                    var z = el.style.zoom;
+                    if (z === '' || z === '1' || z === el.__fitZoom) list.push(el);
+                }
+                el.__fitSeen = shown;
+            }
+            fit(list);
+        } catch (e) {
+            if (window.console) console.error('fit sheets:', e);
+        }
+    }
+
+    var scheduled = false;
+    function schedule() {
+        if (scheduled) return;
+        scheduled = true;
+        setTimeout(function () { scheduled = false; fitNewlyVisible(); }, 0);
+    }
+
+    window.addEventListener('load', function () {
+        fitVisible();
+        if (window.MutationObserver && document.body) {
+            new MutationObserver(schedule).observe(document.body,
+                { attributes: true, attributeFilter: ['style'], subtree: true });
+        }
+    });
+    window.addEventListener('beforeprint', fitVisible);
 })();

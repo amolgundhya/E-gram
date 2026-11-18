@@ -29,7 +29,9 @@ def serve_output_html():
 _SHARE_PREP_SCRIPT = """<script>
 (function () {
     window.print = function () {};  /* काही रिपोर्ट उघडताच print() करतात - PDF बनवताना dialog नको */
-    var SEL = '.record-row, .print-page, .record-page, .outer-border, .record-table-wrapper';
+    /* .report-grid = नमुना ९ क-2 / विशेष पाणी ९ क-2 चं पान - आधी यादीत नव्हतं, म्हणून त्यांच्या
+       PDF मध्ये फक्त viewer मध्ये दिसणारं पान यायचं (From..To काहीही असलं तरी) */
+    var SEL = '.record-row, .print-page, .record-page, .outer-border, .record-table-wrapper, .report-grid';
     function revealAll() {
         var els = document.querySelectorAll(SEL);
         for (var i = 0; i < els.length; i++) els[i].style.display = '';
