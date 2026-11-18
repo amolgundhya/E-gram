@@ -299,7 +299,7 @@
             {% endfor %}
         </td>
 
-        <td>{% for ct_row in (row.constructionType or []) %}{{ct_row.depreciation_rate if row.constructionType and row.constructionType|length > 0 else ''}}{% if not loop.last %}<br>{% endif %}{% endfor %}<br/>0</td>
+        <td>{% for ct_row in (row.constructionType or []) %}{{ct_row.depreciation_rate if row.constructionType and row.constructionType|length > 0 else ''}}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if row.khaliJaga and row.khaliJaga|length > 0 %}<br/>0{% endif %}</td>
         <td>{% for ct_row in (row.constructionType or []) %}{{ct_row.usageBasedBuildingWeightageFactor if row.constructionType and row.constructionType|length > 0 else ''}}{% if not loop.last %}<br> {% endif %}{% endfor %} <br/> {{row.khaliJaga[0].usageBasedBuildingWeightageFactor if row.khaliJaga and row.khaliJaga|length > 0 else ''}} </td>
     </tr>
 
@@ -467,8 +467,8 @@
                             </div>
                         </div>
                         <div style="height: 32px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 5px;">
-                            खुली जागा <br>
                             {% if row.khaliJaga and row.khaliJaga|length > 0 %}
+                                खुली जागा <br>
                                 {% if row.housingUnit == 'sqm' %}
                                     {{row.khaliJaga[0].totalkhalijagaareainmeters}} चौ.मी. <span style="font-size: 11px;">({{row.khaliJaga[0].totalkhalijagaareainfoot|area}} चौ.फु.)</span>
                                 {% else %}

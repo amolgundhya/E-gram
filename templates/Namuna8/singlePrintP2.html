@@ -288,8 +288,8 @@
                             </div>
                         </div>
                         <div style="height: 32px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 5px;">
-                            खुली जागा <br>
                             {% if khaliJaga and khaliJaga|length > 0 %}
+                                खुली जागा <br>
                                 {% if housingUnit == 'sqm' %}
                                     {{khaliJaga[0].totalkhalijagaareainmeters}} चौ.मी. <span style="font-size: 11px;">({{khaliJaga[0].totalkhalijagaareainfoot|area}} चौ.फु.)</span>
                                 {% else %}
