@@ -239,7 +239,7 @@
                 {% endif %}
             {% endfor %}
         </td>
-        <td>{% for ct_row in (constructionType or []) %}{{ct_row.depreciation_rate if constructionType and constructionType|length > 0 else ''}}{% if not loop.last %}<br>{% endif %}{% endfor %}<br/>0</td>
+        <td>{% for ct_row in (constructionType or []) %}{{ct_row.depreciation_rate if constructionType and constructionType|length > 0 else ''}}{% if not loop.last %}<br>{% endif %}{% endfor %}{% if khaliJaga and khaliJaga|length > 0 %}<br/>0{% endif %}</td>
         <td>{% for ct_row in (constructionType or []) %}{{ct_row.usageBasedBuildingWeightageFactor if constructionType and constructionType|length > 0 else ''}}{% if not loop.last %}<br>{% endif %}{% endfor %}<br/>{{khaliJaga[0].usageBasedBuildingWeightageFactor if khaliJaga and khaliJaga|length > 0 else ''}}</td>
     </tr>
 
