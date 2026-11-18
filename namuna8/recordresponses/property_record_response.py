@@ -21,6 +21,8 @@ from datetime import datetime,date
 from natural_sort import malmatta_kramank_sort_key
 from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode
 from Utility.area_display import area_value
+# भारांक (रकाना 14) - करासारखंच नाव जुळवणं ("वाणिज्य" -> "वाणिज्यिक"), Utility/usage_weight.py
+from Utility.usage_weight import usage_weight
 
 backend_url = os.environ.get('BACKEND_URL', 'http://localhost:8000')
 
@@ -110,12 +112,27 @@ EXEMPT_FLOAT_KEYS = {
     "taxRates",
 }
 
+# भारांक (प्रिंट रकाना 14) - पूर्ण आकड्यात गोल केल्यास 1.25 / 1.2 चे 1 होत होते. कमाल 2 दशांश;
+# पूर्ण आकडा असेल तर int (निवासी "1" च दिसतो, "1.0" नाही).
+TWO_DECIMAL_KEYS = {
+    "usageBasedBuildingWeightageFactor",
+}
+
+
+def _two_decimal_display(v):
+    v = round(float(v), 2)
+    return int(v) if v.is_integer() else v
+
+
 def _deep_round_numbers(obj):
     if isinstance(obj, dict):
         for k, v in obj.items():
             if isinstance(v, bool):
                 continue
             if isinstance(v, (int, float)):
+                if k in TWO_DECIMAL_KEYS:
+                    obj[k] = _two_decimal_display(v)
+                    continue
                 if k in EXEMPT_FLOAT_KEYS:
                     # keep as float; do not coerce to int
                     continue
@@ -294,7 +311,7 @@ def get_property_record(
             "capitalValue": c.capitalValue,
             "houseTax": c.houseTax,
             "depreciation_rate": calculate_depreciation_rate(c.constructionYear, c.construction_type.name, assessment_year),
-            "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
+            "usageBasedBuildingWeightageFactor": usage_weight(weightage_map, getattr(c, 'bharank', None)),
             "taxRates": getattr(c.construction_type, 'rate', 0),
             **_construction_item_dual_unit_area(c.length, c.width, construction_unit_disp_early),
         }
@@ -738,7 +755,7 @@ def get_property_records_by_village(
                 "capitalValue": 0 if prop.karLaguNahi else c.capitalValue,
                 "houseTax": 0 if prop.karLaguNahi else c.houseTax,
                 "depreciation_rate": _cached_depreciation_rate(c.constructionYear, c.construction_type.name),
-                "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
+                "usageBasedBuildingWeightageFactor": usage_weight(weightage_map, getattr(c, 'bharank', None)),
                 "taxRates": 0 if prop.karLaguNahi else getattr(c.construction_type, 'rate', 0),
                 **_construction_item_dual_unit_area(c.length, c.width, construction_unit_disp_early),
             }
@@ -1110,7 +1127,7 @@ def get_property_records_by_gram_panchayat(
                     "capitalValue": c.capitalValue,
                     "houseTax": c.houseTax,
                     "depreciation_rate": _cached_depreciation_rate(c.constructionYear, c.construction_type.name, assessment_year),
-                    "usageBasedBuildingWeightageFactor": weightage_map.get(getattr(c, 'bharank', None), 1),
+                    "usageBasedBuildingWeightageFactor": usage_weight(weightage_map, getattr(c, 'bharank', None)),
                     "taxRates": getattr(c.construction_type, 'rate', 0),
                 }
                 for c in prop.constructions

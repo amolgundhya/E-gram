@@ -580,6 +580,16 @@ try:
                 conn.exec_driver_sql(f'ALTER TABLE namuna9_receipts ADD COLUMN "{col}" {coltype}')
 except Exception as e:
     print("[Migration] Could not ensure namuna9_receipts:", e)
+
+# भारांक: नमुना-8 ड्रॉपडाउनने साठवलेलं "वाणिज्य" -> मास्टरचं "वाणिज्यिक", फक्त त्या मालमत्तांचा
+# कर पुन्हा मोजा + चालू नमुना-9 वर्ष. एकदाच (migration_flags), आधी DB बॅकअप - तपशील
+# namuna8/usage_weight_migration.py. (सर्व कॉलम-migrations नंतर, कारण ORM वापरतो.)
+try:
+    from namuna8.usage_weight_migration import fix_usage_names_once
+    fix_usage_names_once(engine)
+except Exception as e:
+    _safe_print(f"[Migration] Could not fix bharank names: {e}")
+
 # Create folders the app needs at startup (they may not exist on a new PC)
 import os as _os
 for _folder in ("reports", "uploaded_images"):

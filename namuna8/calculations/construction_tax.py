@@ -8,6 +8,8 @@ from Utility.tax_rounding import round_tax_amount
 # चौ.फु. -> चौ.मी. रूपांतर व राउंडिंग Utility.area_units मधून (÷10.764, 2 दशांश) - नमुना-8,
 # खाली जागा व नमुना-9 सगळीकडे तोच.
 from Utility.area_units import area_sqm_for_tax
+# भारांक: नेमकं नाव -> जुनं नाव ("वाणिज्य" -> "वाणिज्यिक") -> 1 (Utility/usage_weight.py)
+from Utility.usage_weight import usage_weight
 
 
 def compute_construction_values(db, construction_type, length, width, construction_year, bharank,
@@ -22,7 +24,7 @@ def compute_construction_values(db, construction_type, length, width, constructi
     area_in_meter = area_sqm_for_tax((length or 0) * (width or 0), 'sqm' if construction_unit == 'sqm' else 'sqft')
     construction_rate = construction_type.bandhmastache_dar
     depreciation_rate = calculate_depreciation_rate(construction_year, construction_type.name, assessment_year)
-    usage_factor = weightage_map.get(bharank, 1)
+    usage_factor = usage_weight(weightage_map, bharank)
     if formula1:
         capital_value = ((area_in_meter * annual_land_value_rate) + (area_in_meter * construction_rate * (depreciation_rate / 100))) * usage_factor
     else:
