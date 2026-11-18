@@ -82,6 +82,15 @@
             tfoot td.gosh-label {
                 font-size: 12px !important;
             }
+            /* मागील / दंड / चालु / एकुण उप-शीर्षक: 3.4% रकान्यात "मागील" वरच्या th नियमामुळे
+               "मागी / ल" असं तुटत होतं - एका ओळीत, थोडं लहान अक्षर (पान/रकाने तेच). */
+            .main-table thead th.sub-h {
+                white-space: nowrap !important;
+                word-break: keep-all !important;
+                overflow-wrap: normal !important;
+                font-size: 10.5px !important;
+                padding: 1px 0 !important;
+            }
         }
         /* table-layout:fixed only reads the FIRST row's widths, and ignores
            min-width entirely - a <colgroup> is the one reliable way to size
@@ -310,25 +319,25 @@
                 <th colspan="3">शौचालय कर</th>
             </tr>
             <tr>
-                <th style="min-width:32px;">मागील</th>
-                <th style="min-width:32px;">दंड</th>
-                <th style="min-width:32px;">चालु</th>
-                <th style="min-width:32px;">एकुण</th>
-                <th style="min-width:32px;">मागील</th>
-                <th style="min-width:32px;">चालु</th>
-                <th style="min-width:32px;">एकुण</th>
-                <th style="min-width:32px;">मागील</th>
-                <th style="min-width:32px;">चालु</th>
-                <th style="min-width:32px;">एकुण</th>
-                <th style="min-width:32px;">मागील</th>
-                <th style="min-width:32px;">चालु</th>
-                <th style="min-width:32px;">एकुण</th>
-                <th style="min-width:32px;">मागील</th>
-                <th style="min-width:32px;">चालु</th>
-                <th style="min-width:32px;">एकुण</th>
-                <th style="min-width:32px;">मागील</th>
-                <th style="min-width:32px;">चालु</th>
-                <th style="min-width:32px;">एकुण</th>
+                <th class="sub-h" style="min-width:32px;">मागील</th>
+                <th class="sub-h" style="min-width:32px;">दंड</th>
+                <th class="sub-h" style="min-width:32px;">चालु</th>
+                <th class="sub-h" style="min-width:32px;">एकुण</th>
+                <th class="sub-h" style="min-width:32px;">मागील</th>
+                <th class="sub-h" style="min-width:32px;">चालु</th>
+                <th class="sub-h" style="min-width:32px;">एकुण</th>
+                <th class="sub-h" style="min-width:32px;">मागील</th>
+                <th class="sub-h" style="min-width:32px;">चालु</th>
+                <th class="sub-h" style="min-width:32px;">एकुण</th>
+                <th class="sub-h" style="min-width:32px;">मागील</th>
+                <th class="sub-h" style="min-width:32px;">चालु</th>
+                <th class="sub-h" style="min-width:32px;">एकुण</th>
+                <th class="sub-h" style="min-width:32px;">मागील</th>
+                <th class="sub-h" style="min-width:32px;">चालु</th>
+                <th class="sub-h" style="min-width:32px;">एकुण</th>
+                <th class="sub-h" style="min-width:32px;">मागील</th>
+                <th class="sub-h" style="min-width:32px;">चालु</th>
+                <th class="sub-h" style="min-width:32px;">एकुण</th>
             </tr>
 
         </thead>
