@@ -36,12 +36,15 @@
             body {
                 margin: 0;
             }
-            /* दोन्ही प्रती (copy) एकाच A4 पानावर बसाव्यात म्हणून compact मांडणी */
+            /* दोन्ही प्रती (copy) एकाच A4 पानावर बसाव्यात म्हणून compact मांडणी.
+               Nov-2026: प्रत्येक प्रत अर्ध्या पानापेक्षा थोडी मोठी होती (दुसरी प्रत पान 2 वर) -
+               फक्त ओळींमधली जागा / padding / QR आकार थोडा कमी केला. अक्षरांचा आकार, ओळी, रकाने,
+               QR, सहीची जागा (10mm) तशीच. */
             .outer-border {
                 zoom: 1 !important;
                 width: 100%;
                 margin: 0;
-                padding: 2mm 3mm;
+                padding: 1.5mm 3mm;
                 page-break-after: auto;
                 page-break-inside: avoid;
             }
@@ -54,22 +57,22 @@
             }
             th, td {
                 font-size: 13px;
-                padding: 2px 5px;
-                line-height: 1.35;
+                padding: 1px 5px;
+                line-height: 1.25;
             }
             .qr-box {
-                width: 62px !important;
-                height: 62px !important;
+                width: 56px !important;
+                height: 56px !important;
             }
             .qr-img {
-                width: 62px !important;
-                height: 62px !important;
+                width: 56px !important;
+                height: 56px !important;
             }
             .receipt-footer {
                 font-size: 11px !important;
             }
             .copy-separator {
-                margin: 4mm 0 !important;
+                margin: 3mm 0 !important;
             }
         }
     </style>
