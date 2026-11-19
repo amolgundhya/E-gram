@@ -297,7 +297,8 @@
         <div style="font-size: 12px; margin-top: 3px; padding: 0 4px; line-height: 1.3;">
             हे बिल आपणास प्राप्त झाल्यापासून देय रक्कमेचा भरणा 15 दिवसांच्या आता करावा. अन्यथा ग्रामपंचायत अधिनियमाच्या कलम क्र. 129(2) अन्वये आपल्यावर मागणी बजावाण्यात येईल
         </div>
-        <div style="margin-top: 4px; font-size: 12px; padding: 0 4px; text-align: right;">
+        {# सहीसाठी जागा (साधा ९ क प्रमाणे, 92e4b72): स्वाक्षरी ओळीच्या वर ~9mm रिकामी जागा; सहीचा फोटो असल्यास तो याच जागेत बसतो. बिल शीटपेक्षा उंच झालं तर fit_sheets ते थोडं लहान करतो (क्लायंट 19-Nov: चालेल) #}
+        <div style="margin-top: 4px; font-size: 12px; padding: 0 4px; text-align: right; min-height: 14mm; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; box-sizing: border-box;">
             {% if record.signature_image %}
             <img src="{{ record.signature_image }}" style="height: 35px; object-fit: contain; display: block; margin-left: auto;" alt="स्वाक्षरी" />
             {% endif %}
