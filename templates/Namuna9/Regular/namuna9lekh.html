@@ -429,7 +429,7 @@
         </div>
         {# Master -> नमुना 9 सेटिंग "मागणी नोटीस दिनांक ठेवा" जतन करून टिक असेल तरच (सेटिंग नसेल तर आधीसारखेच - दिनांक नाही) #}
         {% if showNoticeDate == 'true' %}
-        <div class="bold" style="margin-top: 6px;">दिनांक : {{ record.currentDate or '' }}</div>
+        <div class="bold" style="margin-top: 6px;">दिनांक : {{ (record.currentDate or '') | dmy }}</div>
         {% endif %}
         {# सहीसाठी जागा: स्वाक्षरी ओळीच्या वर ~8mm रिकामी जागा (एका शीटवर 2 प्रती - 10mm केल्यास प्रत्येक बिल fit_sheets ने लहान होतं) #}
         <div class="signature" style="padding-top: 8mm">
