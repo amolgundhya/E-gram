@@ -2,10 +2,10 @@
  * नमुना-8 single print (प्रकार 1 / 2, विशेष पाणी, Range, विशेष पाणी Range): सहीसाठी जागा (क्लायंट 16 व 19-Nov).
  *
  * "ग्रामपंचायत अधिकारी" च्या वर किमान ~10mm जागा (.n8-sign-space, min-height; सहीचा फोटो असल्यास
- * तो याच जागेत) टेम्पलेटमध्येच आहे. ती जागा
+ * तो याच जागेत, कमाल 14mm) टेम्पलेटमध्येच आहे. ती जागा (व सहीचा फोटो)
  * आल्यामुळे जी मालमत्ता आधी एका पानावर मावत होती ती दोन पानांवर जाऊ नये: प्रिंटच्या आधी
  * (beforeprint) प्रत्येक दिसणारी मालमत्ता (.record-page, नाहीतर #mainContent) प्रिंटच्या रुंदीवर
- * दोनदा मोजतो - जागेसह आणि जागेशिवाय. जागेशिवाय एका पानात मावत होती पण जागेसह मावत नाही, तेवढ्याच
+ * दोनदा मोजतो - जागा+फोटोसह आणि दोन्हीशिवाय. जागेशिवाय एका पानात मावत होती पण जागेसह मावत नाही, तेवढ्याच
  * मालमत्तेला CSS zoom ने थोडं लहान करतो. zoom 0.88 पेक्षा कमी कधीच नाही (क्लायंट: अक्षर ~88% पर्यंतच
  * लहान) - तेवढ्यावरही मावत नसेल तर त्या मालमत्तेची जागाच मावेल इतकी कमी करतो. जी मालमत्ता आधीच
  * दोन पानांवर जात होती (सहीची ओळ दुसऱ्या पानावर) ती तशीच - तिथे दुसऱ्या पानावर भरपूर जागा असते.
@@ -31,7 +31,7 @@
     var TODAY_FIT = OLD_CHROME ? 0.97 : 1.0;
 
     var css = document.createElement('style');
-    css.textContent = '.n8-sign-off .n8-sign-space { min-height: 0 !important; }';
+    css.textContent = '.n8-sign-off .n8-sign-space { min-height: 0 !important; } .n8-sign-off .n8-sign-space img { display: none !important; }';
     (document.head || document.documentElement).appendChild(css);
 
     function eachRule(rules, fn) {
@@ -83,6 +83,16 @@
         if (/landscape/i.test(size)) { w = 297; h = 210; }
         function m(v) { return v === null ? DEFAULT_MARGIN_MM : v; }
         return { w: (w - m(mg.left) - m(mg.right)) * PX_PER_MM, h: (h - m(mg.top) - m(mg.bottom)) * PX_PER_MM };
+    }
+
+    // जागा कमी करताना सहीचा फोटोही तेवढ्याच उंचीत (फोटो जागेपेक्षा उंच असेल तर जागा कमी करून उपयोग नाही)
+    function setSpace(el, h) {
+        el.style.minHeight = h;
+        var im = el.getElementsByTagName('img');
+        for (var i = 0; i < im.length; i++) {
+            if (im[i].__mh0 === undefined) im[i].__mh0 = im[i].style.maxHeight;   // टेम्पलेटचा 14mm
+            im[i].style.maxHeight = h === '' ? im[i].__mh0 : h;
+        }
     }
 
     function visible(el) { return el.getClientRects().length > 0; }
@@ -181,11 +191,11 @@
                         var sp = p.u.querySelectorAll('.n8-sign-space'), a = 0, b = 10 * PX_PER_MM;
                         for (var t = 0; t < 7 && sp.length; t++) {
                             var c = (a + b) / 2;
-                            for (var q = 0; q < sp.length; q++) sp[q].style.minHeight = c + 'px';
+                            for (var q = 0; q < sp.length; q++) setSpace(sp[q], c + 'px');
                             if (fitsAt(p, FLOOR)) a = c; else b = c;
                         }
                         p.space = Math.floor(a);
-                        for (var r = 0; r < sp.length; r++) sp[r].style.minHeight = '';
+                        for (var r = 0; r < sp.length; r++) setSpace(sp[r], '');
                     }
                     p.u.style.zoom = p.z;
                 }
@@ -208,8 +218,8 @@
                     reduced++;
                     var sp = p.u.querySelectorAll('.n8-sign-space');
                     for (var q = 0; q < sp.length; q++) {
-                        sp[q].style.minHeight = p.space + 'px';
-                        (function (el) { undo.push(function () { el.style.minHeight = ''; }); })(sp[q]);
+                        setSpace(sp[q], p.space + 'px');
+                        (function (el) { undo.push(function () { setSpace(el, ''); }); })(sp[q]);
                     }
                 }
             })(plan[j]);

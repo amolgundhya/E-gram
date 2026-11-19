@@ -22,7 +22,8 @@
     // पानावर <script src=".../fit_sheets.js" data-fit-cells="1"> आहे तिथेच (साधा ९ क-2 तसाच).
     var me = document.currentScript;
     var FIT_CELLS = !!(me && me.getAttribute('data-fit-cells'));
-    var CELL_FILL = 0.98;
+    // चौकटीत आज मावणारी बिलं जशीच्या तशी - फक्त खरंच चौकटीबाहेर जाणारं बिल लहान (साधा ९ क-2: 2 बिलं)
+    var CELL_FILL = 1.0;
 
     function eachRule(rules, fn) {
         for (var i = 0; i < rules.length; i++) {
@@ -90,6 +91,34 @@
             var z = String(Math.floor(plan[n][1] * 1000) / 1000);
             plan[n][0].style.zoom = z;
             plan[n][0].__fitZoom = z;
+        }
+        if (FIT_CELLS && plan.length) refineCells(plan);
+    }
+
+    // थोड्या zoom ने अक्षरांचा आकार पूर्ण px ला गोल होतो - उंची zoom इतकी कमी होत नाही (उदा. 0.985 ने
+    // 544 -> 541.5px, चौकट 536px). म्हणून चौकटीतलं बिल अजून बाहेर जात असेल (चौकटीचं scrollHeight >
+    // clientHeight) तर त्याच प्रमाणात थोडं अजून लहान करतो - जास्तीत जास्त 6 वेळा.
+    function refineCells(plan) {
+        var de = document.documentElement;
+        for (var pass = 0; pass < 6; pass++) {
+            var oldWidth = de.style.width, restore = emulatePrintMedia(), adj = [];
+            try {
+                de.style.width = (PAPER_W_MM * PX_PER_MM) + 'px';
+                for (var i = 0; i < plan.length; i++) {
+                    var el = plan[i][0], cell = el.parentNode;
+                    if (!cell || !/(^|\s)report-cell(\s|$)/.test(cell.className || '')) continue;
+                    if (cell.scrollHeight > cell.clientHeight) adj.push([el, cell.clientHeight / cell.scrollHeight]);
+                }
+            } finally {
+                de.style.width = oldWidth;
+                restore();
+            }
+            if (!adj.length) return;
+            for (var k = 0; k < adj.length; k++) {
+                var z = String(Math.floor(((parseFloat(adj[k][0].style.zoom) || 1) * adj[k][1] - 0.005) * 1000) / 1000);
+                adj[k][0].style.zoom = z;
+                adj[k][0].__fitZoom = z;
+            }
         }
     }
 
