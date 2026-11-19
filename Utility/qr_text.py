@@ -133,6 +133,20 @@ def build_contact_boundary_lines(record: dict) -> list:
     return lines
 
 
+def build_construction_type_lines(record: dict) -> list:
+    """प्रत्येक बांधकाम रो साठी "बांधकाम प्रकार : <प्रकार> (<मजला>)" ओळ - "खाली जागा"
+    प्रकारच्या रो आणि रिकामा प्रकार वगळतो; मजला रिकामा असेल तर कंस नाही. नाव प्लेटवर
+    छापत नाही, फक्त मोठ्या QR स्कॅन केल्यावर दिसते (क्लायंट, 19-नोव्हें 2026)."""
+    lines = []
+    for c in (record.get("constructionType") or []):
+        c_type = (c.get("type") or "").strip()
+        if not c_type or c_type.startswith("खाली जागा"):
+            continue
+        floor = str(c.get("floor") or "").strip()
+        lines.append(f"बांधकाम प्रकार : {c_type} ({floor})" if floor else f"बांधकाम प्रकार : {c_type}")
+    return lines
+
+
 def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label: str = None,
                            include_contact: bool = False) -> str:
     """record: get_property_record() / property_records_by_village() स्टाईलचा dict
@@ -147,7 +161,8 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
     कर सोडून) वगळतो, बांधकाम-प्रकाराचं नाव (कंसातलं) वगळतो, आणि ग्रा.पं./ता./जि.
     मथळा ओळ वगळतो (ती कागदावर आधीच छापलेली असते - parent_gp_name इथे यामुळेच
     वापरत नाही, पण इतर कॉलर्सशी सुसंगत राहण्यासाठी parameter तसाच ठेवलाय).
-    include_contact=True (फक्त नाव प्लेट): मोबाईल क्र. व चतुःसीमा ओळीही जोडतो."""
+    include_contact=True (फक्त नाव प्लेट): मोबाईल क्र. व चतुःसीमा ओळी, आणि बांधकाम
+    ओळींनंतर प्रत्येक बांधकाम रो चा "बांधकाम प्रकार : <प्रकार> (<मजला>)" ओळ जोडतो."""
     lines = [
         f"अ.क्र. : {record.get('srNo') or ''}",
         f"मालमत्ता क्र. : {record.get('propertyNumber') or ''}",
@@ -158,6 +173,8 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
     if include_contact:
         lines.extend(build_contact_boundary_lines(record))
     lines.extend(build_area_lines(record, include_type=False))
+    if include_contact:
+        lines.extend(build_construction_type_lines(record))
     if year_label:
         lines.append(f"साल : {year_label}")
 
