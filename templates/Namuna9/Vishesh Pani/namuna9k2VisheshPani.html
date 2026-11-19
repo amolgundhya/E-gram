@@ -102,11 +102,20 @@
         z-index: 0;
         pointer-events: none;
       }
+      /* सहीसाठी जागा (साधा ९ क-2 प्रमाणे, 92e4b72): स्वाक्षरी ओळीच्या वर ~8mm रिकामी जागा.
+         148mm चौकटीत बिल मावत नसेल तर fit_sheets (data-fit-cells) ते चौकटीत मावेल इतकं लहान करतो -
+         खालचा भाग कापला जात नाही (क्लायंट 19-Nov: अक्षर थोडं लहान चालेल). */
       .signature {
         margin-top: 4px;
         padding-right: 3px;
         font-size: 10.5px;
         text-align: right;
+        min-height: 12mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: flex-end;
+        box-sizing: border-box;
       }
       @media print {
         @page {
@@ -957,7 +966,7 @@
       {% endfor %}
     </div>
       <script src="/report_assets/report_pages.js" data-unit=".report-grid"></script>
-      <script src="/report_assets/fit_sheets.js"></script>
+      <script src="/report_assets/fit_sheets.js" data-fit-cells="1"></script>
       <script src="/report_assets/report_share.js"></script>
 </body>
 </html>

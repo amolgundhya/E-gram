@@ -17,6 +17,13 @@
     // उंची मोजणं आणि प्रत्यक्ष प्रिंट यात थोडा फरक पडू शकतो (अक्षरांची रुंदी) - तेवढी जागा राखतो.
     var FILL = 0.97;
 
+    // विशेष पाणी ९ क-2: एका A4 वर 2x2 ठराविक (148mm) चौकटी (.report-cell, overflow hidden) - तिथे बिल
+    // शीटऐवजी आपल्या चौकटीत मावलं पाहिजे, नाहीतर खालचा भाग (सहीची ओळ) कापला जातो. हे फक्त ज्या
+    // पानावर <script src=".../fit_sheets.js" data-fit-cells="1"> आहे तिथेच (साधा ९ क-2 तसाच).
+    var me = document.currentScript;
+    var FIT_CELLS = !!(me && me.getAttribute('data-fit-cells'));
+    var CELL_FILL = 0.98;
+
     function eachRule(rules, fn) {
         for (var i = 0; i < rules.length; i++) {
             fn(rules[i]);
@@ -58,7 +65,7 @@
         var de = document.documentElement;
         var oldWidth = de.style.width;
         var restore = emulatePrintMedia();
-        var limit = PAPER_H_MM * PX_PER_MM * FILL;
+        var pageLimit = PAPER_H_MM * PX_PER_MM * FILL;
         var plan = [];
         try {
             de.style.width = (PAPER_W_MM * PX_PER_MM) + 'px';
@@ -67,6 +74,11 @@
                 var el = list[k];
                 var cs = window.getComputedStyle(el);
                 var total = el.getBoundingClientRect().height + px(cs.marginTop) + px(cs.marginBottom);
+                var limit = pageLimit, cell = FIT_CELLS ? el.parentNode : null;
+                if (cell && cell.className && /(^|\s)report-cell(\s|$)/.test(cell.className)) {
+                    var ccs = window.getComputedStyle(cell);
+                    limit = (cell.clientHeight - px(ccs.paddingTop) - px(ccs.paddingBottom)) * CELL_FILL;
+                }
                 if (total > limit) plan.push([el, limit / total]);
             }
         } finally {

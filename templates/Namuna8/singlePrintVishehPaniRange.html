@@ -557,7 +557,8 @@
         </td>
         {% if row.sachivSarpanch %}
         <td  style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
-            {% if row.signature_image %}<div style="width: 0; min-width: 100%;"><img src="{{ row.signature_image }}" style="display: block; max-width: 100%; max-height: 80px; object-fit: contain; background: transparent;" onerror="this.style.display='none';" /></div>{% endif %}
+            {# सहीसाठी जागा (क्लायंट 16 / 19-Nov): सहीच्या ओळीवर किमान ~10mm; सहीचा फोटो असल्यास तो याच जागेत (फोटो मोठा असेल तर उंची फोटोइतकीच - जास्त वाढत नाही) #}
+            <div class="n8-sign-space" style="min-height: 10mm; display: flex; flex-direction: column; justify-content: flex-end;">{% if row.signature_image %}<div style="width: 0; min-width: 100%;"><img src="{{ row.signature_image }}" style="display: block; max-width: 100%; max-height: 80px; object-fit: contain; background: transparent;" onerror="this.style.display='none';" /></div>{% endif %}</div>
             ग्रामपंचायत अधिकारी <br>
             ग्रामपंचायत कार्यालय {{row.gramPanchayat|default('')}} <br>
             ता. {{row.taluka|default('')}} जि. {{row.jilha|default('')}}
@@ -596,6 +597,7 @@ if (!document.getElementById('pageTotal')) {
     pageInput.parentNode.insertBefore(pageTotal, pageInput.nextSibling);
 }
 </script>
+<script src="/report_assets/n8_sign_fit.js"></script>
 <script src="/report_assets/page_numbers.js"></script>
 <script>
 /* नमुना-8 नकाशा चौकट: बांधकामाचा मजकूर चौकटीबाहेर / "खुली जागा" वर जाऊ नये. चौकटीचा आकार बदलत नाही -
