@@ -25,6 +25,15 @@
             border-collapse: collapse;
         }
         @media print {
+            /* गोषवारा - Print 9 All सारखाच: लेबल ओळ (गोषवारा / कराची नावं) 12px ठळक,
+               बेरजेची ओळ 8px एका ओळीत. */
+            tfoot td {
+                font-size: 8px !important;
+                white-space: nowrap !important;
+            }
+            tfoot td.gosh-label {
+                font-size: 12px !important;
+            }
             @page {
                 size: A4 landscape;
             }
@@ -260,30 +269,47 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="6"></td>
-                <td style="font-weight:normal; text-align:right;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
-                <td style="font-weight:normal; text-align:center;"></td>
+                <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
+                <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">घर कर</td>
+                <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">वीज कर</td>
+                <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
+                <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+                <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
+                <td colspan="5"></td>
+                <td colspan="5"></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
             </tr>
         </tfoot>
     </table>
