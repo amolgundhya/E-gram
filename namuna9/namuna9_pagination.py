@@ -156,6 +156,24 @@ _PROFILES = {
     # दुसऱ्या शीटवर जातं, 20 वर 95% भरतं; 16 वर 83% (लांब नावांसह व प्रत्यक्ष डेटासह तपासलं).
     'namuna9Vasuli2VisheshPaniSafai.html': dict(page_h=717, top=145.1, thead=92.5, tfoot=38.0, grand=38.0, line1=47.7, extra=22.4,
         cpl=dict(prop=6, name=10, occ=5), safety=0.93),
+    # Pg2 (वसुली/सुट/बाकी) - 21-Nov-2026 पासून सर्व्हर-पानं + प्रत्येक पानावर गोषवारा बेरीज
+    # (आधी JS मध्ये ठराविक 10 ओळी, बेरीज नव्हती). क्लायंटच्या DB प्रतीवर headless Chrome मध्ये मोजलेलं.
+    'namuna9AllPG2.html': dict(page_h=717, top=175.1, thead=159.1, tfoot=42.0, grand=42.0, line1=35.0, extra=16.0,
+        cpl=dict(prop=5, name=9, occ=6)),
+    'namuna9GenPG2.html': dict(page_h=717, top=150, thead=95, tfoot=35.9, grand=35.3, line1=26.0, extra=23.0,
+        cpl=dict(prop=5, name=13, occ=9)),
+    'namuna9PaniPG2.html': dict(page_h=717, top=150, thead=95, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
+        cpl=dict(prop=5, name=18, occ=12)),
+    'namuna9AllPG2VisheshPain.html': dict(page_h=717, top=150, thead=159.1, tfoot=42.0, grand=42.0, line1=35.0, extra=16.0,
+        cpl=dict(prop=5, name=8, occ=5)),
+    'namuna9GenPG2VisheshPain.html': dict(page_h=717, top=150, thead=100.0, tfoot=41.2, grand=40.7, line1=26.0, extra=23.0,
+        cpl=dict(prop=5, name=12, occ=8)),
+    'namuna9PaniPG2VisheshPain.html': dict(page_h=717, top=150, thead=108.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
+        cpl=dict(prop=5, name=14, occ=9)),
+    'namuna9AllPG2VisheshPaniSafai.html': dict(page_h=717, top=150, thead=136.1, tfoot=36.3, grand=36.4, line1=31.5, extra=15.5,
+        cpl=dict(prop=5, name=9, occ=6)),
+    'namuna9GenPG2VisheshPaniSafai.html': dict(page_h=717, top=150, thead=95, tfoot=35.9, grand=35.3, line1=26.0, extra=23.0,
+        cpl=dict(prop=5, name=13, occ=9)),
 }
 
 
@@ -177,7 +195,7 @@ def _page_height(rows, p):
     return sum(_row_height(r, p, cpl) for r in rows)
 
 
-def paginate_by_height(data, template_name, extra_other_pages=0):
+def paginate_by_height(data, template_name, extra_other_pages=0, extra_all_pages=0):
     """data ला पानांत वाटतो: पहिल्या पानावर मथळ्याची जागा, शेवटच्या पानावर "एकूण
     बेरीज (सर्व पाने)" ची जागा राखून. रिकामी यादी असली तरी एक (रिकामं) पान."""
     # extra_other_pages: पहिल्या पानानंतरच्या प्रत्येक पानावर वर राखायची जादा उंची (छापील px) -
@@ -185,7 +203,9 @@ def paginate_by_height(data, template_name, extra_other_pages=0):
     if not data:
         return [[]]
     p = _PROFILES[template_name]
-    usable = p['page_h'] * p.get('safety', SAFETY) - p['thead'] - p['tfoot']
+    # extra_all_pages: प्रत्येक पानावर (पहिल्यासकट) राखायची जादा उंची - Pg2 मध्ये QR पट्टी टेबल-हेडरमध्ये
+    # असल्याने ती प्रत्येक पानावर येते. 0 असेल तर पूर्वीसारखेच.
+    usable = p['page_h'] * p.get('safety', SAFETY) - p['thead'] - p['tfoot'] - extra_all_pages
     pages, cur = [], []
     budget = usable - p['top']
     for row in data:
