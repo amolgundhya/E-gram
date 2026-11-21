@@ -1718,7 +1718,8 @@ def next_property_id(db):
     highest = 0
     for column in (models.Property.id, namuna9_model.Namuna9PropertyData.property_id,
                    namuna9_model.Namuna9Receipt.property_id, PropertyTransferLogDB.property_id,
-                   PropertyOwnerHistory.property_id):
+                   PropertyOwnerHistory.property_id, PropertyTransferLogDB.property_db_id,
+                   PropertyOwnerHistory.property_db_id):
         highest = max(highest, db.query(func.max(column)).scalar() or 0)
     for (property_ids,) in db.query(namuna9_model.Namuna9.property_ids).all():
         for pid in property_ids or []:
@@ -2765,6 +2766,20 @@ def serialize_properties(
 
             updated_count = 0
             village_property_ids = {p.id for p in properties}
+            # दस्तऐवज आधीच, प्रत्येक मालमत्तेचे (गाव + जुना अनुक्रमांक) - आधी लूपमध्ये फक्त
+            # अनुक्रमांकाने शोधायचो: दुसऱ्या गावाचे त्याच अनुक्रमांकाचे दस्तऐवज इथे हलायचे, आणि
+            # याच लूपमध्ये आधी नवा क्रमांक मिळालेल्या मालमत्तेचे दस्तऐवज पुन्हा दुसऱ्या मालमत्तेकडे.
+            docs_by_property = {p.id: [] for p in properties}
+            property_id_by_anu = {p.anuKramank: p.id for p in properties}
+            for doc in db.query(PropertyDocument).filter(PropertyDocument.village_id == village_id).all():
+                try:
+                    pid = property_id_by_anu.get(int(doc.property_anuKramank))
+                except (TypeError, ValueError):
+                    pid = None
+                if pid is not None:
+                    docs_by_property[pid].append(doc)
+            from namuna8.mastertab.transfer_apis import PropertyTransferLogDB
+            from namuna8.property_owner_history_model import PropertyOwnerHistory
 
             for index, db_property in enumerate(properties):
                 old_anuKramank = db_property.anuKramank
@@ -2865,11 +2880,16 @@ def serialize_properties(
                 if change_malmatta:
                     db_property.malmattaKramank = str(new_anuKramank)
                 
+                # फेरफार / मालकी इतिहासातला जुना अनुक्रमांक कॉलमही नवा (शोध property_db_id ने होतो)
+                if anu_needs_change:
+                    for history_model in (PropertyTransferLogDB, PropertyOwnerHistory):
+                        db.query(history_model).filter(
+                            history_model.property_db_id == db_property.id
+                        ).update({history_model.property_id: new_anuKramank}, synchronize_session=False)
+                
                 db.flush()
                 try:
-                    docs = db.query(PropertyDocument).filter(
-                        PropertyDocument.property_anuKramank == old_anuKramank
-                    ).all()
+                    docs = docs_by_property.get(db_property.id, []) if anu_needs_change else []
                     for doc in docs:
                         # update DB field
                         doc.property_anuKramank = new_anuKramank
@@ -3152,6 +3172,7 @@ def get_properties_by_owner(
 @router.get("/properties/bulk", response_model=list[schemas.PropertyRead])
 def get_properties_bulk(
     ids: str = Query(...), 
+    village_id: int = Query(..., description="Village ID"),
     district_id: int = Query(..., description="District ID"),
     taluka_id: int = Query(..., description="Taluka ID"),
     gram_panchayat_id: int = Query(..., description="Gram Panchayat ID"),
@@ -3178,7 +3199,12 @@ def get_properties_bulk(
     
     # ids is a comma-separated string of property IDs
     id_list = [int(i) for i in ids.split(",") if i.strip().isdigit()]
-    properties = db.query(models.Property).filter(models.Property.anuKramank.in_(id_list)).all()
+    # ids = अनुक्रमांक - ते दोन गावांत सारखे असू शकतात, म्हणून गाव + ग्रामपंचायतीसह
+    properties = db.query(models.Property).filter(
+        models.Property.anuKramank.in_(id_list),
+        models.Property.village_id == village_id,
+        models.Property.gram_panchayat_id == gram_panchayat_id,
+    ).all()
     return [build_property_response(p, db, gram_panchayat_id) for p in properties]
 
 def get_tax_rate_by_area(db: Session, area: float, field: str, gram_panchayat_id: int):

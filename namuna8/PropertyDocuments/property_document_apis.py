@@ -38,14 +38,14 @@ def create_property_document(doc: PropertyDocumentCreate, db: Session = Depends(
     return db_doc
 
 @router.get("/", response_model=List[PropertyDocumentResponse])
-def list_property_documents(property_anuKramank: int, village_id: Optional[int] = None, db: Session = Depends(get_db)):
-    # Match numeric or string stored anuKramank
+def list_property_documents(property_anuKramank: int, village_id: int, db: Session = Depends(get_db)):
+    # Match numeric or string stored anuKramank. गाव आवश्यक - अनुक्रमांक दोन गावांत सारखा
+    # असू शकतो (आधी गाव न दिल्यास दोन्ही गावांचे दस्तऐवज यायचे).
     q = db.query(PropertyDocument).filter(
         (PropertyDocument.property_anuKramank == property_anuKramank) |
         (PropertyDocument.property_anuKramank == str(property_anuKramank))
     )
-    if village_id is not None and hasattr(PropertyDocument, "village_id"):
-        q = q.filter(PropertyDocument.village_id == village_id)
+    q = q.filter(PropertyDocument.village_id == village_id)
     return q.all()
 
 @router.delete("/delete/{id}")

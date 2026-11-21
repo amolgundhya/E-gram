@@ -181,6 +181,21 @@ def transfer_owners(request: OwnerTransferRequest, db: Session = Depends(get_db)
                 property.taluka_id = request.taluka_id
             if request.gram_panchayat_id is not None:
                 property.gram_panchayat_id = request.gram_panchayat_id
+
+            # फेरफार / मालकी इतिहास: नवं गाव + नवा अनुक्रमांक (शोध property_db_id ने होतो)
+            from namuna8.mastertab.transfer_apis import PropertyTransferLogDB
+            from namuna8.property_owner_history_model import PropertyOwnerHistory
+            db.query(PropertyTransferLogDB).filter(PropertyTransferLogDB.property_db_id == property.id).update(
+                {PropertyTransferLogDB.property_id: property.anuKramank,
+                 PropertyTransferLogDB.village_id: request.to_village_id}, synchronize_session=False)
+            poh_values = {PropertyOwnerHistory.property_id: property.anuKramank,
+                          PropertyOwnerHistory.village_id: request.to_village_id}
+            if request.gram_panchayat_id is not None:
+                poh_values[PropertyOwnerHistory.gram_panchayat_id] = request.gram_panchayat_id
+            if request.district_id is not None:
+                poh_values[PropertyOwnerHistory.district_id] = request.district_id
+            db.query(PropertyOwnerHistory).filter(PropertyOwnerHistory.property_db_id == property.id).update(
+                poh_values, synchronize_session=False)
                 
             # --------------------------------------
             # TRANSFER PROPERTY DOCUMENTS AS WELL

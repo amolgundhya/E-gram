@@ -401,6 +401,30 @@ def ensure_property_sort_order_column():
 
 ensure_property_sort_order_column()
 
+# फेरफार / मालकी इतिहास: मालमत्तेचा खरा id (properties.id) + गाव. आधी फक्त अनुक्रमांक
+# (property_id) ठेवायचो - तो दोन गावांत सारखा असू शकतो, त्यामुळे टेस्टगाव 1 चं हस्तांतरण
+# मसलापेन 1 वर व्हायचं. जुन्या रोंना मूल्य apply_new_column_defaults (खाली) देतो.
+def ensure_transfer_history_columns():
+    try:
+        with engine.begin() as conn:
+            for table, cols in (
+                ("property_transfer_logs", (("property_db_id", "INTEGER"), ("village_id", "INTEGER"))),
+                ("property_owner_history", (("property_db_id", "INTEGER"),)),
+            ):
+                existing = {c[1] for c in conn.exec_driver_sql(f'PRAGMA table_info("{table}")').fetchall()}
+                if not existing:
+                    continue
+                for col, coltype in cols:
+                    if col not in existing:
+                        conn.exec_driver_sql(f'ALTER TABLE "{table}" ADD COLUMN "{col}" {coltype}')
+                conn.exec_driver_sql(
+                    f'CREATE INDEX IF NOT EXISTS "ix_{table}_property_db_id" ON "{table}" ("property_db_id")'
+                )
+    except Exception as e:
+        print("[Migration] Could not ensure transfer history columns:", e)
+
+ensure_transfer_history_columns()
+
 # एकदाच चालणारा बॅकफिल - sort_order अजून सेट नसलेल्या रोंना (नवीन कॉलम जोडल्यावर सगळ्याच
 # जुन्या रोंसाठी, किंवा दुसऱ्या क्लायंटच्या डेटाबेसवर पहिल्यांदा अपडेट केल्यावर) प्रत्येक
 # गावासाठी वेगळं, सध्याच्या मालमत्ता-क्रमांक नैसर्गिक क्रमवारीनुसार 10,20,30... अशी मोकळी

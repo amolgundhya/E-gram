@@ -74,6 +74,85 @@ def _backfill_sort_order(conn):
     return filled
 
 
+def _pick_property(candidates, anu, village_id, props):
+    """candidates (properties.id) मधून एकच: गाव माहीत असेल तर त्याच गावाच्या; तरी अनेक असतील
+    तर ज्यांचा अनुक्रमांक जुळतो त्या. एकच उरली तरच ती, नाहीतर None (अंदाज नाही)."""
+    c = [pid for pid in candidates if pid in props]
+    if village_id is not None:
+        c = [pid for pid in c if props[pid][1] == village_id]
+    if len(c) > 1:
+        c = [pid for pid in c if props[pid][0] == anu]
+    return c[0] if len(c) == 1 else None
+
+
+def _backfill_transfer_property_refs(conn, tables):
+    """property_transfer_logs / property_owner_history चा property_db_id (खरा properties.id).
+    जुन्या रोंमध्ये फक्त अनुक्रमांक (property_id) आहे - तो दोन गावांत सारखा असू शकतो. म्हणून
+    आधी मालकांवरून: नोंदीतले नवीन (सध्याचे) मालक ज्या मालमत्तेला जोडलेले आहेत ती; ते न जमल्यास
+    अनुक्रमांक (+ माहीत असल्यास गाव) एकाच मालमत्तेचा असेल तर ती. संदिग्ध रो रिकामे ठेवतो."""
+    import json
+    filled = {}
+    if not {"properties", "property_owner_association"} <= tables:
+        return filled
+    props = {pid: (anu, vid) for pid, anu, vid in conn.exec_driver_sql(
+        "SELECT id, anuKramank, village_id FROM properties").fetchall()}
+    by_owner = {}
+    for pid, oid in conn.exec_driver_sql(
+            "SELECT id, owner_id FROM property_owner_association").fetchall():
+        by_owner.setdefault(oid, set()).add(pid)
+    by_anu = {}
+    for pid, (anu, _vid) in props.items():
+        by_anu.setdefault(anu, []).append(pid)
+
+    def resolve(anu, village_id, owner_ids):
+        cands = set()
+        for oid in owner_ids:
+            cands |= by_owner.get(oid, set())
+        pid = _pick_property(cands, anu, village_id, props)
+        if pid is None:
+            pid = _pick_property(by_anu.get(anu, []), anu, village_id, props)
+        return pid
+
+    if "property_transfer_logs" in tables and "property_db_id" in _columns(conn, "property_transfer_logs"):
+        n = 0
+        for row_id, anu, vid, new_json in conn.exec_driver_sql(
+                "SELECT id, property_id, village_id, new_owners_json FROM property_transfer_logs "
+                "WHERE property_db_id IS NULL").fetchall():
+            try:
+                owner_ids = [o.get("id") for o in json.loads(new_json or "[]") if o.get("id") is not None]
+            except (ValueError, AttributeError):
+                owner_ids = []
+            pid = resolve(anu, vid, owner_ids)
+            if pid is not None:
+                conn.exec_driver_sql(
+                    "UPDATE property_transfer_logs SET property_db_id = ?, village_id = COALESCE(village_id, ?) "
+                    "WHERE id = ? AND property_db_id IS NULL", (pid, props[pid][1], row_id))
+                n += 1
+        if n:
+            filled["property_transfer_logs.property_db_id"] = n
+
+    if {"property_owner_history", "owner_history"} <= tables and \
+            "property_db_id" in _columns(conn, "property_owner_history"):
+        current = {}
+        for poh_id, oid in conn.exec_driver_sql(
+                "SELECT property_owner_history_id, owner_id FROM owner_history "
+                "WHERE transferred_from_this_owner_date IS NULL").fetchall():
+            current.setdefault(poh_id, []).append(oid)
+        n = 0
+        for row_id, anu, vid in conn.exec_driver_sql(
+                "SELECT id, property_id, village_id FROM property_owner_history "
+                "WHERE property_db_id IS NULL").fetchall():
+            pid = resolve(anu, vid, current.get(row_id, []))
+            if pid is not None:
+                conn.exec_driver_sql(
+                    "UPDATE property_owner_history SET property_db_id = ? WHERE id = ? AND property_db_id IS NULL",
+                    (pid, row_id))
+                n += 1
+        if n:
+            filled["property_owner_history.property_db_id"] = n
+    return filled
+
+
 def apply_new_column_defaults(engine=None):
     """सर्व रिकाम्या नवीन कॉलमना मूल्य. परत: {"टेबल.कॉलम": भरलेल्या रोंची संख्या} (फक्त >0)."""
     if engine is None:
@@ -87,6 +166,7 @@ def apply_new_column_defaults(engine=None):
             n = _backfill_sort_order(conn)
             if n:
                 filled["properties.sort_order"] = n
+        filled.update(_backfill_transfer_property_refs(conn, tables))
         for table, column, value in NULL_DEFAULTS:
             if table not in tables or column not in _columns(conn, table):
                 continue
