@@ -75,6 +75,20 @@
             th, td { padding: 1px 2px; }
             .record-row { display: table-row !important; }
         }
+        /* पानाच्या रुंदीत बसवणे (क्लायंट Nov-2026): 26 कॉलम (एकूण कर सकट) A4 landscape मध्ये मावत
+           नव्हते - स्क्रीनवर शेवटचा कॉलम कापला जायचा, प्रिंटमध्ये नावं अरुंद कॉलममध्ये 5-6 ओळींत.
+           कॉलम न काढता, fitTablesToWidth() टेबल इतकंच लहान (zoom) करतो की ते पानाच्या रुंदीत
+           मावेल - स्क्रीन (12px) व प्रिंट (10px) साठी वेगवेगळं मोजून. मावत असेल तर zoom 1. */
+        @media screen { #mainContent > table { zoom: var(--fit-screen, 1); } }
+        @media print { #mainContent > table { zoom: var(--fit-print, 1); } }
+        /* नावांचे कॉलम किमान इतके रुंद - नाहीतर मोठ्या रकमांच्या यादीत नावं 5-6 ओळींत तुटतात */
+        #mainContent tr.header th:nth-child(5) { min-width: 8em; }
+        #mainContent tr.header th:nth-child(6) { min-width: 6.5em; }
+        #mainContent tr.header th:nth-child(7) { min-width: 4.5em; }
+        /* प्रिंटचा zoom स्क्रीनवरच मोजण्यासाठी तात्पुरती प्रिंटसारखी मांडणी (दोन्हीत रुंदी 285mm) */
+        body.measure-print #mainContent > table { zoom: var(--fit-print, 1) !important; font-size: 10px !important; }
+        body.measure-print #mainContent th, body.measure-print #mainContent td { padding: 1px 2px !important; }
+        body.measure-print .record-row { display: table-row !important; }
     </style>
 </head>
 <body>
@@ -147,7 +161,36 @@
                 fromPageInput.value = 1;
                 toPageInput.value = totalPages;
             }
+            fitTablesToWidth();
         }
+        // टेबल पानाच्या रुंदीत (वरच्या CSS मधली टीप पाहा). varName = '--fit-screen' / '--fit-print'.
+        function fitTablesOnce(varName) {
+            const mc = document.getElementById('mainContent');
+            let probe = document.getElementById('fitProbe');
+            if (!probe) {
+                probe = document.createElement('div');
+                probe.id = 'fitProbe';
+                probe.style.cssText = 'height:0;margin:0;padding:0;border:0;';
+                mc.insertBefore(probe, mc.firstChild);
+            }
+            mc.querySelectorAll(':scope > table').forEach(table => {
+                let z = 1;
+                table.style.setProperty(varName, '1');
+                for (let i = 0; i < 8; i++) {
+                    const avail = probe.getBoundingClientRect().width;
+                    const w = table.getBoundingClientRect().width;
+                    if (!avail || !w || w <= avail + 0.5) break;
+                    z = Math.max(0.4, z * (avail / w) * 0.998);
+                    table.style.setProperty(varName, String(z));
+                }
+            });
+        }
+        function fitTablesToWidth() {
+            fitTablesOnce('--fit-screen');
+            document.body.classList.add('measure-print');
+            try { fitTablesOnce('--fit-print'); } finally { document.body.classList.remove('measure-print'); }
+        }
+        window.addEventListener('beforeprint', fitTablesToWidth);
         function nextPage() { showPage(currentPage + 1); }
         function prevPage() { showPage(currentPage - 1); }
         function firstPage() { showPage(1); }
@@ -167,6 +210,7 @@
                     el.style.display = 'none';
                 }
             });
+            fitTablesToWidth();
             setTimeout(() => {
                 window.print();
                 setTimeout(() => {
@@ -183,6 +227,8 @@
         window.onload = function() {
             updateZoom();
             showPage(1);
+            // मंगल फॉन्ट लोड झाल्यावर रुंदी बदलते - पुन्हा बसवतो
+            if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTablesToWidth);
             // Wire up navigation buttons
             document.querySelector('button[title="First Page"]').onclick = firstPage;
             document.querySelector('button[title="Previous Page"]').onclick = prevPage;
