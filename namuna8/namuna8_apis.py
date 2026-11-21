@@ -682,6 +682,9 @@ def get_property_details(
         raise HTTPException(status_code=404, detail="Property not found")
     return build_property_response(db_property, db, gram_panchayat_id)
 
+VILLAGE_CHANGE_USE_TRANSFER_MSG = "मालमत्ता दुसऱ्या गावात हलवण्यासाठी Modify Entry → Transfer वापरा"
+
+
 @router.put("/{anu_kramank}", response_model=schemas.PropertyRead)
 def update_namuna8_entry(
     anu_kramank: int, 
@@ -722,6 +725,14 @@ def update_namuna8_entry(
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
+    # संपादनात गाव बदलता येत नाही - मालमत्ता उघडी असताना गाव बॉक्स बदलून Update केल्यास आधी
+    # "Property not found" (इंग्रजी) यायचं, आणि दोन्ही गावांत तोच अनुक्रमांक असेल तर दुसऱ्या
+    # गावाची मालमत्ता या मालमत्तेच्या माहितीने ओव्हरराईट व्हायची. गाव बदल फक्त Transfer ने.
+    own_property = db.query(models.Property).filter(models.Property.id == property_data.id).first() \
+        if property_data.id is not None else None
+    own_village_id = own_property.village_id if own_property is not None else property_data.village_id
+    if int(village_id) != int(own_village_id) or int(property_data.village_id) != int(own_village_id):
+        raise HTTPException(status_code=400, detail=VILLAGE_CHANGE_USE_TRANSFER_MSG)
     if db.query(models.Property).filter(
                 models.Property.village_id == property_data.village_id,
                 models.Property.anuKramank == property_data.anuKramank,
