@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, Integer, String, DateTime, Text, func
 from datetime import datetime
 from typing import List, Optional
 from Utility.sqlite_compat import query_all_in_chunks
@@ -23,7 +23,12 @@ class PropertyTransferLogDB(Base):
     __tablename__ = "property_transfer_logs"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    property_id = Column(Integer, nullable=False)  # Remove foreign key constraint
+    property_id = Column(Integer, nullable=False)  # अनुक्रमांक (जुना कॉलम, फक्त माहितीसाठी)
+    # मालमत्तेचा खरा id (properties.id) आणि गाव. अनुक्रमांक दोन गावांत सारखा असू शकतो
+    # (मसलापेन 1 / टेस्टगाव 1) - आधी फक्त अनुक्रमांकाने शोधल्याने टेस्टगाव 1 चं हस्तांतरण
+    # मसलापेन 1 वर व्हायचं. सर्व शोध / join आता property_db_id ने.
+    property_db_id = Column(Integer, nullable=True, index=True)
+    village_id = Column(Integer, nullable=True)
     date = Column(DateTime, nullable=False)
     entry_no = Column(String(50), nullable=False)
     transaction_date = Column(DateTime, nullable=False)
@@ -57,8 +62,31 @@ class PropertyTransferCreate(BaseModel):
     district_id: Optional[int] = None
     taluka_id: Optional[int] = None
     gram_panchayat_id: Optional[int] = None
+    village_id: Optional[int] = None
 
     _date_only = validator('date', 'transaction_date', pre=True, allow_reuse=True)(_date_only_to_datetime)
+
+
+def find_property_by_anu(db: Session, anu_kramank, village_id=None, gram_panchayat_id=None):
+    """अनुक्रमांक + गाव (+ ग्रामपंचायत) ने मालमत्ता. गाव दिलं नसेल (जुना क्लायंट) तर फक्त
+    तो अनुक्रमांक एकाच मालमत्तेचा असेल तरच ती - दोन गावांत तोच अनुक्रमांक असेल तर 400,
+    चुकीच्या गावाची मालमत्ता कधीच निवडत नाही."""
+    q = db.query(models.Property).filter(models.Property.anuKramank == anu_kramank)
+    if gram_panchayat_id is not None:
+        q = q.filter(models.Property.gram_panchayat_id == gram_panchayat_id)
+    if village_id is not None:
+        return q.filter(models.Property.village_id == village_id).first()
+    matches = q.limit(2).all()
+    if len(matches) > 1:
+        raise HTTPException(
+            status_code=400,
+            detail="हा अनुक्रमांक एकापेक्षा जास्त गावांत आहे - गाव (village_id) निवडा / village_id is required",
+        )
+    return matches[0] if matches else None
+
+
+def get_property_owner_history(db: Session, prop):
+    return db.query(PropertyOwnerHistory).filter(PropertyOwnerHistory.property_db_id == prop.id).first()
 
 class PropertyTransferLog(BaseModel):
     id: int
@@ -74,8 +102,8 @@ class PropertyTransferLog(BaseModel):
 
 @router.post('/transfer/', response_model=PropertyTransferLog)
 def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db)):
-    # Get property
-    prop = db.query(models.Property).filter(models.Property.anuKramank == data.property_id).first()
+    # Get property - अनुक्रमांक + गाव + ग्रामपंचायत (फक्त अनुक्रमांकाने कधीच नाही)
+    prop = find_property_by_anu(db, data.property_id, data.village_id, data.gram_panchayat_id)
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
     
@@ -84,17 +112,16 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
     
     # BEFORE TRANSFER: Save previous owners to PropertyOwnerHistory
     # Get or create PropertyOwnerHistory for this property
-    property_history = db.query(PropertyOwnerHistory).filter(
-        PropertyOwnerHistory.property_id == data.property_id
-    ).first()
+    property_history = get_property_owner_history(db, prop)
     
     if not property_history:
         # Create new PropertyOwnerHistory if it doesn't exist
         property_history = PropertyOwnerHistory(
-            property_id=data.property_id,
+            property_id=prop.anuKramank,
+            property_db_id=prop.id,
             village_id=prop.village_id,
-            gram_panchayat_id=1,
-            district_id=1
+            gram_panchayat_id=prop.gram_panchayat_id or 1,
+            district_id=prop.district_id or 1
         )
         db.add(property_history)
         db.commit()
@@ -111,7 +138,7 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         
         # Check property_transfer_logs to determine when owner got the property
         previous_transfer = db.query(PropertyTransferLogDB).filter(
-            PropertyTransferLogDB.property_id == data.property_id
+            PropertyTransferLogDB.property_db_id == prop.id
         ).first()
         
         if previous_transfer:
@@ -178,11 +205,13 @@ def transfer_property(data: PropertyTransferCreate, db: Session = Depends(get_db
         db.add(new_owner_history)
     
     # Delete previous transfer records for this property
-    db.query(PropertyTransferLogDB).filter(PropertyTransferLogDB.property_id == data.property_id).delete()
+    db.query(PropertyTransferLogDB).filter(PropertyTransferLogDB.property_db_id == prop.id).delete()
     
     # Save new transfer log to database
     transfer_log_record = PropertyTransferLogDB(
-        property_id=data.property_id,
+        property_id=prop.anuKramank,
+        property_db_id=prop.id,
+        village_id=prop.village_id,
         date=data.date,
         entry_no=data.entry_no,
         transaction_date=data.transaction_date if data.transaction_date else data.date,  # Use date as fallback
@@ -358,17 +387,16 @@ def get_owners_bulk(
     }
 
 @router.get('/property-history/{property_id}')
-def get_property_ownership_history(property_id: int, db: Session = Depends(get_db)):
+def get_property_ownership_history(property_id: int, village_id: Optional[int] = None,
+                                   gram_panchayat_id: Optional[int] = None, db: Session = Depends(get_db)):
     """Get complete ownership history for a property"""
-    # Get property details
-    property_details = db.query(models.Property).filter(models.Property.anuKramank == property_id).first()
+    # Get property details - अनुक्रमांक + गाव
+    property_details = find_property_by_anu(db, property_id, village_id, gram_panchayat_id)
     if not property_details:
         raise HTTPException(status_code=404, detail="Property not found")
     
     # Get property owner history
-    property_history = db.query(PropertyOwnerHistory).filter(
-        PropertyOwnerHistory.property_id == property_id
-    ).first()
+    property_history = get_property_owner_history(db, property_details)
     
     if not property_history:
         return {
@@ -438,16 +466,16 @@ def get_property_history_bulk(
     # Get paginated properties
     properties = property_query.offset(offset).limit(page_size).all()
     
-    # Get all property IDs for batch querying
-    property_ids = [prop.anuKramank for prop in properties]
+    # Get all property IDs for batch querying (खरा properties.id - अनुक्रमांक दोन गावांत सारखा असू शकतो)
+    property_ids = [prop.id for prop in properties]
     
     # Batch query property histories
     property_histories = query_all_in_chunks(
-        db.query(PropertyOwnerHistory), PropertyOwnerHistory.property_id, property_ids
+        db.query(PropertyOwnerHistory), PropertyOwnerHistory.property_db_id, property_ids
     )
     
     # Create lookup dictionary
-    history_lookup = {ph.property_id: ph.id for ph in property_histories}
+    history_lookup = {ph.property_db_id: ph.id for ph in property_histories}
     
     # Batch query owner histories for all properties
     if history_lookup:
@@ -467,7 +495,7 @@ def get_property_history_bulk(
     # Format results
     results = []
     for prop in properties:
-        property_history_id = history_lookup.get(prop.anuKramank)
+        property_history_id = history_lookup.get(prop.id)
         
         if property_history_id and property_history_id in owner_history_lookup:
             # Has history
@@ -538,9 +566,7 @@ def get_property_ownership_history_by_name(property_name: str, db: Session = Dep
     results = []
     for prop in properties:
         # Get property owner history
-        property_history = db.query(PropertyOwnerHistory).filter(
-            PropertyOwnerHistory.property_id == prop.anuKramank
-        ).first()
+        property_history = get_property_owner_history(db, prop)
         
         if property_history:
             # Get all owner history records for this property
@@ -588,6 +614,7 @@ def get_transfer_logs_bulk(
     property_id: Optional[int] = None,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
+    village_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
     """Get property transfer logs in bulk with pagination"""
@@ -597,7 +624,11 @@ def get_transfer_logs_bulk(
     query = db.query(PropertyTransferLogDB)
     
     if property_id:
-        query = query.filter(PropertyTransferLogDB.property_id == property_id)
+        # property_id = अनुक्रमांक - गावासह मालमत्ता शोधून तिच्या खऱ्या id ने
+        prop = find_property_by_anu(db, property_id, village_id)
+        query = query.filter(PropertyTransferLogDB.property_db_id == (prop.id if prop else -1))
+    elif village_id:
+        query = query.filter(PropertyTransferLogDB.village_id == village_id)
     
     if from_date:
         query = query.filter(PropertyTransferLogDB.date >= from_date)
@@ -624,6 +655,7 @@ def get_transfer_logs_bulk(
         logs_data.append({
             "id": log.id,
             "property_id": log.property_id,
+            "village_id": log.village_id,
             "date": log.date.isoformat() if log.date else None,
             "entry_no": log.entry_no,
             "transaction_date": log.transaction_date.isoformat() if log.transaction_date else None,
@@ -668,14 +700,14 @@ def get_property_history_summary(db: Session = Depends(get_db)):
     # Get top villages by transfer count
     village_transfers = db.query(
         models.Property.village_id,
-        db.func.count(PropertyTransferLogDB.id).label('transfer_count')
+        func.count(PropertyTransferLogDB.id).label('transfer_count')
     ).join(
         PropertyTransferLogDB, 
-        models.Property.anuKramank == PropertyTransferLogDB.property_id
+        models.Property.id == PropertyTransferLogDB.property_db_id
     ).group_by(
         models.Property.village_id
     ).order_by(
-        db.func.count(PropertyTransferLogDB.id).desc()
+        func.count(PropertyTransferLogDB.id).desc()
     ).limit(10).all()
     
     return {
@@ -719,7 +751,7 @@ def get_transfer_register_response(
         # Join with properties to filter by village
         query = query.join(
             models.Property,
-            PropertyTransferLogDB.property_id == models.Property.anuKramank
+            PropertyTransferLogDB.property_db_id == models.Property.id
         ).filter(models.Property.village_id == village_id)
     
     if from_date:
@@ -744,8 +776,8 @@ def get_transfer_register_response(
         
         # Get property details
         property_details = db.query(models.Property).filter(
-            models.Property.anuKramank == log.property_id
-        ).first()
+            models.Property.id == log.property_db_id
+        ).first() if log.property_db_id is not None else None
         
         if property_details:
             # Format previous owner names
@@ -845,8 +877,8 @@ def get_transfer_record_responses(
         
         # Get property details
         property_details = db.query(models.Property).filter(
-            models.Property.anuKramank == log.property_id
-        ).first()
+            models.Property.id == log.property_db_id
+        ).first() if log.property_db_id is not None else None
         
         if property_details:
             # Format previous owner names

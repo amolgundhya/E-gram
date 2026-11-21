@@ -52,7 +52,9 @@ def get_ferfar_record_responses(
     # Build query for transfer logs joined with properties to allow location-based filtering
     query = (
         db.query(PropertyTransferLogDB)
-        .join(models.Property, PropertyTransferLogDB.property_id == models.Property.anuKramank)
+        # खऱ्या properties.id ने join - आधी अनुक्रमांकाने व्हायचा, त्यामुळे दोन गावांत तोच
+        # अनुक्रमांक असल्यास एका गावाचं हस्तांतरण दुसऱ्या गावाच्या मालमत्तेवर दिसायचं (दुप्पटही).
+        .join(models.Property, PropertyTransferLogDB.property_db_id == models.Property.id)
     )
     
     if from_date:
@@ -88,7 +90,7 @@ def get_ferfar_record_responses(
         
         # Get property details
         property_details = db.query(models.Property).filter(
-            models.Property.anuKramank == log.property_id
+            models.Property.id == log.property_db_id
         ).first()
         
         if property_details:

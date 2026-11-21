@@ -7,6 +7,9 @@ class PropertyOwnerHistory(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     property_id = Column(Integer, nullable=False)  # Remove foreign key constraint
+    # मालमत्तेचा खरा id (properties.id). property_id मध्ये अनुक्रमांक असतो - तो दोन गावांत
+    # सारखा असू शकतो आणि Serialize / गाव बदल ने बदलतो; इतिहास नेहमी याच id ने शोधायचा.
+    property_db_id = Column(Integer, nullable=True, index=True)
     village_id = Column(Integer, default=1)
     gram_panchayat_id = Column(Integer, default=1)
     district_id = Column(Integer, default=1)
