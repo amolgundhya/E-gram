@@ -577,6 +577,8 @@ async def prakar1(request : Request):
             'houseTaxQrUrl': houseTaxQrUrl,
             'waterTaxQrUrl': waterTaxQrUrl,
             'data': data,
+            'pages': paginate_by_height(data, template.name,
+                                        extra_all_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -745,6 +747,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -911,6 +914,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1876,6 +1880,8 @@ async def prakar1(request : Request):
             'houseTaxQrUrl': houseTaxQrUrl,
             'waterTaxQrUrl': waterTaxQrUrl,
             'data': data,
+            'pages': paginate_by_height(data, template.name,
+                                        extra_all_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2045,6 +2051,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2214,6 +2221,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2735,6 +2743,8 @@ async def prakar1(request : Request):
             'houseTaxQrUrl': houseTaxQrUrl,
             'waterTaxQrUrl': waterTaxQrUrl,
             'data': data,
+            'pages': paginate_by_height(data, template.name,
+                                        extra_all_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2904,6 +2914,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
+            'pages': paginate_by_height(data, template.name),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
