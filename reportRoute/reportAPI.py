@@ -79,6 +79,10 @@ def share_report_pdf(data: SharePdfRequest, request: Request):
     match = re.search(r'<head[^>]*>', html, re.IGNORECASE)
     html = html[:match.end()] + head + html[match.end():] if match else head + html
 
+    # Share अयशस्वी झाल्यास backend च्या console मध्ये कारण दिसावं (21-Nov: क्लायंटला फक्त
+    # "backend चालू आहे का" alert दिसला, log मध्ये काहीच नव्हतं)
+    started = time.time()
+    print('[share-pdf] start: html %d KB, title=%r, browser=%s' % (len(html) // 1024, data.title, browser), flush=True)
     work_dir = tempfile.mkdtemp(prefix='report_pdf_')
     try:
         html_path = os.path.join(work_dir, 'report.html')
@@ -96,11 +100,13 @@ def share_report_pdf(data: SharePdfRequest, request: Request):
         ]
         creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
         try:
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                           timeout=600, creationflags=creationflags)
+            proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                  timeout=600, creationflags=creationflags)
         except subprocess.TimeoutExpired:
+            print('[share-pdf] FAILED: browser timeout after %.1f s' % (time.time() - started), flush=True)
             raise HTTPException(status_code=500, detail="PDF बनवायला खूप वेळ लागला - कमी पानं निवडून पुन्हा प्रयत्न करा.")
         if not os.path.exists(pdf_path) or os.path.getsize(pdf_path) == 0:
+            print('[share-pdf] FAILED: no PDF (browser exit code %s) after %.1f s' % (proc.returncode, time.time() - started), flush=True)
             raise HTTPException(status_code=500, detail="PDF तयार झाली नाही.")
         with open(pdf_path, 'rb') as f:
             pdf_bytes = f.read()
@@ -112,5 +118,6 @@ def share_report_pdf(data: SharePdfRequest, request: Request):
                 break
             time.sleep(0.5)
 
+    print('[share-pdf] done: %d KB PDF in %.1f s' % (len(pdf_bytes) // 1024, time.time() - started), flush=True)
     return Response(content=pdf_bytes, media_type="application/pdf",
                     headers={"Content-Disposition": 'attachment; filename="report.pdf"'})

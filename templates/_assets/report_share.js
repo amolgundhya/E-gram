@@ -51,17 +51,46 @@
     // पानं - आधी सगळी (उदा. 916) बिलं पाठवली जायची आणि PDF ला दोन मिनिटं लागायची. HTML ची
     // inert प्रत (DOMParser - images/scripts चालत नाहीत) बनवून बाकीची पानं काढतो; राहिलेल्या
     // पानांचे QR (data-src) src मध्ये. बाकीचे रिपोर्ट (report_pages.js नसलेले) पूर्वीसारखेच.
+    //
+    // नमुना ९ (सर्व, Gen, पाणी, Pg2, वसुली, सूट सह, विशेष पाणी...) - .print-page viewer (report_pages.js
+    // नाही): आधी From..To दुर्लक्षित होऊन सगळी (उदा. 96-121) पानं PDF मध्ये जायची - 10 MB, 20-30 सेकंद
+    // (मंद संगणकावर मिनिटं). आता हिरव्या Print सारखीच फक्त From..To ची पानं (टेम्प्लेटच्या printPage
+    // सारखाच हिशोब: रिकामं From/To = 1).
+    // (बहुतेक टेम्प्लेट fromPage/toPage वापरतात - तिथे रिकामं To = शेवटचं पान; 9 All/Gen/Pani
+    // printFrom/printTo - तिथे रिकामं To = 1)
+    function printPageRange() {
+        var oldIds = !!document.getElementById('printFrom');
+        var fromEl = document.getElementById(oldIds ? 'printFrom' : 'fromPage');
+        var toEl = document.getElementById(oldIds ? 'printTo' : 'toPage');
+        if (!fromEl || !toEl) return null;
+        var total = document.querySelectorAll('.print-page').length;
+        if (!total) return null;
+        var from = parseInt(fromEl.value, 10) || 1;
+        var to = parseInt(toEl.value, 10) || (oldIds ? 1 : total);
+        from = Math.max(1, Math.min(from, total));
+        to = Math.max(from, Math.min(to, total));
+        return { from: from, to: to, total: total };
+    }
+
     function selectedPagesHtml() {
+        if (!window.DOMParser) return null;
         var rp = window.ReportPages;
-        if (!rp || !window.DOMParser) return null;
-        var r = rp.range();
-        if (!r.total) return null;
+        var unit, r;
+        if (rp) { unit = rp.unit; r = rp.range(); }
+        else { unit = '.print-page'; r = printPageRange(); }
+        if (!r || !r.total) return null;
         var doc = new DOMParser().parseFromString(document.documentElement.outerHTML, 'text/html');
-        var units = doc.querySelectorAll(rp.unit);
+        var units = doc.querySelectorAll(unit);
         if (units.length !== r.total) return null;
         for (var i = units.length - 1; i >= 0; i--) {
             if (i + 1 < r.from || i + 1 > r.to) units[i].parentNode.removeChild(units[i]);
             else units[i].style.display = '';
+        }
+        // .print-page वर inline page-break-after: always (शेवटचं पान सोडून) - निवडलेलं शेवटचं पान
+        // मूळ शेवटचं नसेल तर PDF मध्ये रिकामं पान येऊ नये
+        if (!rp && r.to < r.total) {
+            var kept = doc.querySelectorAll(unit);
+            if (kept.length) kept[kept.length - 1].style.pageBreakAfter = 'auto';
         }
         var imgs = doc.querySelectorAll('img[data-src]');
         for (var j = 0; j < imgs.length; j++) {
