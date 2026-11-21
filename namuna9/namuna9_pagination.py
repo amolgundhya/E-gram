@@ -80,17 +80,24 @@ def _longest_word(text):
     return max((_word_width(w) for w in re.split(r'\s+', (text or '').strip()) if w), default=0.0)
 
 
+# 21-Nov-2026: नमुना-9 गोषवारा आता Print 9 All सारखा (लेबल ओळ + बेरजेची ओळ, 8px आकडे) -
+# tfoot/grand पुन्हा मोजले. क्लायंटच्या DB वर (20 मालमत्तांचे 4 संच: पहिल्या, सर्वात लांब नावं,
+# मधल्या, गावभर पसरलेल्या) पान एकटं छापल्यावर 9 Gen, सूट सह, विशेष पाणी (+सफाई) वसुली 2
+# इ. चं पान दुसऱ्या शीटवर जायचं (आधीपासूनच) - auto table layout मध्ये नाव/भोगवटदार कॉलम
+# मोजलेल्यापेक्षा अरुंद. त्या रिपोर्ट्सचे name/occ cpl प्रत्यक्ष PDF मधल्या ओळींच्या उंचीवरून
+# कमी केले (safety 0.93); thead/top प्रत्यक्ष मोजलेल्यापेक्षा कमी नाहीत. 4 संचांत एकही पान
+# दुसऱ्या शीटवर नाही, सर्वात भरलेलं पान ~91%.
 _PROFILES = {
     'namuna9All.html': dict(page_h=733, top=141, thead=83, tfoot=40, grand=40,
         line1=23.0, extra=20.0, cpl=dict(prop=6, name=17, occ=5), safety=0.881),
     # लँडस्केप A4 (L. Page)
-    'namuna9Gen.html': dict(page_h=717, top=157, thead=82, tfoot=51, grand=51,
-        line1=25.9, extra=24.6, cpl=dict(prop=6, name=22, occ=13)),
+    'namuna9Gen.html': dict(page_h=717, top=157, thead=85.1, tfoot=42.0, grand=42.0, line1=25.9, extra=24.6,
+        cpl=dict(prop=6, name=11, occ=7), safety=0.93),
     # लँडस्केप A4 (L. Page) - आधी चुकून पोर्ट्रेटची उंची (1046) होती, त्यामुळे पानावर ~22 ओळी
     # जायच्या आणि प्रत्येक पान दोन शीटवर छापलं जायचं. 717 वर headless Chrome मध्ये मोजलं:
     # safety 1.0 पर्यंत एकही पान दुसऱ्या शीटवर जात नाही, 1.05 वर जातं - 0.90 सुरक्षित.
-    'namuna9Pani.html': dict(page_h=717, top=149, thead=78, tfoot=49, grand=26,
-        line1=26.0, extra=23.0, cpl=dict(prop=8, name=22, occ=10)),
+    'namuna9Pani.html': dict(page_h=717, top=149.1, thead=85.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
+        cpl=dict(prop=8, name=22, occ=10)),
     'namuna9Vasuli1.html': dict(page_h=717, top=123, thead=67, tfoot=37, grand=37,
         line1=17.9, extra=15.9, cpl=dict(prop=4, name=8, occ=4), min_content=True),
     'namuna9Vasuli2.html': dict(page_h=717, top=144, thead=78, tfoot=43, grand=43,
