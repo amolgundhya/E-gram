@@ -3,8 +3,10 @@
 फ्रंटएंडमध्ये हाच आकडा src/lib/areaUnits.ts मध्ये आहे - बदलला तर दोन्हीकडे बदला.
 
 क्लायंट (Nov-2026): 1 चौ.मी. = 10.764 चौ.फु.; चौ.मी. क्षेत्रफळ 2 दशांश स्थळांपर्यंत
-(1140 चौ.फु. / 10.764 = 105.9086 -> 105.91). भांडवली मूल्य याच गोल केलेल्या चौ.मी.
-क्षेत्रफळावरून मोजलं जातं.
+(1140 चौ.फु. / 10.764 = 105.9086 -> 105.91) - हे फक्त दाखवण्यासाठी.
+क्लायंट (20-Nov-2026, Excel "New Software Formula 2025"): भांडवली मूल्य व कर मोजताना
+चौ.मी. क्षेत्रफळ पूर्ण अचूक (चौ.फु. ÷ 10.764, गोल न करता; चौ.मी. मध्ये टाकलेलं जसंच्या तसं)
+- area_sqm_for_tax. उदा. 600 चौ.फु. -> 55.741360… (55.74 नाही).
 """
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN  # noqa: F401  (ROUND_DOWN = कापणे, क्लायंट ठरवेल)
 
@@ -35,8 +37,10 @@ def to_sqft(value, unit) -> float:
 
 
 def area_sqm_for_tax(value, unit) -> float:
-    """भांडवली मूल्यासाठी चौ.मी. क्षेत्रफळ: value (unit मध्ये) -> 2 दशांश चौ.मी."""
-    return round_sqm(value) if unit == 'sqm' else sqft_to_sqm(value)
+    """भांडवली मूल्य / कर मोजण्यासाठी चौ.मी. क्षेत्रफळ - पूर्ण अचूक, गोल न करता:
+    unit 'sqm' -> जसंच्या तसं, नाहीतर चौ.फु. ÷ 10.764. दाखवण्यासाठी sqft_to_sqm / round_sqm."""
+    v = float(value or 0)
+    return v if unit == 'sqm' else v / SQFT_PER_SQM
 
 
 def convert_area(value, from_unit, to_unit) -> float:
