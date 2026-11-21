@@ -158,20 +158,22 @@ _PROFILES = {
         cpl=dict(prop=6, name=10, occ=5), safety=0.93),
     # Pg2 (वसुली/सुट/बाकी) - 21-Nov-2026 पासून सर्व्हर-पानं + प्रत्येक पानावर गोषवारा बेरीज
     # (आधी JS मध्ये ठराविक 10 ओळी, बेरीज नव्हती). क्लायंटच्या DB प्रतीवर headless Chrome मध्ये मोजलेलं.
+    # All प्रकार (10px अक्षर): अंदाज प्रत्यक्षापेक्षा ~15% जास्त येतो म्हणून safety 1.0 - 20 मालमत्तांच्या
+    # दोन संचांत सर्वात भरलेलं पान ~85-90%, पूर्ण प्रिंट व एकटं पान दोन्हींत दुसऱ्या शीटवर काहीही नाही.
     'namuna9AllPG2.html': dict(page_h=717, top=175.1, thead=159.1, tfoot=42.0, grand=42.0, line1=35.0, extra=16.0,
-        cpl=dict(prop=5, name=9, occ=6)),
+        cpl=dict(prop=5, name=11, occ=7), safety=1.0),
     'namuna9GenPG2.html': dict(page_h=717, top=150, thead=95, tfoot=35.9, grand=35.3, line1=26.0, extra=23.0,
         cpl=dict(prop=5, name=13, occ=9)),
     'namuna9PaniPG2.html': dict(page_h=717, top=150, thead=95, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
         cpl=dict(prop=5, name=18, occ=12)),
     'namuna9AllPG2VisheshPain.html': dict(page_h=717, top=150, thead=159.1, tfoot=42.0, grand=42.0, line1=35.0, extra=16.0,
-        cpl=dict(prop=5, name=8, occ=5)),
+        cpl=dict(prop=5, name=10, occ=6), safety=1.0),
     'namuna9GenPG2VisheshPain.html': dict(page_h=717, top=150, thead=100.0, tfoot=41.2, grand=40.7, line1=26.0, extra=23.0,
         cpl=dict(prop=5, name=12, occ=8)),
     'namuna9PaniPG2VisheshPain.html': dict(page_h=717, top=150, thead=108.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
         cpl=dict(prop=5, name=14, occ=9)),
     'namuna9AllPG2VisheshPaniSafai.html': dict(page_h=717, top=150, thead=136.1, tfoot=36.3, grand=36.4, line1=31.5, extra=15.5,
-        cpl=dict(prop=5, name=9, occ=6)),
+        cpl=dict(prop=5, name=11, occ=7), safety=1.0),
     'namuna9GenPG2VisheshPaniSafai.html': dict(page_h=717, top=150, thead=95, tfoot=35.9, grand=35.3, line1=26.0, extra=23.0,
         cpl=dict(prop=5, name=13, occ=9)),
 }
