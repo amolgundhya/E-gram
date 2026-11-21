@@ -35,11 +35,13 @@
             /* एक मालमत्ता (दोन प्रती) = एक A4 पान - margin कमी, नाहीतर दुसरी प्रत पुढच्या पानावर जाते */
             .outer-border {
                 margin: 6mm auto;
-                page-break-after: always;
                 page-break-inside: avoid;
             }
-            .outer-border:last-of-type {
-                page-break-after: auto;
+            /* पानं बिलाच्या आधी तोडायची (पहिलं सोडून), नंतर नाही: आधी 'नंतर तोड, :last-of-type/:last-child सोडून' होतं - body च्या शेवटी
+               काहीही घटक आला (उदा. ब्राउझर extension चा div) तर शेवटचं बिल last-of-type राहत नव्हतं -> एका बिलाच्या PDF/प्रिंटला रिकामं दुसरं पान (क्लायंट 21-Nov, Share PDF). */
+            .outer-border ~ .outer-border {
+                page-break-before: always;
+                break-before: page;
             }
         }
     </style>
