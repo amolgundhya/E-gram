@@ -98,14 +98,14 @@ _PROFILES = {
     # safety 1.0 पर्यंत एकही पान दुसऱ्या शीटवर जात नाही, 1.05 वर जातं - 0.90 सुरक्षित.
     'namuna9Pani.html': dict(page_h=717, top=149.1, thead=85.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
         cpl=dict(prop=8, name=22, occ=10)),
-    'namuna9Vasuli1.html': dict(page_h=717, top=123, thead=67, tfoot=37, grand=37,
-        line1=17.9, extra=15.9, cpl=dict(prop=4, name=8, occ=4), min_content=True),
-    'namuna9Vasuli2.html': dict(page_h=717, top=144, thead=78, tfoot=43, grand=43,
-        line1=21.0, extra=18.7, cpl=dict(prop=6, name=8, occ=4), safety=0.872, min_content=True),
+    'namuna9Vasuli1.html': dict(page_h=717, top=123, thead=67, tfoot=26.9, grand=26.9, line1=17.9, extra=15.9,
+        cpl=dict(prop=4, name=8, occ=4), min_content=True),
+    'namuna9Vasuli2.html': dict(page_h=717, top=144, thead=78, tfoot=30.0, grand=30.0, line1=21.0, extra=18.7,
+        cpl=dict(prop=6, name=8, occ=4), safety=0.872, min_content=True),
     # नाव कॉलम रुंद + ओळी घट्ट केल्यानंतर headless Chrome मध्ये पुन्हा मोजलेलं (साधी नावं:
     # पहिल्या पानावर ~20, पुढच्या पानांवर ~27 ओळी).
-    'namuna9Vasuli3.html': dict(page_h=717, top=149, thead=80, tfoot=22, grand=22,
-        line1=20.6, extra=17.6, cpl=dict(prop=5, name=25, occ=11), safety=0.92),
+    'namuna9Vasuli3.html': dict(page_h=717, top=149, thead=80.1, tfoot=32.9, grand=33.1, line1=20.6, extra=17.6,
+        cpl=dict(prop=5, name=25, occ=11), safety=0.92),
     # सूट सह All/Gen लँडस्केप A4 (L. Page) - headless Chrome मध्ये 1047px छापील रुंदीवर
     # मोजलेलं (All चा टेबल 1178px -> 0.889 ने लहान, Gen 1068px -> 0.98). name=18 वर
     # All चं एक पान दुसऱ्या शीटवर जातं, 17 पर्यंत नाही - सुरक्षिततेसाठी 16.
