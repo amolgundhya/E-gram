@@ -31,6 +31,15 @@
             #toolbar {
                 display: none !important;
             }
+            /* गोषवारा - Print 9 All सारखाच: बेरजेचे आकडे लहान अक्षरात एका ओळीत,
+               लेबल ओळ (गोषवारा / कराची नावं) 12px ठळक. */
+            tfoot td {
+                font-size: 8px !important;
+                white-space: nowrap !important;
+            }
+            tfoot td.gosh-label {
+                font-size: 12px !important;
+            }
         }
     </style>
 </head>
@@ -247,14 +256,14 @@
         </tbody>
         <tfoot>
         <tr>
-            <td colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
-            <td colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">वीज कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:left;">गोषवारा</td>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">वीज कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td ></td>
-            <td style="font-weight:bold; text-align:center;">एकूण </td>
+            <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
@@ -282,14 +291,14 @@
         </tr>
         {% if loop.last %}
         <tr>
-            <td colspan="4" style="font-weight:bold; text-align:left;">एकूण बेरीज (सर्व पाने)</td>
-            <td colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">वीज कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
-            <td colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:left;">एकूण बेरीज (सर्व पाने)</td>
+            <td class="gosh-label" colspan="4" style="font-weight:bold; text-align:center;">घर कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">वीज कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">आ. कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
+            <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td ></td>
-            <td style="font-weight:bold; text-align:center;">एकूण </td>
+            <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>

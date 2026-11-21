@@ -109,53 +109,53 @@ _PROFILES = {
     # सूट सह All/Gen लँडस्केप A4 (L. Page) - headless Chrome मध्ये 1047px छापील रुंदीवर
     # मोजलेलं (All चा टेबल 1178px -> 0.889 ने लहान, Gen 1068px -> 0.98). name=18 वर
     # All चं एक पान दुसऱ्या शीटवर जातं, 17 पर्यंत नाही - सुरक्षिततेसाठी 16.
-    'namuna9AllSutSaha.html': dict(page_h=717, top=132.5, thead=69.4, tfoot=46.3, grand=46.3,
-        line1=23.2, extra=20.5, cpl=dict(prop=5, name=16, occ=10)),
-    'namuna9GenSutSaha.html': dict(page_h=717, top=146.1, thead=76.5, tfoot=51.0, grand=51.0,
-        line1=25.5, extra=22.6, cpl=dict(prop=5, name=16, occ=10)),
+    'namuna9AllSutSaha.html': dict(page_h=717, top=132.5, thead=69.4, tfoot=38.0, grand=37.6, line1=23.2, extra=20.5,
+        cpl=dict(prop=5, name=11, occ=7), safety=0.93),
+    'namuna9GenSutSaha.html': dict(page_h=717, top=150.0, thead=84.1, tfoot=42.0, grand=41.6, line1=25.5, extra=22.6,
+        cpl=dict(prop=5, name=10, occ=6), safety=0.93),
     # विशेष पाणी All/Gen/Pani लँडस्केप A4 (L. Page) - headless Chrome मध्ये 1047px छापील
     # रुंदीवर मोजलेलं (All चा टेबल 1157px -> 0.905, Gen/Pani 994px -> 1.0). cpl: All
     # name=20 / Gen name=24 वर पानं दुसऱ्या शीटवर जातात - त्याखाली सुरक्षित आकडे.
-    'namuna9AllVisheshPain.html': dict(page_h=717, top=134.8, thead=70.6, tfoot=47.1, grand=47.1,
-        line1=23.5, extra=20.8, cpl=dict(prop=5, name=16, occ=10)),
-    'namuna9GenVisheshPain.html': dict(page_h=717, top=149, thead=78, tfoot=26, grand=49,
-        line1=26.0, extra=23.0, cpl=dict(prop=6, name=20, occ=12)),
-    'namuna9PaniVisheshPain.html': dict(page_h=717, top=149, thead=78, tfoot=26, grand=49,
-        line1=26.0, extra=23.0, cpl=dict(prop=6, name=26, occ=14)),
+    'namuna9AllVisheshPain.html': dict(page_h=717, top=134.8, thead=70.6, tfoot=38.7, grand=38.1, line1=23.5, extra=20.8,
+        cpl=dict(prop=5, name=10, occ=6), safety=0.93),
+    'namuna9GenVisheshPain.html': dict(page_h=717, top=149.1, thead=85.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
+        cpl=dict(prop=6, name=20, occ=12)),
+    'namuna9PaniVisheshPain.html': dict(page_h=717, top=149.1, thead=85.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
+        cpl=dict(prop=6, name=26, occ=14)),
     # विशेष पाणी Vasuli1 लँडस्केप A4 (L. Page) + मिळकत नंबर कॉलम - 1047px छापील रुंदीवर
     # मोजलेलं (टेबल 1236px -> 0.847). सर्वात लहान ओळही 2 ओळींची (49px) म्हणून line1 =
     # 2 ओळींची उंची. min_content ऐवजी ठराविक cpl - name=24 वर पान दुसऱ्या शीटवर जातं, 20
     # पर्यंत नाही; 18 सुरक्षित (लांब नावांसह आणि फक्त प्रत्यक्ष डेटासह दोन्ही तपासलं).
     # शौचालय कर कॉलम आल्यावर टेबल आणखी रुंद - पुन्हा मोजलं (गाव 911 मालमत्ता): name=14 वर 3,
     # 13 वर 1 पान दुसऱ्या शीटवर; 12 पर्यंत नाही - 11 सुरक्षित.
-    'namuna9Vasuli1VisheshPain.html': dict(page_h=717, top=126.3, thead=80.5, tfoot=44.1, grand=44.1,
-        line1=41.6, extra=19.5, cpl=dict(prop=5, name=11, occ=6)),
+    'namuna9Vasuli1VisheshPain.html': dict(page_h=717, top=126.3, thead=82.1, tfoot=33.1, grand=33.1, line1=41.6, extra=19.5,
+        cpl=dict(prop=5, name=10, occ=5), safety=0.93),
     # विशेष पाणी Vasuli2 लँडस्केप A4 (L. Page) + मिळकत नंबर कॉलम - 1047px छापील रुंदीवर
     # मोजलेलं (टेबल 994px, लहान करावं लागत नाही). फक्त प्रत्यक्ष (लहान) नावांच्या पानांवर
     # नाव-कॉलम अरुंद होतो - name=20 वर तसं पान दुसऱ्या शीटवर गेलं, 16 पर्यंत नाही; 14 सुरक्षित.
     # शौचालय कर कॉलमनंतर सर्वात लहान ओळही 2 ओळींची (सफाई सह Vasuli2 सारखीच) - आधीच्या
     # line1=26 मुळे जवळजवळ प्रत्येक पान दोन शीटवर जायचं. पुन्हा मोजलं: name=13 वर 6 पानं
     # दुसऱ्या शीटवर, 12 पर्यंत नाही - 11 सुरक्षित.
-    'namuna9Vasuli2VisheshPain.html': dict(page_h=717, top=149, thead=95, tfoot=52, grand=52,
-        line1=47.7, extra=22.4, cpl=dict(prop=6, name=11, occ=6)),
+    'namuna9Vasuli2VisheshPain.html': dict(page_h=717, top=149, thead=102.1, tfoot=42.0, grand=42.0, line1=47.7, extra=22.4,
+        cpl=dict(prop=6, name=8, occ=4), safety=0.93),
     # विशेष पाणी (सफाई कर सह) All/Gen लँडस्केप A4 (L. Page) - 1047px छापील रुंदीवर मोजलेलं
     # (All चा टेबल 1267px -> 0.826, Gen 1046px -> 1.0). दोन्हींत name=20 वर पानं दुसऱ्या
     # शीटवर जातात; 14 सुरक्षित (लांब नावांसह आणि फक्त प्रत्यक्ष डेटासह दोन्ही तपासलं).
-    'namuna9AllVisheshPaniSafai.html': dict(page_h=717, top=123.1, thead=64.5, tfoot=43.0, grand=43.0,
-        line1=21.5, extra=19.0, cpl=dict(prop=5, name=14, occ=9)),
-    'namuna9GenVisheshPaniSafai.html': dict(page_h=717, top=149, thead=78, tfoot=26, grand=49,
-        line1=26.0, extra=23.0, cpl=dict(prop=5, name=14, occ=9)),
+    'namuna9AllVisheshPaniSafai.html': dict(page_h=717, top=123.1, thead=64.5, tfoot=35.5, grand=35.1, line1=21.5, extra=19.0,
+        cpl=dict(prop=5, name=11, occ=7), safety=0.93),
+    'namuna9GenVisheshPaniSafai.html': dict(page_h=717, top=149.1, thead=85.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
+        cpl=dict(prop=5, name=12, occ=8), safety=0.93),
     # विशेष पाणी (सफाई सह) Vasuli1 लँडस्केप A4 (L. Page) + मिळकत नंबर कॉलम - 1047px छापील
     # रुंदीवर मोजलेलं (टेबल 1337px -> 0.783; सर्वात लहान ओळही 2 ओळींची). name=20/24 वर
     # सर्वात भरलेलं पान 91-94% - खूप घट्ट; 16 वर 84% (लांब नावांसह आणि प्रत्यक्ष डेटासह तपासलं).
     # शौचालय कर कॉलमनंतर पुन्हा मोजलं: name=16 वर 5, 14 वर 1 पान दुसऱ्या शीटवर; 13 पर्यंत नाही - 12 सुरक्षित.
-    'namuna9Vasuli1VisheshPaniSafai.html': dict(page_h=717, top=116.7, thead=74.4, tfoot=40.8, grand=40.8,
-        line1=38.4, extra=18.0, cpl=dict(prop=6, name=12, occ=6)),
+    'namuna9Vasuli1VisheshPaniSafai.html': dict(page_h=717, top=116.7, thead=74.4, tfoot=31.1, grand=31.1, line1=38.4, extra=18.0,
+        cpl=dict(prop=6, name=9, occ=4), safety=0.93),
     # विशेष पाणी (सफाई सह) Vasuli2 लँडस्केप A4 (L. Page) + मिळकत नंबर कॉलम - 1047px छापील
     # रुंदीवर मोजलेलं (टेबल 1075px -> 0.974; सर्वात लहान ओळही 2 ओळींची). name=24 वर पान
     # दुसऱ्या शीटवर जातं, 20 वर 95% भरतं; 16 वर 83% (लांब नावांसह व प्रत्यक्ष डेटासह तपासलं).
-    'namuna9Vasuli2VisheshPaniSafai.html': dict(page_h=717, top=145.1, thead=92.5, tfoot=50.6, grand=50.6,
-        line1=47.7, extra=22.4, cpl=dict(prop=6, name=16, occ=8)),
+    'namuna9Vasuli2VisheshPaniSafai.html': dict(page_h=717, top=145.1, thead=92.5, tfoot=38.0, grand=38.0, line1=47.7, extra=22.4,
+        cpl=dict(prop=6, name=10, occ=5), safety=0.93),
 }
 
 
