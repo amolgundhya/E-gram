@@ -181,6 +181,9 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
         ("वि.पाणी", record.get("vpanikar")),
         ("सफाई", record.get("cleaningTax")),
     ]
+    if include_contact:
+        # नाव प्लेट: शौचालय कर (> 0 असल्यास) - ओळींची बेरीज = एकूण कर (क्लायंट, नोव्हें 2026)
+        tax_items.append(("शौचालय कर", record.get("toiletTax")))
     for label, amount in tax_items:
         if _fmt_num(amount) != "0":
             lines.append(f"{label} : {_fmt_num(amount)}")
