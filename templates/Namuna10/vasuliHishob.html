@@ -205,6 +205,9 @@
         <tr>
             {# गावाचे पूर्ण नाव एकाच ओळीत (तुटू/कापू नये) - सर्व गावांची यादी असेल तेव्हाच ओळ तुटू देतो #}
             <td colspan="4" class="left bold" style="{{ '' if allVillages else 'white-space: nowrap;' }}">गाव  : {{village}} </td>
+            {# ता. / जि. - Master मधून (इतर रिपोर्टप्रमाणे) #}
+            <td colspan="2" class="left" style="white-space: nowrap;">ता. : <span class="bold">{{ taluka or '' }}</span></td>
+            <td colspan="2" class="left" style="white-space: nowrap;">जि. : <span class="bold">{{ jilha or '' }}</span></td>
             <td colspan="8" class="center">दिनांक : <span class="bold"> {{stateDate}} </span> पासून ते दिनांक : <span class="bold"> {{endDate}} </span> पर्यंत</td>
             <td colspan="6" class="right">दिनांक : <span class="bold"> {{currentDate}} </span></td>
         </tr>

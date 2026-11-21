@@ -214,6 +214,27 @@ async def _get_checklist_page_number(gram_panchayat_id):
     return 'false'
 
 
+def _gp_taluka_jilha(gram_panchayat_id):
+    """Master मधून ग्रामपंचायतीचा तालुका व जिल्हा (नाव) - (gp, taluka, jilha), न मिळाल्यास ""."""
+    try:
+        import database
+        from location_management import models as location_models
+        db = database.SessionLocal()
+        try:
+            gp = db.query(location_models.GramPanchayat).filter(
+                location_models.GramPanchayat.id == int(gram_panchayat_id)).first()
+            taluka = db.query(location_models.Taluka).filter(
+                location_models.Taluka.id == gp.taluka_id).first() if gp else None
+            district = db.query(location_models.District).filter(
+                location_models.District.id == taluka.district_id).first() if taluka else None
+            return ((gp.name if gp else "") or "", (taluka.name if taluka else "") or "",
+                    (district.name if district else "") or "")
+        finally:
+            db.close()
+    except Exception:
+        return "", "", ""
+
+
 @router.api_route('/namuna10hishob/byVillageID', methods=['POST','GET'])
 async def namuna10_hishob_by_village(request: Request):
     try:
@@ -283,9 +304,14 @@ async def namuna10_hishob_by_village(request: Request):
         except Exception:
             if all_villages:
                 village_label = "सर्व गावे"
+        # शीर्षक: गाव, ता., जि. - इतर रिपोर्टप्रमाणे Master मधून (स्क्रीन फक्त gram_panchayat_id पाठवते)
+        gp_name, taluka_name, jilha_name = _gp_taluka_jilha(gram_panchayat_id)
         # Prepare context for vasuliHishob.html
         context = {
             "village": village_label,
+            "gramPanchayat": gp_name,
+            "taluka": taluka_name,
+            "jilha": jilha_name,
             "allVillages": all_villages,
             # "... पासून ते ... पर्यंत" - DD-MM-YYYY (स्क्रीन YYYY-MM-DD पाठवते; फक्त दाखवणे)
             "stateDate": to_dmy(from_date or ""),
