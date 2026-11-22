@@ -124,6 +124,14 @@ def _two_decimal_display(v):
     return int(v) if v.is_integer() else v
 
 
+def _total_capital_from_printed_rows(response):
+    """बॉक्स 15 एकूण भांडवली मूल्य = प्रिंटवर दिसणाऱ्या (गोल केलेल्या) रो किंमतींचीच बेरीज
+    (क्लायंट 22-Nov-2026: 429452 + 443882 = 873334, कच्च्या बेरजेचं गोल 873333 नाही).
+    _deep_round_numbers नंतर बोलावतो - बांधकाम रो (prop.constructions 1:1) + खाली जागा."""
+    rows = list(response.get("constructionType") or []) + list(response.get("khaliJaga") or [])
+    response["totalCapitalValue"] = sum((r.get("capitalValue") or 0) for r in rows)
+
+
 def _deep_round_numbers(obj):
     if isinstance(obj, dict):
         for k, v in obj.items():
@@ -547,6 +555,7 @@ def get_property_record(
     _apply_area_display(response, bool(checklist and checklist.roundupArea))
     if checklist and checklist.roundupArea:
         _deep_round_numbers(response)
+        _total_capital_from_printed_rows(response)
     return response
 
 @router.get("/property_records_by_village/{village_id}")
@@ -933,6 +942,7 @@ def get_property_records_by_village(
         _apply_area_display(response, bool(checklist and checklist.roundupArea))
         if checklist and checklist.roundupArea:
             _deep_round_numbers(response)
+            _total_capital_from_printed_rows(response)
         results.append(response)
     # sort_order नुसार क्रम (32, 32/1, 32/2, 33 ...) - मालमत्ता क्रमांकाच्या मजकुरावरून
     # काढलेल्या नैसर्गिक क्रमवारीऐवजी आता हाच वापरतो, कारण "Insert" ने घातलेल्या मालमत्तेचा
@@ -1330,6 +1340,7 @@ def get_property_records_by_gram_panchayat(
             _apply_area_display(response, bool(checklist and checklist.roundupArea))
             if checklist and checklist.roundupArea:
                 _deep_round_numbers(response)
+                _total_capital_from_printed_rows(response)
             response.update(checklist_fields)
             # आजी/माजी सैनिक टीप - प्रत्येक मालमत्तेच्या स्वतःच्या exServiceman टिकवरून.
             response['exServicemanTip'] = bool(getattr(prop, 'exServiceman', False))
