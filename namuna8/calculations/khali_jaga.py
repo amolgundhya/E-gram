@@ -11,8 +11,6 @@
 एककात (areaUnit) गोल न करता; बांधकाम वेगळ्या एककात (constructionAreaUnit) असेल तरच एकदा
 रूपांतर. भांडवली मूल्यासाठी चौ.मी. क्षेत्रफळ पूर्ण अचूक (एकूण - तळमजला गोल न करता, मग
 ÷10.764 - Utility.area_units.area_sqm_for_tax); दाखवायचं चौ.मी. (khali_sqm) 2 दशांश.
-"Round Up All Area" चालू असेल तर भांडवली मूल्यासाठी खाली जागेचं चौ.मी. सुद्धा वरचा पूर्ण आकडा
-(क्लायंट 22-Nov-2026) - प्रिंटवर दिसतो तोच.
 """
 from Utility.area_units import convert_area, to_sqft, area_sqm_for_tax, round_sqm, sqft_to_sqm
 
@@ -44,23 +42,10 @@ def _largest_upper_floor_area(constructions):
     return max(per_floor.values(), default=0)
 
 
-def _round_up_from_round_tax(round_tax) -> bool:
-    """round_tax हे round_tax_amount (किंवा cached आवृत्ती) - ते "Round Up All Area" नुसारच ceil /
-    half_up करतं (Utility/tax_rounding.py). 0.4 -> 1 म्हणजे ceil = सेटिंग चालू. त्यामुळे सगळ्या
-    callers ना नवीन parameter द्यावा लागत नाही आणि दोन्ही नेहमी एकाच सेटिंगवरून."""
-    try:
-        return round_tax(0.4) == 1
-    except Exception:
-        return False
-
-
-def khali_jaga(prop, constructions, khali_construction_type, round_tax, area_round_up=None):
+def khali_jaga(prop, constructions, khali_construction_type, round_tax):
     """खाली जागेची सर्व मूल्यं dict मध्ये. khali_construction_type: vacantLandType नावाचा
     ConstructionType (नसेल तर None -> कर 0). round_tax: कर रक्कम पूर्ण रुपयात आणणारं फंक्शन
-    (round_tax_amount / त्याचीच cached आवृत्ती). area_round_up: "Round Up All Area" (None ->
-    round_tax वरून ओळखतो)."""
-    if area_round_up is None:
-        area_round_up = _round_up_from_round_tax(round_tax)
+    (round_tax_amount / त्याचीच cached आवृत्ती)."""
     unit = getattr(prop, "areaUnit", None) or "sqft"
     unit = "sqm" if unit == "sqm" else "sqft"
     cunit = getattr(prop, "constructionAreaUnit", None) or unit
@@ -85,7 +70,7 @@ def khali_jaga(prop, constructions, khali_construction_type, round_tax, area_rou
     khali_sqft = round(to_sqft(khali_native, unit), 2)
     # दाखवण्यासाठी 2 दशांश; भांडवली मूल्य पूर्ण अचूक क्षेत्रफळावरून (क्लायंट 20-Nov-2026).
     khali_sqm = round_sqm(khali_native) if unit == "sqm" else sqft_to_sqm(khali_native)
-    khali_sqm_exact = area_sqm_for_tax(khali_native, unit, area_round_up)
+    khali_sqm_exact = area_sqm_for_tax(khali_native, unit)
     capital_value, house_tax, rate = 0, 0, 0
     if khali_native > 0 and khali_construction_type is not None:
         capital_value = round(khali_sqm_exact * (getattr(khali_construction_type, "annualLandValueRate", 1) or 0), 2)

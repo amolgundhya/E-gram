@@ -7,11 +7,7 @@
 क्लायंट (20-Nov-2026, Excel "New Software Formula 2025"): भांडवली मूल्य व कर मोजताना
 चौ.मी. क्षेत्रफळ पूर्ण अचूक (चौ.फु. ÷ 10.764, गोल न करता; चौ.मी. मध्ये टाकलेलं जसंच्या तसं)
 - area_sqm_for_tax. उदा. 600 चौ.फु. -> 55.741360… (55.74 नाही).
-क्लायंट (22-Nov-2026): "Round Up All Area" (Namuna8SettingChecklist.roundupArea) चालू असेल तर
-कर मोजतानाही प्रत्येक रो चं चौ.मी. वरचा पूर्ण आकडा (23.49 -> 24) - प्रिंटवर दिसतो तोच आकडा
-भांडवली मूल्यात. बंद असेल तर वरीलप्रमाणे पूर्ण अचूक.
 """
-import math
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN  # noqa: F401  (ROUND_DOWN = कापणे, क्लायंट ठरवेल)
 
 SQFT_PER_SQM = 10.764
@@ -40,18 +36,11 @@ def to_sqft(value, unit) -> float:
     return (value or 0) * SQFT_PER_SQM if unit == 'sqm' else (value or 0)
 
 
-def area_sqm_for_tax(value, unit, round_up=False) -> float:
-    """भांडवली मूल्य / कर मोजण्यासाठी चौ.मी. क्षेत्रफळ:
-    round_up=False ("Round Up All Area" बंद) -> पूर्ण अचूक, गोल न करता: unit 'sqm' -> जसंच्या तसं,
-    नाहीतर चौ.फु. ÷ 10.764.
-    round_up=True (चालू) -> तोच आकडा वरचा पूर्ण चौ.मी. (23.49 -> 24), Utility.area_display
-    प्रमाणेच आधी 2 दशांश (float कचरा 24.0000001 -> 25 होऊ नये) मग ceil - प्रिंटवर दिसतो तोच.
-    दाखवण्यासाठी sqft_to_sqm / round_sqm."""
+def area_sqm_for_tax(value, unit) -> float:
+    """भांडवली मूल्य / कर मोजण्यासाठी चौ.मी. क्षेत्रफळ - पूर्ण अचूक, गोल न करता:
+    unit 'sqm' -> जसंच्या तसं, नाहीतर चौ.फु. ÷ 10.764. दाखवण्यासाठी sqft_to_sqm / round_sqm."""
     v = float(value or 0)
-    v = v if unit == 'sqm' else v / SQFT_PER_SQM
-    if round_up:
-        return float(math.ceil(round_sqm(v)))
-    return v
+    return v if unit == 'sqm' else v / SQFT_PER_SQM
 
 
 def convert_area(value, from_unit, to_unit) -> float:
