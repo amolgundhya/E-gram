@@ -8,6 +8,8 @@ from Utility.tax_rounding import round_tax_amount
 # चौ.फु. -> चौ.मी. रूपांतर Utility.area_units मधून (÷10.764, कर मोजणीसाठी गोल न करता -
 # क्लायंट Excel 20-Nov-2026) - नमुना-8, खाली जागा व नमुना-9 सगळीकडे तोच.
 from Utility.area_units import area_sqm_for_tax
+# "Round Up All Area" चालू -> कर मोजतानाही चौ.मी. वरचा पूर्ण आकडा (क्लायंट 22-Nov-2026)
+from Utility.area_display import get_area_round_up
 # भारांक: नेमकं नाव -> जुनं नाव ("वाणिज्य" -> "वाणिज्यिक") -> 1 (Utility/usage_weight.py)
 from Utility.usage_weight import usage_weight
 
@@ -17,11 +19,13 @@ def compute_construction_values(db, construction_type, length, width, constructi
                                 gram_panchayat_id):
     """(capital_value, house_tax) परत करतो. construction_unit: बांधकाम लांबी/रुंदीचं
     एकक (property.constructionAreaUnit, नसेल तर areaUnit) - 'sqm' असेल तर थेट मीटर,
-    नाहीतर चौ.फु. धरून area_sqm_for_tax ने रूपांतर (पूर्ण अचूक चौ.मी., गोल न करता). formula1: GeneralSetting.capitalFormula1
+    नाहीतर चौ.फु. धरून area_sqm_for_tax ने रूपांतर ("Round Up All Area" बंद -> पूर्ण अचूक चौ.मी.,
+    चालू -> वरचा पूर्ण चौ.मी., उदा. 23.49 -> 24). formula1: GeneralSetting.capitalFormula1
     (जमीन + इमारत); नसेल तर formula2 (फक्त जमीन x घसारा). भांडवली मूल्य 2 दशांश
     स्थळांपर्यंत, घरपट्टी round_tax_amount ने पूर्ण रुपयात."""
     annual_land_value_rate = getattr(construction_type, 'annualLandValueRate', 1)
-    area_in_meter = area_sqm_for_tax((length or 0) * (width or 0), 'sqm' if construction_unit == 'sqm' else 'sqft')
+    area_in_meter = area_sqm_for_tax((length or 0) * (width or 0), 'sqm' if construction_unit == 'sqm' else 'sqft',
+                                     get_area_round_up(db, gram_panchayat_id))
     construction_rate = construction_type.bandhmastache_dar
     depreciation_rate = calculate_depreciation_rate(construction_year, construction_type.name, assessment_year)
     usage_factor = usage_weight(weightage_map, bharank)
