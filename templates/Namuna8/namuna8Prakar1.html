@@ -347,10 +347,10 @@
                                 {% endfor %}
                                 
                             </td>
-                            <td class="area-cell">
+                            <td class="area-cell area-total">
                                 {{ area_sides(row.areaEast, row.areaNorth) }}
                             </td>
-                            <td class="area-cell">
+                            <td class="area-cell area-total">
                                 {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                     {{ row.khaliJaga[0].rate | default('') }} - {{ row.khaliJaga[0].totalkhalijagaareainfoot | default('') }}
                                 {% endif %}
