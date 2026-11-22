@@ -130,6 +130,9 @@ def _deep_round_numbers(obj):
             if isinstance(v, bool):
                 continue
             if isinstance(v, (int, float)):
+                if k in AREA_DISPLAY_KEYS:
+                    # क्षेत्रफळ 2 दशांशच (क्लायंट 22-Nov-2026), int नाही
+                    continue
                 if k in TWO_DECIMAL_KEYS:
                     obj[k] = _two_decimal_display(v)
                     continue
@@ -157,9 +160,9 @@ def _deep_round_numbers(obj):
                 _deep_round_numbers(v)
 
 
-# क्षेत्रफळ (चौ.फु./चौ.मी.) डिस्प्ले - MASTER "Round Up All Area" नुसार (Utility/area_display.py):
-#   चालू = नेहमी वरचा पूर्ण आकडा (598.5 -> 599, 401.04 -> 402);
-#   बंद  = अचूक, कमाल 2 दशांश, शेवटची शून्यं नाहीत (598.5, 401.04, 1000).
+# क्षेत्रफळ (चौ.फु./चौ.मी.) डिस्प्ले (Utility/area_display.py): नेहमी 2 दशांश, कधीच पूर्ण
+# आकड्यात नाही (क्लायंट 22-Nov-2026) - "Round Up All Area" आता फक्त कर राउंडिंगसाठी.
+# तो चालू असताना _deep_round_numbers सुद्धा ही क्षेत्रफळं int करत नाही.
 # एकूण / बांधकाम / खाली जागा, चौ.फु. व चौ.मी. - सगळ्या क्षेत्रफळ फील्ड्सना. khaliJaga मधलं
 # 'length' हे खाली जागेचं क्षेत्रफळच (width = 1) असतं, म्हणून तेही. बांधकामाची लांबी/रुंदी
 # आणि बाजू (मोजमाप) बदलत नाहीत. कर/भांडवली मूल्य आधीच कच्च्या क्षेत्रफळावरून मोजलेले असतात.
@@ -184,9 +187,10 @@ def _round_area_fields(obj, round_up: bool, in_khali: bool = False):
 
 
 def _apply_area_display(response, round_up: bool):
-    _round_area_fields(response, round_up)
+    _round_area_fields(response, False)
     # QR / नाव प्लेट (Utility/qr_text.build_area_lines) याच नियमाने स्वतःच्या ओळी बनवतात.
-    response["areaRoundUp"] = bool(round_up)
+    # क्षेत्रफळ आता कधीच वरच्या पूर्ण आकड्यात नाही -> नेहमी False (frontend ही तेच वाचतो).
+    response["areaRoundUp"] = False
 
 @router.get("/property_record/{anuKramank}")
 def get_property_record(
