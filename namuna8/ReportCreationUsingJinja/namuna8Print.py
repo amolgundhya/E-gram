@@ -1,5 +1,5 @@
-from jinja2 import Environment, FileSystemLoader, Undefined
-from Utility.area_display import jinja_area
+from jinja2 import Environment, FileSystemLoader, Undefined, Template
+from Utility.area_display import jinja_area, wrap_area_numbers
 import os
 import re
 import requests
@@ -20,7 +20,19 @@ base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 template_dir = os.path.join(base_dir, 'templates')
 namuna8_template_dir = os.path.join(template_dir ,'Namuna8' )
 # static_dir = os.path.join(base_dir, 'reports')
+
+
+class _AreaTemplate(Template):
+    """सर्व नमुना-8 प्रिंट्स: context मधली क्षेत्रफळं (एकूण/बांधकाम/खाली जागा, चौ.फु./चौ.मी.,
+    बांधकाम रो areaSqft/areaSqm) नेहमी 2 दशांशात छापली जावीत ("338.00") - |area न
+    लावलेल्या जागीही (क्लायंट 22-Nov-2026). Utility.area_display.wrap_area_numbers."""
+    def render(self, *args, **kwargs):
+        return super().render(*[wrap_area_numbers(a) for a in args],
+                              **{k: wrap_area_numbers(v) for k, v in kwargs.items()})
+
+
 env = Environment(loader=FileSystemLoader(namuna8_template_dir))
+env.template_class = _AreaTemplate
 
 # शौचालय/घरकुल लाभ वर्ष - तारीख टाकली असली तरी प्रिंटमध्ये फक्त "2020-2021" (Utility/benefit_year.py)
 env.filters['financial_year_full'] = financial_year_full
@@ -39,9 +51,8 @@ def round_sqft(value):
     return round(v, 2)
 
 env.filters['round_sqft'] = round_sqft
-# क्षेत्रफळ (एकूण/बांधकाम/खाली जागा, चौ.फु./चौ.मी.) - बॅकएंडने MASTER "Round Up All Area"
-# नुसार आधीच केलेला आकडा फक्त स्वरूपात (598.5, 401.04, 1000) - round_sqft सारखा 0.05
-# जवळचा आकडा पूर्ण करत नाही (बंद असताना अचूक आकडा हवा). round_sqft फक्त लांबी/रुंदीसाठी.
+# क्षेत्रफळ (एकूण/बांधकाम/खाली जागा, चौ.फु./चौ.मी.) - नेहमी 2 दशांश ("338.00") - round_sqft
+# सारखा 0.05 जवळचा आकडा पूर्ण करत नाही. round_sqft फक्त लांबी/रुंदीसाठी.
 env.filters['area'] = jinja_area
 
 # रिकामी (None) value प्रिंटवर "None" म्हणून दिसू नये - |default('') फक्त undefined

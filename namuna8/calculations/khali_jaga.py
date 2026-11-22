@@ -9,10 +9,10 @@
 (क्लायंट 17-Nov-2026: 862 - 589 = 273). एका मजल्याची अनेक रो असतील तर त्या मजल्याची बेरीज
 हा त्या मजल्याचा आकार. एकूण जागा नसलेले फ्लॅट: खाली जागा 0 (बदल नाही). वजाबाकी प्लॉटच्याच
 एककात (areaUnit) गोल न करता; बांधकाम वेगळ्या एककात (constructionAreaUnit) असेल तरच एकदा
-रूपांतर. भांडवली मूल्यासाठी चौ.मी. क्षेत्रफळ पूर्ण अचूक (एकूण - तळमजला गोल न करता, मग
-÷10.764 - Utility.area_units.area_sqm_for_tax); दाखवायचं चौ.मी. (khali_sqm) 2 दशांश.
+रूपांतर. भांडवली मूल्य दाखवलेल्या 2 दशांशाच्या चौ.मी. (khali_sqm) वरूनच (क्लायंट 22-Nov-2026:
+छापलेलं क्षेत्रफळ x दर = छापलेलं भांडवली मूल्य).
 """
-from Utility.area_units import convert_area, to_sqft, area_sqm_for_tax, round_sqm, sqft_to_sqm
+from Utility.area_units import convert_area, to_sqft, round_sqm, sqft_to_sqm
 
 GROUND_FLOORS = ("", "तळमजला")
 
@@ -68,12 +68,11 @@ def khali_jaga(prop, constructions, khali_construction_type, round_tax):
     display_native = khali_native + khali_rows_native
 
     khali_sqft = round(to_sqft(khali_native, unit), 2)
-    # दाखवण्यासाठी 2 दशांश; भांडवली मूल्य पूर्ण अचूक क्षेत्रफळावरून (क्लायंट 20-Nov-2026).
-    khali_sqm = round_sqm(khali_native) if unit == "sqm" else sqft_to_sqm(khali_native)
-    khali_sqm_exact = area_sqm_for_tax(khali_native, unit)
+    # 2 दशांश - प्रिंटवर हाच आणि भांडवली मूल्यही याच आकड्यावरून (क्लायंट 22-Nov-2026).
+    khali_sqm = round_sqm(khali_native) if unit == "sqm" else sqft_to_sqm(round_sqm(khali_native))
     capital_value, house_tax, rate = 0, 0, 0
     if khali_native > 0 and khali_construction_type is not None:
-        capital_value = round(khali_sqm_exact * (getattr(khali_construction_type, "annualLandValueRate", 1) or 0), 2)
+        capital_value = round(khali_sqm * (getattr(khali_construction_type, "annualLandValueRate", 1) or 0), 2)
         rate = getattr(khali_construction_type, "rate", 0) or 0
         house_tax = round_tax((rate / 1000) * capital_value)
     return {

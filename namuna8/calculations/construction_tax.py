@@ -5,8 +5,8 @@
 from namuna8.calculations.naumuna8_calculations import calculate_depreciation_rate
 from Utility.tax_rounding import round_tax_amount
 
-# चौ.फु. -> चौ.मी. रूपांतर Utility.area_units मधून (÷10.764, कर मोजणीसाठी गोल न करता -
-# क्लायंट Excel 20-Nov-2026) - नमुना-8, खाली जागा व नमुना-9 सगळीकडे तोच.
+# चौ.फु. -> चौ.मी. रूपांतर Utility.area_units मधून (round(÷10.764, 2) - प्रिंटवरचाच आकडा,
+# क्लायंट 22-Nov-2026) - नमुना-8, खाली जागा व नमुना-9 सगळीकडे तोच.
 from Utility.area_units import area_sqm_for_tax
 # भारांक: नेमकं नाव -> जुनं नाव ("वाणिज्य" -> "वाणिज्यिक") -> 1 (Utility/usage_weight.py)
 from Utility.usage_weight import usage_weight
@@ -17,7 +17,7 @@ def compute_construction_values(db, construction_type, length, width, constructi
                                 gram_panchayat_id):
     """(capital_value, house_tax) परत करतो. construction_unit: बांधकाम लांबी/रुंदीचं
     एकक (property.constructionAreaUnit, नसेल तर areaUnit) - 'sqm' असेल तर थेट मीटर,
-    नाहीतर चौ.फु. धरून area_sqm_for_tax ने रूपांतर (पूर्ण अचूक चौ.मी., गोल न करता). formula1: GeneralSetting.capitalFormula1
+    नाहीतर चौ.फु. धरून area_sqm_for_tax ने रूपांतर (2 दशांशाचा चौ.मी., प्रिंटवर दिसतो तोच). formula1: GeneralSetting.capitalFormula1
     (जमीन + इमारत); नसेल तर formula2 (फक्त जमीन x घसारा). भांडवली मूल्य 2 दशांश
     स्थळांपर्यंत, घरपट्टी round_tax_amount ने पूर्ण रुपयात."""
     annual_land_value_rate = getattr(construction_type, 'annualLandValueRate', 1)
