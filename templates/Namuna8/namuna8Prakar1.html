@@ -16,8 +16,6 @@
         /* शौचालय/घरकुल/व्दार: या 3 column ची रुंदी 22/23/24 क्रमांकाच्या div ने ठरते (टेबल overflow असताना
            Chrome td/th वरची width मानत नाही). आधी ती ~47px होती आणि मजकूर एक-एक अक्षर तुटून वाचता येत नव्हता -
            आता वाचता येईल एवढी रुंदी; त्यासाठी लागणारी जागा खालच्या @media print मधल्या लहान फॉन्टमधून मिळते */
-        /* क्षेत्रफळ आकडे (col 9/10/12, एकूण चौ.फु./चौ.मी.) "1037.88" -> "1037." + "88" असे तुटू नयेत */
-        .area-cell { white-space: nowrap; font-size: 10px; }
         .extra-col { font-size: 9px; line-height: 1.15; padding: 0 2px; overflow-wrap: anywhere; }
         .footer-summary {
             border: 3px solid #000;
@@ -56,7 +54,6 @@
             }
             /* A4 landscape (4mm margin) मध्ये सर्व 24 column बसावेत म्हणून प्रिंटमध्ये टेबलचा फॉन्ट किंचित लहान */
             .main-table, .main-table table { font-size: 11px; }
-            .main-table .area-cell { font-size: 9px; }
             #toolbar {
                 display: none !important;
             }
@@ -345,16 +342,16 @@
                                 {% endfor %}
                                 
                             </td>
-                            <td class="area-cell">
+                            <td>
                                 {{ area_sides(row.areaEast, row.areaNorth) }}
                             </td>
-                            <td class="area-cell">
+                            <td>
                                 {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                     {{ row.khaliJaga[0].rate | default('') }} - {{ row.khaliJaga[0].totalkhalijagaareainfoot | default('') }}
                                 {% endif %}
                             </td>
                             <td></td>
-                            <td class="area-cell">
+                            <td>
                                 {% for ct_row in (row.constructionType or []) %}{% if row.constructionType is defined and row.constructionType|length > 0 %}
                                     {{ ct_row.rate | default('') }}-{{ area_sides(ct_row.length, ct_row.width) }}<br><br/>
                                 {% endif %}
@@ -363,27 +360,27 @@
                         </tr>
                         <tr>
                             <td style="width: 87px;">एकूण चौ. फुट</td>
-                            <td class="area-cell" style="width: 87px;">{{ row.total_arearinfoot | default('') }}</td>
-                            <td class="area-cell" style="width: 87px;">
+                            <td style="width: 87px;">{{ row.total_arearinfoot | default('') }}</td>
+                            <td style="width: 87px;">
                                 {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                     {{ row.khaliJaga[0].totalkhalijagaareainfoot | default('') }}
                                 {% endif %}
                             </td>
                             <td style="width: 87px;"></td>
-                            <td class="area-cell" style="width: 87px;">
+                            <td style="width: 87px;">
                                 {{ row.totalconstructionareainfoot | default('') }}
                             </td>
                         </tr>
                         <tr>
                             <td style="width: 87px;">एकूण चौ. मीटर</td>
-                            <td class="area-cell" style="width: 87px;">{{ row.totalareainmeters | default('') }}</td>
-                            <td class="area-cell" style="width: 87px;">
+                            <td style="width: 87px;">{{ row.totalareainmeters | default('') }}</td>
+                            <td style="width: 87px;">
                                 {% if row.khaliJaga is defined and row.khaliJaga|length > 0 %}
                                     {{ row.khaliJaga[0].totalkhalijagaareainmeters | default('') }}
                                 {% endif %}
                             </td>
                             <td style="width: 87px;"></td>
-                            <td class="area-cell" style="width: 87px;">
+                            <td style="width: 87px;">
                                 {{ row.totalconstructionareainmeter | default('') }}
                             </td>
                         </tr>
