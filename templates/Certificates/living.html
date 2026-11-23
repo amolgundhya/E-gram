@@ -88,11 +88,11 @@
 <table style="width:100%; border:1px solid #000; border-collapse:collapse; margin-top:0; font-size:15px;">
   <tr>
     <td style="text-align:left; width:50%; padding:4px;">दाखला क्रमांक : {{ id }}</td>
-    <td style="text-align:right; width:50%; padding:4px;">दिनांक : {{ registration_date }}</td>
+    <td style="text-align:right; width:50%; padding:4px;">दिनांक : {{ registration_date | dmy }}</td>
   </tr>
   <tr>
     <td style="text-align:left; width:50%; padding:4px;">Certificate Number : {{ id }}</td>
-    <td style="text-align:right; width:50%; padding:4px;">Date : {{ registration_date }}</td>
+    <td style="text-align:right; width:50%; padding:4px;">Date : {{ registration_date | dmy }}</td>
   </tr>
   <tr>
     <td style="text-align:left; width:50%; padding:4px;"><img src="{{ barcode_url }}" alt="Barcode" style="height:40px;" /></td>
@@ -131,10 +131,10 @@
     <td style="text-align:left; padding:4px;">Residence at Village {{ village or '' }},Gp.{{ jilha or '' }}, Tq.{{ taluka or '' }}, Dist {{ gramPanchayat or '' }} </td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">असून ते त्या आज दिनांक  {{ registration_date or ' '}} रोजी हयात आहेत व त्यांनी माझ्या समक्ष / अंगठा केलेला आहे.</td>
+    <td style="text-align:left; padding:4px;">असून ते त्या आज दिनांक  {{ registration_date | dmy or ' ' }} रोजी हयात आहेत व त्यांनी माझ्या समक्ष / अंगठा केलेला आहे.</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">He/She is alive till today date  {{ registration_date or ' '}} , and signing this document in the front of me on the day.</td>
+    <td style="text-align:left; padding:4px;">He/She is alive till today date  {{ registration_date | dmy or ' ' }} , and signing this document in the front of me on the day.</td>
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">सदर दाखला अर्जदाराच्या मागणी नुसार देण्यात येत आहे.</td>

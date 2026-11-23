@@ -82,7 +82,7 @@
     <td style="width:60%; text-align:center; vertical-align:top;">
       <div style="font-size:18px; font-weight:bold;">
         महाराष्ट्र शासन<br/>
-        Goverment of Maharashtra<br/>
+        Government of Maharashtra<br/>
         आरोग्य विभाग<br/>
         Health Department<br/>
         प्रमाणपत्र निर्गमित करणार्‍या स्थानिक क्षेत्राचे नाव<br/>
@@ -106,13 +106,13 @@
   <tr>
     <td style="text-align:center; font-size:14px; padding:6px;">
       जन्म व मृत्यू नोंदणी अधिनियम, १९६९ च्या कलम १२/१७ आणि महाराष्ट्र जन्म व मृत्यू नोंदणी नियम २००० चे नियम ८/१३ अन्वये देण्यात आले असे.<br/>
-      <span style="font-size:12px;">(issued under section 12/17 of the registration of births & deaths act,1969 and rule 8/13 of the maharashtra registration of births and deaths rules 2000)</span>
+      <span style="font-size:12px;">(issued under section 12/17 of the registration of births & deaths act,1969 and rule 8/13 of the Maharashtra registration of births and deaths rules 2000)</span>
     </td>
   </tr>
   <tr>
     <td style="text-align:center; font-size:14px; border-bottom:1px solid #000; padding:6px;">
       प्रमाणित करण्यात येत आहे कि खालील माहिती जन्माच्या मुल अभिलेखाच्या नोंदवहीतून घेण्यात आली आहे. जी की स्थानिक क्षेत्र - {{gramPanchayat}}, तालुका- {{taluka}}, जिल्हा- {{jilha}} महाराष्ट्र राज्याच्या नोंदवहीत उल्लेख आहे.<br/>
-      <span style="font-size:12px;">This is to cetify that the following inforation has been taken from the original record of birth which is the register for (local area / local body) {{gramPanchayat}}. of tahsil/block {{taluka}} of district  {{jilha}} of maharashtra sate.</span>
+      <span style="font-size:12px;">This is to certify that the following information has been taken from the original record of birth which is the register for (local area / local body) {{gramPanchayat}}. of tahsil/block {{taluka}} of district  {{jilha}} of Maharashtra state.</span>
     </td>
   </tr>
 </table>
@@ -128,7 +128,7 @@
     <td style="text-align:right; padding:4px;">लिंग : {% if gender %}{{ gender }}{% elif gender_en == 'Male' %}पुरुष{% elif gender_en == 'Female' %}स्त्री{% elif gender_en == 'Other' %}इतर{% endif %} <br>Sex : {{ gender_en | default('') }} </td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">जन्म तारीख : {{ birth_date | default('') }}<br>Date of Birth : {{ birth_date | default('') }}</td>
+    <td style="text-align:left; padding:4px;">जन्म तारीख : {{ birth_date | default('') | dmy }}<br>Date of Birth : {{ birth_date | default('') | dmy }}</td>
     <td style="text-align:right; padding:4px;">जन्म ठिकाण : {{ birth_place | default('') }}<br>Place of Birth : {{ birth_place_en | default('') }}</td>
   </tr>
   <tr>
@@ -140,7 +140,7 @@
     <td style="text-align:right; padding:4px;">आई वडिलांचा कायमचा पत्ता : {{ permanent_address | default('') }} <br>  Permanent address of parents : {{ permanent_address_en | default('') }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">नोंद दिनांक : {{ register_date | default('') }}<br>Date of Registration : {{ register_date | default('') }}</td>
+    <td style="text-align:left; padding:4px;">नोंद दिनांक : {{ register_date | default('') | dmy }}<br>Date of Registration : {{ register_date | default('') | dmy }}</td>
     <td style="text-align:right; padding:4px;" rowspan="2">
       <img src="{{ qrcode | default('') }}" alt="QR Code" style="height:80px;" /><br/>
       <img src="{{ barcode_url | default('') }}" alt="Barcode" style="height:40px;" />
@@ -157,8 +157,8 @@
     <td style="width:33%; vertical-align:top; padding:8px; border-right : 1px solid black ">
       गाव : {{ village | default('') }}<br>
       Village : {{ village | default('') }}<br>
-      प्रपत्र दिल्याचा दिनांक : {{ date | default('') }}<br>
-      Certificate Issue Date : {{ date | default('') }}
+      प्रपत्र दिल्याचा दिनांक : {{ date | default('') | dmy }}<br>
+      Certificate Issue Date : {{ date | default('') | dmy }}
     </td>
     <td style="width:34%; text-align:center; vertical-align:bottom; padding:8px;  border-right : 1px solid black ">
       शिक्का / seal

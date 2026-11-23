@@ -17,6 +17,27 @@ home_path = os.path.expanduser("~")
 static_dir = os.path.join(home_path, 'Documents', 'grampanchayat', 'reports')
 env = Environment(loader=FileSystemLoader(certificate_template_dir))
 
+
+def _dmy(value):
+    """Certificate dates -> DD-MM-YYYY (e.g. 06-11-2026). Blank stays blank; non-date text unchanged."""
+    import datetime as _dt
+    import re as _re
+    if value is None or not str(value).strip():
+        return ''
+    if isinstance(value, (_dt.date, _dt.datetime)):
+        return value.strftime('%d-%m-%Y')
+    s = str(value).strip()
+    m = _re.match(r'^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T].*)?$', s)
+    if m:
+        return '%02d-%02d-%s' % (int(m.group(3)), int(m.group(2)), m.group(1))
+    m = _re.match(r'^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$', s)
+    if m:
+        return '%02d-%02d-%s' % (int(m.group(1)), int(m.group(2)), m.group(3))
+    return s
+
+
+env.filters['dmy'] = _dmy
+
 localhost = "http://127.0.0.1:8000"
 
 @router.post('/birth')

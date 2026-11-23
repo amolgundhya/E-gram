@@ -148,7 +148,7 @@
     <td style="text-align:left; padding:4px;">विवाह विधी संपन्न झाला.त्याची महाराष्ट्र विवाह मंडळाने विनियमन आणि विवाह नोंद विधेयक , 1998 </td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">Registered of Marriages maintained under the Maharashtra Regulation of Marriage Bereaus and registration of Marriages Act 1998</td>
+    <td style="text-align:left; padding:4px;">Register of Marriages maintained under the Maharashtra Regulation of Marriage Bureaus and registration of Marriages Act 1998</td>
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">अन्वये ठेवण्यात आलेल्या नोंदवहीच्या खंड क्रमांक. {{ marriage_register_no }}  च्या अनुक्रमांक {{ marriage_register_subno }} वर </td>
@@ -161,16 +161,16 @@
 
 <table style="width:100%; border:1px solid #000; border-collapse:collapse; margin-top:0; font-size:15px;">
   <tr>
-    <td style="text-align:left; width:50%; padding:4px;">विवाह दिनांक :- {{ marriage_date }}</td>
+    <td style="text-align:left; width:50%; padding:4px;">विवाह दिनांक :- {{ marriage_date | dmy }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">Marriage Date :- {{ marriage_date }}</td>
+    <td style="text-align:left; padding:4px;">Marriage Date :- {{ marriage_date | dmy }}</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">दिनांक:- {{ registration_date }}   रोजी माझ्याकडून नोंदणी करण्यात आली आहे</td>
+    <td style="text-align:left; padding:4px;">दिनांक:- {{ registration_date | dmy }}   रोजी माझ्याकडून नोंदणी करण्यात आली आहे</td>
   </tr>
   <tr>
-    <td style="text-align:left; padding:4px;">On:- {{ registration_date }} registered by me.</td>
+    <td style="text-align:left; padding:4px;">On:- {{ registration_date | dmy }} registered by me.</td>
   </tr>
   <tr>
     <td style="text-align:left; padding:4px;">शेरा :-- {{ remark }}</td>
@@ -185,8 +185,8 @@
 <table style="width:100%; border:1px solid #000; border-collapse:collapse; margin-top:0; font-size:15px;">
   <tr>
     <td style="width:33%; vertical-align:center ; padding:8px; ">
-      दिनांक : {{ registration_date }}<br>
-      Date : {{ registration_date }}<br>
+      दिनांक : {{ registration_date | dmy }}<br>
+      Date : {{ registration_date | dmy }}<br>
       ठिकाण : {{ marriage_place }}<br>
       Place : {{ marriage_place_en }}<br>
       शिक्का / Seal

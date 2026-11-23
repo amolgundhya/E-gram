@@ -169,8 +169,8 @@
     <table style="margin-top:4px;">
         <tr>
             <td colspan="4" class="left bold">ग्रामपंचायत : {{gramPanchayat}} तालुका : {{taluka}} जिल्हा : {{jilha}}</td>
-            <td colspan="8" class="center">दिनांक : <span class="bold"> {{startDate}} </span> पासून ते दिनांक : <span class="bold">{{toDate}}</span> पर्यंत</td>
-            <td colspan="6" class="right">दिनांक : <span class="bold"> {{currentDate}} </span></td>
+            <td colspan="8" class="center">दिनांक : <span class="bold"> {{ startDate | dmy }} </span> पासून ते दिनांक : <span class="bold">{{ toDate | dmy }}</span> पर्यंत</td>
+            <td colspan="6" class="right">दिनांक : <span class="bold"> {{ currentDate | dmy }} </span></td>
         </tr>
     </table>
     <table>
@@ -192,7 +192,7 @@
             <td>{{ row.type }}</td>
             <td>{{ row.name }}</td>
             <td>{{ row.village }}</td>
-            <td>{{ row.registered_date }}</td>
+            <td>{{ row.registered_date | dmy }}</td>
             <td>{{ row.certificate_id }}</td>
             <td class="price">{{ row.price }}</td>
         </tr>
