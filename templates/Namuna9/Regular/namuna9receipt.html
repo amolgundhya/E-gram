@@ -285,7 +285,7 @@
                 <td></td>
                 <td></td>
             </tr>
-            {% set default_tax_names = ['घर कर', 'वीज कर', 'आरोग्य कर', 'सामान्य पाणी कर', 'विशेष पाणी कर', 'सफाई कर', 'शौचालय कर', 'नोटीस फी', 'वारंट फी', 'एकूण देय रक्कम', 'सवलत / सूट असल्यास', 'सूट नंतर एकूण देय रक्कम'] %}
+            {% set default_tax_names = ['घर कर', 'दिवा कर', 'आरोग्य कर', 'सामान्य पाणी कर', 'विशेष पाणी कर', 'सफाई कर', 'शौचालय कर', 'नोटीस फी', 'वारंट फी', 'एकूण देय रक्कम', 'सवलत / सूट असल्यास', 'सूट नंतर एकूण देय रक्कम'] %}
             {% set thakit_total = (record.vasuliGhar or 0) + (record.vasuliDiva or 0) + (record.vasuliAarogyaKar or 0) + (record.vasuliSapanikar or 0) + (record.vasuliVpanikar or 0) + (record.vasuliCleaningTax or 0) + (record.vasuliToiletTax or 0) %}
             {% set dand_total = (record.vasuliDand or 0) %}
             {# नोटीस / वारंट फी - पावतीत जमा झालेली फी चालू रकान्यात (९ क प्रमाणे) आणि एकूण / अक्षरी रकमेत.
