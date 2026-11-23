@@ -8,6 +8,7 @@ from datetime import date as _date
 from namuna9.namuna9_sort import sort_rows_by_owner_name, is_true
 from namuna9.namuna9_pagination import paginate_by_height
 from Utility.date_display import to_dmy
+from Utility.amount_display import format_amount_display
 
 router = APIRouter()
 # Load templates from the 'templates' folder (adjust path as needed)
@@ -245,7 +246,11 @@ async def namuna10_hishob_by_village(request: Request):
         gram_panchayat_id = requestData.get("gram_panchayat_id")
         year = requestData.get("year")
         receipt_id = requestData.get("receipt_id")
-        template = Environment(loader=FileSystemLoader(os.path.join(base_dir, 'templates','Namuna10'))).get_template('vasuliHishob.html')
+        _n10env = Environment(loader=FileSystemLoader(os.path.join(base_dir, 'templates','Namuna10')))
+        # पावती दिनांक DD-MM-YYYY, रकमा एकसारख्या ("30" / "0", पैसे असतील तर "30.50") - फक्त दाखवणे
+        _n10env.filters['dmy'] = to_dmy
+        _n10env.filters['amt'] = format_amount_display
+        template = _n10env.get_template('vasuliHishob.html')
 
         # Call API - use receipt-specific endpoint if receipt_id is provided
         async with httpx.AsyncClient() as client:
