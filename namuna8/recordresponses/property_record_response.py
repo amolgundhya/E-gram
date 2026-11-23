@@ -19,7 +19,7 @@ from namuna8.mastertab import mastertabmodels as settingModels
 from location_management import models as location_models
 from datetime import datetime,date
 from natural_sort import malmatta_kramank_sort_key
-from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode
+from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode, round_half_up
 from Utility.area_display import area_value
 # भारांक (रकाना 14) - करासारखंच नाव जुळवणं ("वाणिज्य" -> "वाणिज्यिक"), Utility/usage_weight.py
 from Utility.usage_weight import usage_weight
@@ -636,9 +636,8 @@ def get_property_records_by_village(
     def _round_tax(value):
         # Same rule as Utility.tax_rounding.round_tax_amount, just reusing the
         # mode fetched once above instead of re-querying it per property.
-        if rounding_mode == "ceil":
-            return math.ceil(value)
-        return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        # "Round Up All Area" ON/OFF दोन्हीत साधारण राउंडिंग (23-Nov-2026, आधी ON = ceil).
+        return round_half_up(value)
 
     _construction_type_exact_cache = {}
 
@@ -1056,9 +1055,8 @@ def get_property_records_by_gram_panchayat(
     def _round_tax(value, prop_gram_panchayat_id):
         if prop_gram_panchayat_id not in _rounding_mode_cache:
             _rounding_mode_cache[prop_gram_panchayat_id] = get_tax_rounding_mode(db, prop_gram_panchayat_id)
-        if _rounding_mode_cache[prop_gram_panchayat_id] == "ceil":
-            return math.ceil(value)
-        return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        # "Round Up All Area" ON/OFF दोन्हीत साधारण राउंडिंग (23-Nov-2026, आधी ON = ceil).
+        return round_half_up(value)
 
     # Structure response by villages
     response_data = {}

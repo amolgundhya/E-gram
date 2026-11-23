@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from namuna8.namuna8_apis import build_property_response
 from namuna8.calculations.khali_jaga import property_house_tax, has_vacant_land
 from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no, _build_qrcode_url
-from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode
+from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode, round_half_up
 from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text
 from location_management import models as location_models
@@ -1188,11 +1188,8 @@ def get_namuna9_table_data_custom(
     custom_construction_type_by_name_cache = {}
 
     def _custom_round_tax(value):
-        if custom_rounding_mode == "ceil":
-            import math
-            return math.ceil(value)
-        from decimal import Decimal, ROUND_HALF_UP
-        return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        # "Round Up All Area" ON/OFF दोन्हीत साधारण राउंडिंग (23-Nov-2026, आधी ON = ceil).
+        return round_half_up(value)
 
     rows = []
     for idx, prop in enumerate(properties, 1):

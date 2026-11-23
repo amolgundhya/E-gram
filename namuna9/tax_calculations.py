@@ -2,7 +2,7 @@ from namuna8.calculations.naumuna8_calculations import calculate_depreciation_ra
 from namuna8 import namuna8_model
 from namuna8.mastertab import mastertabmodels as settingModels
 from location_management import models as location_models
-from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode
+from Utility.tax_rounding import round_tax_amount, get_tax_rounding_mode, round_half_up
 from datetime import datetime
 from namuna8.calculations.khali_jaga import property_house_tax, has_vacant_land
 import math
@@ -62,9 +62,8 @@ def calculate_total_house_tax(
         # (स्वतःची क्वेरी करणारं) वापरतो; पास केला असेल तर तीच मोड वापरून इथेच ठरवतो.
         if rounding_mode is None:
             return round_tax_amount(value, db, gp_id)
-        if rounding_mode == "ceil":
-            return math.ceil(value)
-        return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        # "Round Up All Area" ON/OFF दोन्हीत साधारण राउंडिंग (23-Nov-2026, आधी ON = ceil).
+        return round_half_up(value)
 
     # नमुना-8 प्रमाणेच: प्रत्येक बांधकाम रो चा जतन केलेला houseTax (नोंद/PUT/"सर्व कर पुन्हा
     # मोजा" ने compute_construction_values मधून साठवलेला) + खाली जागा (फक्त तळमजला वजा).
