@@ -60,6 +60,8 @@
         }
         /* Add borders to all cells in property/building tables */
         .property-table td, .property-table th { overflow-wrap: anywhere; vertical-align: middle; padding: 2px 3px; }
+        .property-table tr.pt-entries td { vertical-align: top; }
+        .property-table .ln { min-height: 1.4em; display: flex; flex-direction: column; justify-content: center; padding: 1px 0; }
         .property-table, .property-table th, .property-table td,
         .summary-table, .summary-table th, .summary-table td {
             border: 1px solid #000;
@@ -186,8 +188,11 @@
         <p style="padding-left: 50px;"><b>ग्रामपंचायत नमुना ८ ला स.न.</b>-च्या नोंदीप्रमाणे मिळकतीचे तपशीलासह वर्णन</p>
     </div>
     <div style="margin: 16px 0 0 50px;">
-        {#- बांधकाम / खाली जागा तक्ता (क्लायंट 23-Nov-2026): प्रत्येक बांधकाम रो व खाली जागा
-            स्वतंत्र ओळीत, अ.क्र. 1,2,3... (आधी "1 2 3" हार्ड-कोड व <br> ने जोडलेले आकडे).
+        {#- बांधकाम / खाली जागा तक्ता (क्लायंट 24-Nov-2026): जुन्या (aa9e19e) सारखा - सर्व नोंदी
+            (बांधकाम रो + खाली जागा) एकाच table row मध्ये, प्रत्येक cell मध्ये एकाखाली एक.
+            प्रत्येक नोंद = div.ln; खालचा script एकाच नोंदीच्या सर्व cells मधल्या div.ln ची
+            उंची सारखी करतो (प्रकार 2 ओळींचा असला तरी आकडे त्याच ओळीत). अ.क्र. 1,2,3...
+            नोंदींच्या संख्येप्रमाणे (हार्ड-कोड "1 2 3" नाही).
             लांबी/रुंदी चौ.फु. 2 दशांश; चौ.मी. = फूट x 0.3048 (2 दशांश).
             खाली जागा: लांबी/रुंदी "-", फक्त क्षेत्रफळ - चौ.फु. 2 दशांश, चौ.मी. = round(चौ.फु./10.764, 2). #}
         {%- set ct_rows = constructionType or [] %}
@@ -211,34 +216,18 @@
                 <th>चौ.फु.</th>
                 <th>चौ.मी.</th>
             </tr>
-            {%- for ct_row in ct_rows %}
-            {%- set len_ft = ((ct_row.length / 0.3048) if constructionAreaUnit == 'sqm' else ct_row.length) if ct_row.length is not none else none %}
-            {%- set wid_ft = ((ct_row.width / 0.3048) if constructionAreaUnit == 'sqm' else ct_row.width) if ct_row.width is not none else none %}
-            <tr>
-                <td>{{ loop.index }}</td>
-                <td style="text-align: left;">{{ ct_row.type or '' }}{% if ct_row.floor %}<br>{{ ct_row.floor }}{% endif %}</td>
-                <td>{% if len_ft is not none %}{{ "%.2f"|format(len_ft|round(2)) }}{% endif %} X {% if wid_ft is not none %}{{ "%.2f"|format(wid_ft|round(2)) }}{% endif %}</td>
-                <td>{% if len_ft is not none %}{{ "%.2f"|format((len_ft|round(2)) * 0.3048) }}{% endif %} X {% if wid_ft is not none %}{{ "%.2f"|format((wid_ft|round(2)) * 0.3048) }}{% endif %}</td>
-                <td>{{ ct_row.areaSqft|area }}</td>
-                <td>{{ ct_row.areaSqm|area }}</td>
-                <td>{{ ct_row.year or '' }}</td>
-                <td></td>
+            {%- if ct_rows or kj_rows %}
+            <tr class="pt-entries">
+                <td>{% for ct_row in ct_rows %}<div class="ln">{{ loop.index }}</div>{% endfor %}{% for kj in kj_rows %}<div class="ln">{{ ct_rows|length + loop.index }}</div>{% endfor %}</td>
+                <td style="text-align: left;">{% for ct_row in ct_rows %}<div class="ln">{{ ct_row.type or '' }}{% if ct_row.floor %}<br>{{ ct_row.floor }}{% endif %}</div>{% endfor %}{% for kj in kj_rows %}<div class="ln">{{ kj.constructiontype or 'खाली जागा' }}</div>{% endfor %}</td>
+                <td>{% for ct_row in ct_rows %}{% set len_ft = ((ct_row.length / 0.3048) if constructionAreaUnit == 'sqm' else ct_row.length) if ct_row.length is not none else none %}{% set wid_ft = ((ct_row.width / 0.3048) if constructionAreaUnit == 'sqm' else ct_row.width) if ct_row.width is not none else none %}<div class="ln">{% if len_ft is not none %}{{ "%.2f"|format(len_ft|round(2)) }}{% endif %} X {% if wid_ft is not none %}{{ "%.2f"|format(wid_ft|round(2)) }}{% endif %}</div>{% endfor %}{% for kj in kj_rows %}<div class="ln">-</div>{% endfor %}</td>
+                <td>{% for ct_row in ct_rows %}{% set len_ft = ((ct_row.length / 0.3048) if constructionAreaUnit == 'sqm' else ct_row.length) if ct_row.length is not none else none %}{% set wid_ft = ((ct_row.width / 0.3048) if constructionAreaUnit == 'sqm' else ct_row.width) if ct_row.width is not none else none %}<div class="ln">{% if len_ft is not none %}{{ "%.2f"|format((len_ft|round(2)) * 0.3048) }}{% endif %} X {% if wid_ft is not none %}{{ "%.2f"|format((wid_ft|round(2)) * 0.3048) }}{% endif %}</div>{% endfor %}{% for kj in kj_rows %}<div class="ln">-</div>{% endfor %}</td>
+                <td>{% for ct_row in ct_rows %}<div class="ln">{{ ct_row.areaSqft|area }}</div>{% endfor %}{% for kj in kj_rows %}{% set kj_sqft = kj.totalkhalijagaareainfoot if kj.totalkhalijagaareainfoot is not none else kj.length %}<div class="ln">{% if kj_sqft is not none %}{{ kj_sqft|area }}{% endif %}</div>{% endfor %}</td>
+                <td>{% for ct_row in ct_rows %}<div class="ln">{{ ct_row.areaSqm|area }}</div>{% endfor %}{% for kj in kj_rows %}{% set kj_sqft = kj.totalkhalijagaareainfoot if kj.totalkhalijagaareainfoot is not none else kj.length %}<div class="ln">{% if kj_sqft is not none %}{{ "%.2f"|format(((kj_sqft|float) / 10.764)|round(2)) }}{% endif %}</div>{% endfor %}</td>
+                <td>{% for ct_row in ct_rows %}<div class="ln">{{ ct_row.year or '' }}</div>{% endfor %}{% for kj in kj_rows %}<div class="ln"></div>{% endfor %}</td>
+                <td>{% for ct_row in ct_rows %}<div class="ln"></div>{% endfor %}{% for kj in kj_rows %}<div class="ln"></div>{% endfor %}</td>
             </tr>
-            {%- endfor %}
-            {%- for kj in kj_rows %}
-            {%- set kj_sqft = kj.totalkhalijagaareainfoot if kj.totalkhalijagaareainfoot is not none else kj.length %}
-            <tr>
-                <td>{{ ct_rows|length + loop.index }}</td>
-                <td style="text-align: left;">{{ kj.constructiontype or 'खाली जागा' }}</td>
-                <td>-</td>
-                <td>-</td>
-                <td>{% if kj_sqft is not none %}{{ kj_sqft|area }}{% endif %}</td>
-                <td>{% if kj_sqft is not none %}{{ "%.2f"|format(((kj_sqft|float) / 10.764)|round(2)) }}{% endif %}</td>
-                <td></td>
-                <td></td>
-            </tr>
-            {%- endfor %}
-            {%- if not ct_rows and not kj_rows %}
+            {%- else %}
             <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
             {%- endif %}
         </table>
@@ -290,6 +279,35 @@
     </div>
 </div>
 </div>
+    <script>
+        // बांधकाम तक्ता: एकाच नोंदीच्या (n-वी div.ln) सर्व cells मधल्या ओळी एका पातळीत - सर्वात
+        // उंच (उदा. प्रकार + मजला 2 ओळी) इतकी उंची सगळ्यांना. स्क्रीन, प्रिंट व PDF दोन्ही layout साठी.
+        (function () {
+            function alignLines() {
+                var rows = document.querySelectorAll('.property-table tr.pt-entries');
+                for (var r = 0; r < rows.length; r++) {
+                    var cols = [];
+                    for (var c = 0; c < rows[r].cells.length; c++) cols.push(rows[r].cells[c].querySelectorAll('.ln'));
+                    var n = 0; cols.forEach(function (l) { n = Math.max(n, l.length); });
+                    cols.forEach(function (l) { for (var i = 0; i < l.length; i++) l[i].style.height = ''; });
+                    for (var i = 0; i < n; i++) {
+                        var h = 0;
+                        cols.forEach(function (l) { if (l[i]) h = Math.max(h, l[i].getBoundingClientRect().height); });
+                        cols.forEach(function (l) { if (l[i]) { l[i].style.boxSizing = 'border-box'; l[i].style.height = h + 'px'; } });
+                    }
+                }
+            }
+            alignLines();
+            window.addEventListener('load', alignLines);
+            window.addEventListener('resize', alignLines);
+            window.addEventListener('beforeprint', alignLines);
+            window.addEventListener('afterprint', alignLines);
+            if (window.matchMedia) {
+                var mq = window.matchMedia('print');
+                if (mq.addEventListener) mq.addEventListener('change', alignLines); else if (mq.addListener) mq.addListener(alignLines);
+            }
+        })();
+    </script>
     <script src="/report_assets/report_share.js"></script>
 </body>
 </html>
