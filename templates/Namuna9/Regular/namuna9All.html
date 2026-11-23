@@ -82,14 +82,6 @@
             tfoot td.gosh-label {
                 font-size: 12px !important;
             }
-            /* गोषवारा / एकूण बेरीज (सर्व पाने) आकडे: 3.4% रकाना (~35px) - 8px मध्ये
-               "20327068.0" पुढच्या cell मध्ये जात होता. 9 अंक + ".0" बसावेत
-               म्हणून फक्त या आकड्यांना लहान फॉन्ट (रकाने/इतर rows तेच). */
-            tfoot td.num {
-                font-size: 5.5px !important;
-                padding-left: 0 !important;
-                padding-right: 0 !important;
-            }
             /* मागील / दंड / चालु / एकुण उप-शीर्षक: 3.4% रकान्यात "मागील" वरच्या th नियमामुळे
                "मागी / ल" असं तुटत होतं - एका ओळीत, थोडं लहान अक्षर (पान/रकाने तेच). */
             .main-table thead th.sub-h {
@@ -125,6 +117,19 @@
             white-space: normal;
             overflow-wrap: break-word;
             word-break: break-word;
+        }
+        /* रकमा (td.num) आपल्या रकान्याच्या border आत राहाव्यात - data rows, गोषवारा आणि
+           एकूण बेरीज (सर्व पाने). रकाने रुंदी (colgroup, table-layout:fixed) तशीच; फक्त
+           जो आकडा रकान्यात मावत नाही त्याचाच फॉन्ट लहान होतो (9 अंक + ".0" पर्यंत).
+           खालचा script आकडा <div class="amt-box"><span class="amt" style="--n:अक्षरसंख्या">
+           मध्ये ठेवतो; 100cqi = रकान्याची आतली रुंदी (स्क्रीन, प्रिंट, PDF, zoom - सगळीकडे). */
+        .main-table td.num .amt-box {
+            container-type: inline-size;
+            overflow: hidden;
+        }
+        .main-table td.num .amt {
+            white-space: nowrap;
+            font-size: min(1em, calc(100cqi / (var(--n, 6) * 0.57)));
         }
     </style>
 </head>
@@ -462,6 +467,21 @@
     </div>
     {% endfor %}
     </div>
+    <script>
+        // रकमा रकान्यात बसवा (वरचा .amt-box / .amt CSS पाहा). फक्त अंकी मजकूर.
+        (function () {
+            var NUM = /^-?[0-9][0-9,]*(\.[0-9]+)?$/;
+            var cells = document.querySelectorAll('.main-table td.num');
+            for (var i = 0; i < cells.length; i++) {
+                var td = cells[i], t = td.textContent.trim();
+                if (!NUM.test(t) || td.querySelector('.amt-box')) continue;
+                var box = document.createElement('div'), sp = document.createElement('span');
+                box.className = 'amt-box'; sp.className = 'amt';
+                sp.style.setProperty('--n', t.length); sp.textContent = t;
+                box.appendChild(sp); td.textContent = ''; td.appendChild(box);
+            }
+        })();
+    </script>
     <script src="/report_assets/page_numbers.js"></script>
     <script src="/report_assets/report_share.js"></script>
 </body>
