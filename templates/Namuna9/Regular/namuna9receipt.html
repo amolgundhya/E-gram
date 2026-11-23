@@ -68,6 +68,11 @@
                 width: 56px !important;
                 height: 56px !important;
             }
+            /* मालमत्ता QR (पूर्ण मजकूर) 25mm - स्कॅन व्हावा; घर/पाणी कर QR 56px तसेच */
+            .qr-box.qr-box-prop, .qr-img.qr-img-prop {
+                width: 25mm !important;
+                height: 25mm !important;
+            }
             .receipt-footer {
                 font-size: 11px !important;
             }
@@ -207,8 +212,8 @@
                     <div style="display:flex; justify-content:center; align-items:flex-start; gap:14px; padding-left:60px;">
                 {% if record.QRcodeURL %}
                     <div style="text-align:center;">
-                        <div class="qr-box" style="border: 1px solid #000; width: 80px; height: 80px; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                            <img class="qr-img" src="{{ record.QRcodeURL }}" style="width: 80px; height: 80px; object-fit: contain;" />
+                        <div class="qr-box qr-box-prop" style="border: 1px solid #000; width: 25mm; height: 25mm; box-sizing: border-box; margin: 0 auto; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                            <img class="qr-img qr-img-prop" src="{{ record.QRcodeURL }}" style="width: 25mm; height: 25mm; object-fit: contain;" />
                         </div>
                         <div style="font-size:10px; margin-top:2px;">मालमत्ता QR</div>
                     </div>
