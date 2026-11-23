@@ -118,7 +118,7 @@ async def verticalreport_csv(request: Request):
             ("srNo", "अ.क्र."),
             ("propertyNumber", "मा.क्र."),
             ("totalHouseTax", "घर कर"),
-            ("lightingTax", "वीज कर"),
+            ("lightingTax", "दिवा कर"),
             ("healthTax", "आ. कर"),
             ("sapanikar", "सां.पाणी कर"),
             ("vpanikar", "वि.पाणी कर"),
