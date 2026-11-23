@@ -19,7 +19,10 @@
     .sheet {
     display: grid;
     grid-template-columns: repeat({{ plates_per_row|default(2) }}, var(--plate-width));
-    gap: 0.1in;
+    /* 2 x 6in = 12in = शीटची पूर्ण रुंदी: डावी-उजवी जागा (column gap / page margin) शून्य,
+       नाहीतर उजव्या कॉलमची उजवी border पानाबाहेर जाते. वर-खाली row gap तसाच. */
+    column-gap: 0;
+    row-gap: 0.1in;
     justify-content: start;
 }
     /* एक record-page = एक छापलेली 12x18 शीट (नमुना-8 रिपोर्ट viewer प्रमाणे पान-पान) */
@@ -227,7 +230,7 @@
     }
 
     @media print {
-      @page { size: 12in 18in; margin: 0.2in; }
+      @page { size: 12in 18in; margin: 0.2in 0; } /* डावी/उजवी margin 0 - 2 प्लेट (12in) पूर्ण बसतात */
       body { background: #fff; padding: 0; }
       #toolbar {
         display: none !important;
