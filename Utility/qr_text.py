@@ -198,82 +198,17 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
 
 
 def current_year_label() -> str:
-    """QR मधली "साल" ओळ - चालू वर्ष-पुढच्या वर्षाचे शेवटचे 2 अंक (उदा. 2026-27)."""
+    """QR मधली "साल" ओळ - चालू वर्ष-पुढचं वर्ष (उदा. 2026-2027), नाव प्लेटप्रमाणेच."""
     from datetime import datetime
     year = datetime.now().year
-    return f"{year}-{str(year + 1)[-2:]}"
+    return f"{year}-{year + 1}"
 
 
 def build_full_property_qr_text(record: dict) -> str:
-    """मालमत्ता QR चा एकमेव मजकूर - नाव प्लेट QR आणि सर्व रिपोर्ट्सवरचा "मालमत्ता QR"
+    """मालमत्ता QR चा एकमेव पूर्ण मजकूर - नाव प्लेट QR आणि सर्व रिपोर्ट्सवरचा "मालमत्ता QR"
     (नमुना-8 प्रिंट्स, 9क, 9क-2, लेख, लेख-2, पावती - /namuna8/property_qrcode) दोन्ही हेच
-    वापरतात, म्हणून स्कॅन केल्यावर दोन्हीकडे अगदी तोच मजकूर.
-
-    मजकूर पूर्ण (क्लायंट 23-नोव्हें 2026), पण compact - छापील छोट्या QR बॉक्समध्ये स्कॅन
-    व्हावा म्हणून (देवनागरी अक्षर = UTF-8 मध्ये 3 बाईट्स): लहान लेबल्स, ":" भोवती जागा
-    नाही, रिकाम्या / 0 ओळी नाहीत, एकक (चौ.फु./चौ.मी.) एकदाच क्षेत्र ओळीत (बांधकामाचा
-    एकक वेगळा असेल तरच बांधकाम ओळीत), आणि प्रत्येक बांधकाम एकाच ओळीत: माप=क्षेत्रफळ
-    (प्रकार,मजला). उदा.:
-        अ.क्र.:13 / मा.क्र.:13 / मालक:.. / भोग.:स्वतः / मो:.. / पू:.. प:.. उ:.. द:..
-        क्षेत्र(चौ.फु.):50.97x69.97=3566.37 / बां:26x13=338(आरसीसी पद्धतीची इमारत,तळमजला)
-        खाली:3228.37 / साल:2026-27 / घर:1181 / वीज:50 / आरो:50 / पाणी:100 / एकूण:1381
-    प्लेटवर/sticker वर छापायच्या ओळी (build_area_lines) वेगळ्या, त्या बदललेल्या नाहीत."""
-    unit = record.get("areaUnit") or "sqft"
-    c_unit = record.get("constructionAreaUnit") or unit
-    round_up = record.get("areaRoundUp")
-    unit_lbl, c_unit_lbl = _unit_label(unit), _unit_label(c_unit)
-
-    def add(label, value):
-        value = str(value if value is not None else "").strip()
-        if value:
-            lines.append(f"{label}:{value}")
-
-    lines = []
-    add("अ.क्र.", record.get("srNo"))
-    add("मा.क्र.", record.get("propertyNumber"))
-    if globals().get("QR_INCLUDE_OWNER_NAME", True):
-        add("मालक", record.get("ownerName"))
-    add("भोग.", record.get("occupantName") or "स्वतः")
-    add("मो", _mobile_number(record))
-    for label, key in (("पू", "boundaryEast"), ("प", "boundaryWest"),
-                       ("उ", "boundaryNorth"), ("द", "boundarySouth")):
-        add(label, record.get(key))
-
-    east, west = record.get("areaEast") or 0, record.get("areaWest") or 0
-    north, south = record.get("areaNorth") or 0, record.get("areaSouth") or 0
-    avg_l = round((east + west) / 2, 2) if (east or west) else 0
-    avg_w = round((north + south) / 2, 2) if (north or south) else 0
-    total = record.get("totalareainmeters") if unit == "sqm" else record.get("total_arearinfoot")
-    if total:
-        size = f"{_fmt_num(avg_l)}x{_fmt_num(avg_w)}=" if (avg_l and avg_w) else ""
-        lines.append(f"क्षेत्र({unit_lbl}):{size}{area_text(total, round_up)}")
-
-    area_key = "areaSqm" if c_unit == "sqm" else "areaSqft"
-    c_suffix = "" if c_unit_lbl == unit_lbl else c_unit_lbl
-    for c in (record.get("constructionType") or []):
-        c_type = (c.get("type") or "").strip()
-        if not c_type or c_type.startswith("खाली जागा"):
-            continue   # खाली-जागा रो खाली जागाच्या बेरजेत आधीच (build_area_lines प्रमाणे)
-        length, width = c.get("length") or 0, c.get("width") or 0
-        area = c.get(area_key) if c.get(area_key) not in (None, "") else round(length * width, 2)
-        floor = str(c.get("floor") or "").strip()
-        kind = f"({c_type},{floor})" if floor else f"({c_type})"
-        if area:
-            lines.append(f"बां:{_fmt_num(length)}x{_fmt_num(width)}={area_text(area, round_up)}{c_suffix}{kind}")
-        else:
-            lines.append(f"बां:{kind}")
-
-    khali = record.get("khaliJaga") or []
-    if khali:
-        k = khali[0].get("totalkhalijagaareainmeters") if unit == "sqm" else khali[0].get("totalkhalijagaareainfoot")
-        if k:
-            lines.append(f"खाली:{area_text(k, round_up)}")
-
-    lines.append(f"साल:{current_year_label()}")
-    for label, key in (("घर", "totalHouseTax"), ("वीज", "lightingTax"), ("आरो", "healthTax"),
-                       ("पाणी", "sapanikar"), ("वि.पाणी", "vpanikar"), ("सफाई", "cleaningTax"),
-                       ("शौचालय", "toiletTax")):
-        if _fmt_num(record.get(key)) != "0":
-            lines.append(f"{label}:{_fmt_num(record.get(key))}")
-    lines.append(f"एकूण:{_fmt_num(record.get('totaltax'))}")
-    return "\n".join(lines)
+    वापरतात, म्हणून स्कॅन केल्यावर दोन्हीकडे अगदी तोच मजकूर: अ.क्र., मालमत्ता क्र., मालक,
+    भोगवटदार, मोबाईल, चतुःसीमा (रिकाम्या वगळून), एकूण क्षेत्रफळ, बांधकाम, बांधकाम प्रकार
+    (मजला), खाली जागा, साल, कर (0 वगळून) व एकूण कर. (क्लायंट, 23-नोव्हें 2026 - आधी
+    रिपोर्ट्सवर फक्त 5 ओळींचा छोटा मजकूर होता.)"""
+    return build_property_qr_text(record, year_label=current_year_label(), include_contact=True)
