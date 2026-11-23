@@ -7,7 +7,7 @@ from datetime import datetime, date
 from fastapi import APIRouter , Request
 from fastapi.responses import JSONResponse
 from Utility.QRcodeGeneration import QRCodeGeneration
-from Utility.qr_text import build_property_qr_text, build_area_lines, build_gp_heading
+from Utility.qr_text import build_full_property_qr_text, build_area_lines, build_gp_heading
 from Utility import fast_qr
 from Utility.benefit_year import financial_year_full
 import httpx
@@ -2432,8 +2432,8 @@ async def nameplate_sheet(request: Request):
 
         # सगळे QR एकाच वेळी - same QR images as before (fast_qr), cache + parallel
         # मोबाईल / चतुःसीमा (दिशा) / खाली जागा प्लेटवर नाहीत - मोठ्या QR मध्ये, स्कॅन केल्यावर दिसतात
-        qr_texts = [build_property_qr_text(prop, parent_gp_name, year_label, include_contact=True)
-                    for prop in properties]
+        # रिपोर्ट्सवरच्या "मालमत्ता QR" सारखाच मजकूर - एकच function (Utility/qr_text)
+        qr_texts = [build_full_property_qr_text(prop) for prop in properties]
         os.makedirs(static_dir, exist_ok=True)
         qr_uris, qr_stats = fast_qr.png_data_uris(qr_texts, cache_path=os.path.join(static_dir, "qr_cache.sqlite"))
 
