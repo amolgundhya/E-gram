@@ -192,18 +192,18 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
     return "\n".join(lines)
 
 
-def current_year_label() -> str:
-    """QR मधली "साल" ओळ - चालू वर्ष-पुढचं वर्ष (उदा. 2026-2027), नाव प्लेटप्रमाणेच."""
-    from datetime import datetime
-    year = datetime.now().year
-    return f"{year}-{year + 1}"
-
-
-def build_full_property_qr_text(record: dict) -> str:
-    """मालमत्ता QR चा एकमेव पूर्ण मजकूर - नाव प्लेट QR आणि सर्व रिपोर्ट्सवरचा "मालमत्ता QR"
-    (नमुना-8 प्रिंट्स, 9क, 9क-2, लेख, लेख-2, पावती - /namuna8/property_qrcode) दोन्ही हेच
-    वापरतात, म्हणून स्कॅन केल्यावर दोन्हीकडे अगदी तोच मजकूर: अ.क्र., मालमत्ता क्र., मालक,
-    भोगवटदार, मोबाईल, चतुःसीमा (रिकाम्या वगळून), एकूण क्षेत्रफळ, बांधकाम, बांधकाम प्रकार
-    (मजला), खाली जागा, साल, कर (0 वगळून) व एकूण कर. (क्लायंट, 23-नोव्हें 2026 - आधी
-    रिपोर्ट्सवर फक्त 5 ओळींचा छोटा मजकूर होता.)"""
-    return build_property_qr_text(record, year_label=current_year_label(), include_contact=True)
+def build_property_qr_text_short(record: dict) -> str:
+    """नमुना-8 प्रिंट्ससाठी (single/P1/P2/VishehPani, Range, All Report) छोटा QR
+    मजकूर - फक्त 5 ओळी. क्षेत्रफळ/बांधकाम/खाली जागा/वेगळे कर दाखवत नाही (ऑगस्ट
+    2026 मध्ये ठरलेला तपशीलवार मजकूर - build_property_qr_text - फक्त नाव प्लेट/
+    sticker/घर स्कॅनरवरच राहतो, नमुना-8 प्रिंटवर नाही - ऑक्टोबर 2026 क्लायंट निर्णय,
+    कारण प्रिंटवरचा QR आता जास्त ओळींमुळे मोठा/स्कॅन करायला अवघड झाला होता). भोगवट
+    ओळ ऑक्टोबर 2026 मध्ये क्लायंटने approve केलेली भर."""
+    lines = [
+        f"अ.क्र. : {record.get('srNo') or ''}",
+        f"मालमत्ता क्र. : {record.get('propertyNumber') or ''}",
+        f"मालक : {record.get('ownerName') or ''}",
+        f"भोगवटदार : {record.get('occupantName') or 'स्वतः'}",
+        f"एकूण कर : {_fmt_num(record.get('totaltax'))}",
+    ]
+    return "\n".join(lines)
