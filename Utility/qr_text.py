@@ -198,19 +198,69 @@ def build_property_qr_text(record: dict, parent_gp_name: str = None, year_label:
 
 
 def build_property_qr_text_short(record: dict) -> str:
-    """नमुना-8 प्रिंट्ससाठी (single/P1/P2/VishehPani, Range, All Report) छोटा QR
-    मजकूर - फक्त 5 ओळी. क्षेत्रफळ/बांधकाम/खाली जागा/वेगळे कर दाखवत नाही (ऑगस्ट
-    2026 मध्ये ठरलेला तपशीलवार मजकूर - build_property_qr_text - फक्त नाव प्लेट/
-    sticker/घर स्कॅनरवरच राहतो, नमुना-8 प्रिंटवर नाही - ऑक्टोबर 2026 क्लायंट निर्णय,
-    कारण प्रिंटवरचा QR आता जास्त ओळींमुळे मोठा/स्कॅन करायला अवघड झाला होता). मालकाचं
-    नाव नेहमी दाखवतो (QR_INCLUDE_OWNER_NAME शी संबंध नाही - तो फक्त DETAILED
-    मजकुरासाठी आहे; इथे तो पर्यायी नाही, क्लायंटने मागितलेल्या ओळी नेहमी सेमच). भोगवट
-    ओळ ऑक्टोबर 2026 मध्ये क्लायंटने approve केलेली भर."""
-    lines = [
-        f"अ.क्र. : {record.get('srNo') or ''}",
-        f"मालमत्ता क्र. : {record.get('propertyNumber') or ''}",
-        f"मालक : {record.get('ownerName') or ''}",
-        f"भोगवटदार : {record.get('occupantName') or 'स्वतः'}",
-        f"एकूण कर : {_fmt_num(record.get('totaltax'))}",
-    ]
+    """रिपोर्ट्सवरचा "मालमत्ता QR" (नमुना-8 प्रिंट्स, 9क, 9क-2, लेख, लेख-2, पावती -
+    /namuna8/property_qrcode व मालमत्ता सेव्ह/अपडेट). क्लायंटचं स्वरूप (23-नोव्हें 2026),
+    रिकामी ओळ वगळतो (0 कर सुद्धा; एकूण कर नेहमी):
+        अ.क्र. : 8
+        मालमत्ता क्र. : 349
+        मालक : <नाव>
+        भोगवट : <भोगवटदार>
+        एकूण क्षेत्रफळ : 40 X 33 = 1320.00 चौ.फु.
+        बांधकाम : 15 X 33 = 495.00 चौ.फु.      (प्रत्येक बांधकाम रो ची एक ओळ)
+        खाली जागा : 825.00 चौ.फु.
+        साल : 2026-2027
+        घरपट्टी / दिवाबत्ती / आरोग्य / सा.पाणी : <रक्कम>
+        एकूण कर : 705
+    क्षेत्रफळ 2 दशांश (area_2dp_text), मोजमाप शेवटच्या शून्यांशिवाय. नाव प्लेट QR वेगळा
+    (build_property_qr_text, include_contact=True - पूर्ण मजकूर)."""
+    from datetime import datetime
+    from Utility.area_display import area_2dp_text
+
+    unit = record.get("areaUnit") or "sqft"
+    c_unit = record.get("constructionAreaUnit") or unit
+    unit_lbl, c_unit_lbl = _unit_label(unit), _unit_label(c_unit)
+    lines = []
+
+    def add(label, value):
+        value = str(value if value is not None else "").strip()
+        if value:
+            lines.append(f"{label} : {value}")
+
+    add("अ.क्र.", record.get("srNo"))
+    add("मालमत्ता क्र.", record.get("propertyNumber"))
+    add("मालक", record.get("ownerName"))
+    add("भोगवट", record.get("occupantName"))
+
+    east, west = record.get("areaEast") or 0, record.get("areaWest") or 0
+    north, south = record.get("areaNorth") or 0, record.get("areaSouth") or 0
+    avg_l = round((east + west) / 2, 2) if (east or west) else 0
+    avg_w = round((north + south) / 2, 2) if (north or south) else 0
+    total = record.get("totalareainmeters") if unit == "sqm" else record.get("total_arearinfoot")
+    if total:
+        size = f"{_fmt_num(avg_l)} X {_fmt_num(avg_w)} = " if (avg_l and avg_w) else ""
+        lines.append(f"एकूण क्षेत्रफळ : {size}{area_2dp_text(total)} {unit_lbl}")
+
+    area_key = "areaSqm" if c_unit == "sqm" else "areaSqft"
+    for c in (record.get("constructionType") or []):
+        c_type = (c.get("type") or "").strip()
+        if not c_type or c_type.startswith("खाली जागा"):
+            continue   # खाली-जागा रो खाली जागाच्या बेरजेत आधीच (build_area_lines प्रमाणे)
+        length, width = c.get("length") or 0, c.get("width") or 0
+        area = c.get(area_key) if c.get(area_key) not in (None, "") else round(length * width, 2)
+        if area:
+            lines.append(f"बांधकाम : {_fmt_num(length)} X {_fmt_num(width)} = {area_2dp_text(area)} {c_unit_lbl}")
+
+    khali = record.get("khaliJaga") or []
+    if khali:
+        k = khali[0].get("totalkhalijagaareainmeters") if unit == "sqm" else khali[0].get("totalkhalijagaareainfoot")
+        if k:
+            lines.append(f"खाली जागा : {area_2dp_text(k)} {unit_lbl}")
+
+    year = datetime.now().year
+    lines.append(f"साल : {year}-{year + 1}")
+    for label, key in (("घरपट्टी", "totalHouseTax"), ("दिवाबत्ती", "lightingTax"),
+                       ("आरोग्य", "healthTax"), ("सा.पाणी", "sapanikar")):
+        if _fmt_num(record.get(key)) != "0":
+            lines.append(f"{label} : {_fmt_num(record.get(key))}")
+    lines.append(f"एकूण कर : {_fmt_num(record.get('totaltax'))}")
     return "\n".join(lines)
