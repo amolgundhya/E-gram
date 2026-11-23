@@ -59,6 +59,7 @@
             border-bottom: 1px solid #000;
         }
         /* Add borders to all cells in property/building tables */
+        .property-table td, .property-table th { overflow-wrap: anywhere; vertical-align: middle; padding: 2px 3px; }
         .property-table, .property-table th, .property-table td,
         .summary-table, .summary-table th, .summary-table td {
             border: 1px solid #000;
@@ -136,18 +137,18 @@
     <div style="border-bottom: 1px solid #000; margin: 10px 0 8px 0;"></div>
     <p style="margin-left: 50px;">ग्रामपंचायतचे नांव {{gramPanchayat|default('')}}, गावाचे नांव {{village|default('')}}, तालुका {{taluka|default('')}}, जिल्हा {{jilha|default('')}}</p>
     <div style="margin: 18px 0 0 0;">
-        <table style="margin-left: 50px; width: 96%; border-collapse: collapse; font-size: 12px;">
+        <table style="margin-left: 50px; width: calc(100% - 66px); border-collapse: collapse; font-size: 12px;">
             <tr>
-                <td style="font-weight: bold; width: 14%;">मालमत्ता धारकाचे नांव :</td>
+                <td style="font-weight: bold; white-space: nowrap; width: 14%;">मालमत्ता धारकाचे नांव :</td>
                 <td style="padding: 2px 6px;"> {{ownerName|default('')}} </td>
-                <td style="font-weight: bold; width: 5%;padding: 2px 6px;">मोकं :</td>
+                <td style="font-weight: bold; white-space: nowrap; width: 5%;padding: 2px 6px;">मोकं :</td>
                 <td style="width: 15%; padding: 2px 6px;">{% if mobileNumberAdd %}{{mobileNumber|default('', true)}}{% endif %}&nbsp;</td>
             </tr>
             {% if (aadharCard and aadharNumber) or gharkul %}
             <tr>
-                <td style="font-weight: bold; width: 14%;">आधार क्रमांक :</td>
+                <td style="font-weight: bold; white-space: nowrap; width: 14%;">आधार क्रमांक :</td>
                 <td style="padding: 2px 6px;">{% if aadharCard %}{{aadharNumber|default('', true)}}{% endif %}</td>
-                <td style="font-weight: bold; width: 5%;padding: 2px 6px;">घरकुल :</td>
+                <td style="font-weight: bold; white-space: nowrap; width: 5%;padding: 2px 6px;">घरकुल :</td>
                 <td style="width: 15%; padding: 2px 6px;">{{gharkul|default('', true)}}{% if gharkulYojana and gharkul != 'नाही' %} - {{gharkulYojana}}{% endif %}{% if gharkulBenefitYear and gharkul != 'नाही' %} ({{gharkulBenefitYear}}){% endif %}</td>
             </tr>
             {% endif %}
@@ -185,35 +186,61 @@
         <p style="padding-left: 50px;"><b>ग्रामपंचायत नमुना ८ ला स.न.</b>-च्या नोंदीप्रमाणे मिळकतीचे तपशीलासह वर्णन</p>
     </div>
     <div style="margin: 16px 0 0 50px;">
-        <table class="property-table" style="text-align: center; width: 96.5%; border-collapse: collapse; font-size: 12px; border: 1.5px solid #000;">
+        {#- बांधकाम / खाली जागा तक्ता (क्लायंट 23-Nov-2026): प्रत्येक बांधकाम रो व खाली जागा
+            स्वतंत्र ओळीत, अ.क्र. 1,2,3... (आधी "1 2 3" हार्ड-कोड व <br> ने जोडलेले आकडे).
+            लांबी/रुंदी चौ.फु. 2 दशांश; चौ.मी. = फूट x 0.3048 (2 दशांश).
+            खाली जागा: लांबी/रुंदी "-", फक्त क्षेत्रफळ - चौ.फु. 2 दशांश, चौ.मी. = round(चौ.फु./10.764, 2). #}
+        {%- set ct_rows = constructionType or [] %}
+        {%- set kj_rows = khaliJaga or [] %}
+        <table class="property-table" style="text-align: center; width: calc(100% - 16px); table-layout: fixed; border-collapse: collapse; font-size: 12px; border: 1.5px solid #000;">
+            <colgroup>
+                <col style="width:5%;"><col style="width:21%;"><col style="width:17%;"><col style="width:15%;">
+                <col style="width:10%;"><col style="width:9%;"><col style="width:8%;"><col style="width:15%;">
+            </colgroup>
             <tr>
-                <th rowspan="2" style="width:3%;">अ. <br>क्र.</th>
-                <th rowspan="2" style="width:18%;">इमारत / जागेचा प्रकारे</th>
-                <th colspan="2" style="width:18%;">बांधकामाची लांबी / रुंदी</th>
-                <th colspan="2" style="width:10%;">बांधकामाचे क्षेत्रफळ<br></th>
-                <th rowspan="2"style="width:8%;">बांधकाम वर्ष</th>
-                <th rowspan="2"style="width:13%;">इमारतीचा प्रकार</th>
+                <th rowspan="2">अ. <br>क्र.</th>
+                <th rowspan="2">इमारत / जागेचा प्रकारे</th>
+                <th colspan="2">बांधकामाची लांबी / रुंदी</th>
+                <th colspan="2">बांधकामाचे क्षेत्रफळ</th>
+                <th rowspan="2">बांधकाम वर्ष</th>
+                <th rowspan="2">इमारतीचा प्रकार</th>
             </tr>
+            <tr>
                 <th>चौ.फु.</th>
                 <th>चौ.मी.</th>
                 <th>चौ.फु.</th>
                 <th>चौ.मी.</th>
             </tr>
+            {%- for ct_row in ct_rows %}
+            {%- set len_ft = ((ct_row.length / 0.3048) if constructionAreaUnit == 'sqm' else ct_row.length) if ct_row.length is not none else none %}
+            {%- set wid_ft = ((ct_row.width / 0.3048) if constructionAreaUnit == 'sqm' else ct_row.width) if ct_row.width is not none else none %}
             <tr>
-                <td style="text-align:center;">1 <br>2 <br/>3</td>
-                <td rowspan="2" style="text-align: left;">
-                {% for ct_row in (constructionType or []) %}{{ct_row.type if constructionType and constructionType|length > 0 else ''}}<br>
-                {{ct_row.floor if constructionType and constructionType|length > 0 else ''}}{% if not loop.last %}<br>
-                {% endif %}{% endfor %}<br>
-                {{khaliJaga[0].constructiontype if khaliJaga and khaliJaga|length > 0 else ''}}
-            </td>
-                <td> {% for ct_row in (constructionType or []) %}{% if constructionType and constructionType|length > 0 and ct_row.length is not none %}{% if constructionAreaUnit == 'sqm' %}{{ (ct_row.length / 0.3048) | round_sqft }}{% else %}{{ ct_row.length | round_sqft }}{% endif %}{% endif %}  X  {% if constructionType and constructionType|length > 0 and ct_row.width is not none %}{% if constructionAreaUnit == 'sqm' %}{{ (ct_row.width / 0.3048) | round_sqft }}{% else %}{{ ct_row.width | round_sqft }}{% endif %}{% endif %}{% if not loop.last %} <br> {% endif %}{% endfor %} <br> {{ khaliJaga[0].length |area if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].length is not none else '' }}  X {{ khaliJaga[0].width | round_sqft if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].width is not none else '' }} </td>
-                <td> {% for ct_row in (constructionType or []) %}{% if constructionType and constructionType|length > 0 and ct_row.length is not none %}{% if constructionAreaUnit == 'sqm' %}{{ ct_row.length | round(2) }}{% else %}{{ (ct_row.length * 0.3048) | round(2) }}{% endif %}{% endif %}  X  {% if constructionType and constructionType|length > 0 and ct_row.width is not none %}{% if constructionAreaUnit == 'sqm' %}{{ ct_row.width | round(2) }}{% else %}{{ (ct_row.width * 0.3048) | round(2) }}{% endif %}{% endif %}{% if not loop.last %} <br> {% endif %}{% endfor %} <br> {{ (khaliJaga[0].length * 0.3048) | round(2) if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].length is not none else '' }}  X {{ (khaliJaga[0].width * 0.3048) | round(2) if khaliJaga and khaliJaga|length > 0 and khaliJaga[0].width is not none else '' }} </td>
-                <td> {% for ct_row in (constructionType or []) %}{{ ct_row.areaSqft |area if constructionType and constructionType|length > 0 else '' }}{% if not loop.last %} <br> {% endif %}{% endfor %}<br> {{ khaliJaga[0].totalkhalijagaareainfoot |area if khaliJaga and khaliJaga|length > 0 else '' }} </td>
-                <td> {% for ct_row in (constructionType or []) %}{{ ct_row.areaSqm |area if constructionType and constructionType|length > 0 else '' }}{% if not loop.last %} <br> {% endif %}{% endfor %}<br> {{ khaliJaga[0].totalkhalijagaareainmeters |area if khaliJaga and khaliJaga|length > 0 else '' }} </td>
-                <td> {% for ct_row in (constructionType or []) %}{{ct_row.year if constructionType and constructionType|length > 0 else ''}}{% if not loop.last %} <br> {% endif %}{% endfor %} <br> </td>
+                <td>{{ loop.index }}</td>
+                <td style="text-align: left;">{{ ct_row.type or '' }}{% if ct_row.floor %}<br>{{ ct_row.floor }}{% endif %}</td>
+                <td>{% if len_ft is not none %}{{ "%.2f"|format(len_ft|round(2)) }}{% endif %} X {% if wid_ft is not none %}{{ "%.2f"|format(wid_ft|round(2)) }}{% endif %}</td>
+                <td>{% if len_ft is not none %}{{ "%.2f"|format((len_ft|round(2)) * 0.3048) }}{% endif %} X {% if wid_ft is not none %}{{ "%.2f"|format((wid_ft|round(2)) * 0.3048) }}{% endif %}</td>
+                <td>{{ ct_row.areaSqft|area }}</td>
+                <td>{{ ct_row.areaSqm|area }}</td>
+                <td>{{ ct_row.year or '' }}</td>
                 <td></td>
             </tr>
+            {%- endfor %}
+            {%- for kj in kj_rows %}
+            {%- set kj_sqft = kj.totalkhalijagaareainfoot if kj.totalkhalijagaareainfoot is not none else kj.length %}
+            <tr>
+                <td>{{ ct_rows|length + loop.index }}</td>
+                <td style="text-align: left;">{{ kj.constructiontype or 'खाली जागा' }}</td>
+                <td>-</td>
+                <td>-</td>
+                <td>{% if kj_sqft is not none %}{{ kj_sqft|area }}{% endif %}</td>
+                <td>{% if kj_sqft is not none %}{{ "%.2f"|format(((kj_sqft|float) / 10.764)|round(2)) }}{% endif %}</td>
+                <td></td>
+                <td></td>
+            </tr>
+            {%- endfor %}
+            {%- if not ct_rows and not kj_rows %}
+            <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            {%- endif %}
         </table>
     </div>
     <div style="margin: 12px 0 0 50px; font-size: 12px; font-weight: 500;">फेरफार आकारणी करतांना खालील मिळकतीचे वर्णनामध्ये झालेल्या फेर बदलाचा तपशील</div>
