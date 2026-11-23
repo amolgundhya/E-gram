@@ -20,7 +20,7 @@ import shutil
 import time
 import re
 from Utility.QRcodeGeneration import QRCodeGeneration
-from Utility.qr_text import build_property_qr_text_short, build_area_lines
+from Utility.qr_text import build_full_property_qr_text, build_area_lines
 from Utility.tax_rounding import round_tax_amount
 from Utility.occupant import occupant_or_self
 from Utility.area_units import sqm_to_sqft
@@ -468,7 +468,7 @@ def create_namuna8_entry(property_data: schemas.PropertyCreate, db: Session = De
                 qr_path = os.path.join(qr_dir, "qrcode.png")
                 parent_gp_name_qr = getattr(gram_panchayat, 'parent_gram_panchayat_name', None) if gram_panchayat else None
                 year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
-                qr_text = build_property_qr_text_short(record_response)
+                qr_text = build_full_property_qr_text(record_response)  # नाव प्लेट QR सारखाच पूर्ण मजकूर
                 QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
                 db_property.qrcode = qr_path.replace(os.sep, "/")
                 db.flush()
@@ -1047,7 +1047,7 @@ def update_namuna8_entry(
         gram_panchayat_qr = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
         parent_gp_name_qr = getattr(gram_panchayat_qr, 'parent_gram_panchayat_name', None) if gram_panchayat_qr else None
         year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
-        qr_text = build_property_qr_text_short(record_response)
+        qr_text = build_full_property_qr_text(record_response)  # नाव प्लेट QR सारखाच पूर्ण मजकूर
         QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
         db_property.qrcode = qr_path.replace(os.sep, "/")
         db.commit()
@@ -3011,7 +3011,7 @@ def serialize_properties(
                     qr_path = os.path.join(qr_dir, "qrcode.png")
                     parent_gp_name_qr = getattr(gram_panchayat_obj, 'parent_gram_panchayat_name', None) if gram_panchayat_obj else None
                     year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
-                    qr_text = build_property_qr_text_short(record_response)
+                    qr_text = build_full_property_qr_text(record_response)  # नाव प्लेट QR सारखाच पूर्ण मजकूर
                     QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
                     db_property.qrcode = qr_path.replace(os.sep, "/")
                     db.flush()
@@ -3518,7 +3518,7 @@ def get_property_qrcode(
         record_response = get_property_record(anu_kramank, village_id, district_id, taluka_id, gram_panchayat_id, db)
         parent_gp_name_qr = getattr(gram_panchayat, 'parent_gram_panchayat_name', None)
         year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
-        qr_text = build_property_qr_text_short(record_response)
+        qr_text = build_full_property_qr_text(record_response)  # नाव प्लेट QR सारखाच पूर्ण मजकूर
         saved_text = None
         if os.path.exists(qr_path) and os.path.exists(text_path):
             with open(text_path, encoding="utf-8") as f:
