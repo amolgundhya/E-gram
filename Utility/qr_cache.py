@@ -1,6 +1,6 @@
 """मालमत्ता QR (/namuna8/property_qrcode) - जतन केलेली PNG थेट द्यायची की आधी तपासायची.
 
-QR मजकूर (नाव प्लेटसारखा पूर्ण मजकूर - Utility/qr_text.build_full_property_qr_text)
+QR मजकूर (अ.क्र., मालमत्ता क्र., मालक, भोगवटदार, एकूण कर - Utility/qr_text.build_property_qr_text_short)
 get_property_record() वरून बनतो. तो काढायला प्रत्येक QR ला ~25 ms लागतात; ९ क / लेख च्या viewer
 मध्ये 916 बिलांचे QR म्हणजे दर वेळी 50-80 सेकंद. पण हा मजकूर फक्त डेटाबेस बदलला तरच बदलतो:
   - मालमत्ता / मालक / बांधकाम सेव्ह, Transfer, कर पुन्हा मोजा, Bulk Update, एकदाचे fixes,
@@ -31,10 +31,6 @@ from sqlalchemy import text
 
 STATE_TABLE = "qr_cache_state"
 TRIGGER_PREFIX = "qrgen_"
-# QR मजकुराचं स्वरूप (कोड) बदललं की हा बदलायचा - token बदलतो, त्यामुळे जुने stamps जुळत नाहीत आणि
-# प्रत्येक QR पुन्हा तपासून (मजकूर वेगळा -> PNG पुन्हा) नव्या स्वरूपात बनतो; जुना QR कधीच दिला जात नाही.
-# "full1" = 23-नोव्हें 2026: रिपोर्ट QR = नाव प्लेट QR चा पूर्ण मजकूर (आधी 5 ओळी).
-QR_TEXT_VERSION = "full1"
 
 # QR मजकुरावर परिणाम न करणारी टेबलं - यांच्या बदलाने सगळे QR पुन्हा तपासायची गरज नाही.
 # इथे नसलेलं प्रत्येक टेबल (नवीन टेबलसुद्धा) gen वाढवतं - शंका असेल तर तपासणी, जुना QR नाही.
@@ -88,7 +84,7 @@ def ensure_qr_cache(engine=None):
 
 
 def current_token(db):
-    """आत्ताचा cache token ("QR_TEXT_VERSION|gen|YYYY-MM-DD") किंवा None (state/triggers नाहीत - तपासणी करा).
+    """आत्ताचा cache token ("gen|YYYY-MM-DD") किंवा None (state/triggers नाहीत - तपासणी करा).
     मजकूर काढायच्या आधी वाचायचा: मधे कोणी लिहिलं तर gen बदलतो आणि पुढच्या वेळी पुन्हा तपासणी."""
     try:
         row = db.execute(text(
@@ -99,7 +95,7 @@ def current_token(db):
         return None
     if not row or not row[1] or row[1] != row[2]:
         return None
-    return "%s|%s|%s" % (QR_TEXT_VERSION, row[0], datetime.date.today().isoformat())
+    return "%s|%s" % (row[0], datetime.date.today().isoformat())
 
 
 def _png_sig(png_path):
