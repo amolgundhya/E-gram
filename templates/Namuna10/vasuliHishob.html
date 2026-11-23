@@ -292,66 +292,68 @@
         {% for r in rows %}
         <tr class="record-row">
             <td>{{ loop.index }}</td>
-            <td>{{ r.pavti_date }}</td>
+            {# पावती दिनांक DD-MM-YYYY (फक्त दाखवणे) #}
+            <td>{{ r.pavti_date|dmy }}</td>
             <td>{{ r.pavti_kramank }}</td>
             <td>{{ r.pa_book_kramank or '' }}</td>
             <td>{{ r.owner_name or '' }}</td>
             <td>{{ r.occupant or '' }}</td>
             <td>{{ r.malmatta_kramank or '' }}</td>
-            <td>{{ r.vasuliGhar or 0 }}</td>
-            <td>{{ r.vasuliChaluGhar or 0 }}</td>
-            <td>{{ (r.vasuliGhar or 0) + (r.vasuliChaluGhar or 0) }}</td>
-            <td>{{ r.vasuliDiva or 0 }}</td>
-            <td>{{ r.vasuliChaluDiva or 0 }}</td>
-            <td>{{ (r.vasuliDiva or 0) + (r.vasuliChaluDiva or 0) }}</td>
-            <td>{{ r.vasuliAarogyaKar or 0 }}</td>
-            <td>{{ r.vasuliChaluAarogyaKar or 0 }}</td>
-            <td>{{ (r.vasuliAarogyaKar or 0) + (r.vasuliChaluAarogyaKar or 0) }}</td>
-            <td>{{ r.vasuliSapanikar or 0 }}</td>
-            <td>{{ r.vasuliChaluSapanikar or 0 }}</td>
-            <td>{{ (r.vasuliSapanikar or 0) + (r.vasuliChaluSapanikar or 0) }}</td>
-            <td>{{ r.vasuliCleaningTax or 0 }}</td>
-            <td>{{ r.vasuliChaluCleaningTax or 0 }}</td>
-            <td>{{ (r.vasuliCleaningTax or 0) + (r.vasuliChaluCleaningTax or 0) }}</td>
-            <td>{{ r.vasuliToiletTax or 0 }}</td>
-            <td>{{ r.vasuliChaluToiletTax or 0 }}</td>
-            <td>{{ (r.vasuliToiletTax or 0) + (r.vasuliChaluToiletTax or 0) }}</td>
-            <td>{{ r.total or 0 }}</td>
+            <td>{{ (r.vasuliGhar or 0)|amt }}</td>
+            <td>{{ (r.vasuliChaluGhar or 0)|amt }}</td>
+            <td>{{ ((r.vasuliGhar or 0) + (r.vasuliChaluGhar or 0))|amt }}</td>
+            <td>{{ (r.vasuliDiva or 0)|amt }}</td>
+            <td>{{ (r.vasuliChaluDiva or 0)|amt }}</td>
+            <td>{{ ((r.vasuliDiva or 0) + (r.vasuliChaluDiva or 0))|amt }}</td>
+            <td>{{ (r.vasuliAarogyaKar or 0)|amt }}</td>
+            <td>{{ (r.vasuliChaluAarogyaKar or 0)|amt }}</td>
+            <td>{{ ((r.vasuliAarogyaKar or 0) + (r.vasuliChaluAarogyaKar or 0))|amt }}</td>
+            <td>{{ (r.vasuliSapanikar or 0)|amt }}</td>
+            <td>{{ (r.vasuliChaluSapanikar or 0)|amt }}</td>
+            <td>{{ ((r.vasuliSapanikar or 0) + (r.vasuliChaluSapanikar or 0))|amt }}</td>
+            <td>{{ (r.vasuliCleaningTax or 0)|amt }}</td>
+            <td>{{ (r.vasuliChaluCleaningTax or 0)|amt }}</td>
+            <td>{{ ((r.vasuliCleaningTax or 0) + (r.vasuliChaluCleaningTax or 0))|amt }}</td>
+            <td>{{ (r.vasuliToiletTax or 0)|amt }}</td>
+            <td>{{ (r.vasuliChaluToiletTax or 0)|amt }}</td>
+            <td>{{ ((r.vasuliToiletTax or 0) + (r.vasuliChaluToiletTax or 0))|amt }}</td>
+            <td>{{ (r.total or 0)|amt }}</td>
         </tr>
         {% endfor %}
         <tr>
+            {# रकमा एकसारख्या: पूर्ण रुपया "30" / "0", पैसे असतील तर "30.50" (आधी "30.0" व "0" मिसळून) #}
             <td colspan="7" class="right bold">एकूण</td>
             {% set th_g = rows|map(attribute='vasuliGhar')|sum %}
             {% set ch_g = rows|map(attribute='vasuliChaluGhar')|sum %}
-            <td>{{ th_g }}</td>
-            <td>{{ ch_g }}</td>
-            <td>{{ th_g + ch_g }}</td>
+            <td>{{ (th_g)|amt }}</td>
+            <td>{{ (ch_g)|amt }}</td>
+            <td>{{ (th_g + ch_g)|amt }}</td>
             {% set th_d = rows|map(attribute='vasuliDiva')|sum %}
             {% set ch_d = rows|map(attribute='vasuliChaluDiva')|sum %}
-            <td>{{ th_d }}</td>
-            <td>{{ ch_d }}</td>
-            <td>{{ th_d + ch_d }}</td>
+            <td>{{ (th_d)|amt }}</td>
+            <td>{{ (ch_d)|amt }}</td>
+            <td>{{ (th_d + ch_d)|amt }}</td>
             {% set th_a = rows|map(attribute='vasuliAarogyaKar')|sum %}
             {% set ch_a = rows|map(attribute='vasuliChaluAarogyaKar')|sum %}
-            <td>{{ th_a }}</td>
-            <td>{{ ch_a }}</td>
-            <td>{{ th_a + ch_a }}</td>
+            <td>{{ (th_a)|amt }}</td>
+            <td>{{ (ch_a)|amt }}</td>
+            <td>{{ (th_a + ch_a)|amt }}</td>
             {% set th_p = rows|map(attribute='vasuliSapanikar')|sum %}
             {% set ch_p = rows|map(attribute='vasuliChaluSapanikar')|sum %}
-            <td>{{ th_p }}</td>
-            <td>{{ ch_p }}</td>
-            <td>{{ th_p + ch_p }}</td>
+            <td>{{ (th_p)|amt }}</td>
+            <td>{{ (ch_p)|amt }}</td>
+            <td>{{ (th_p + ch_p)|amt }}</td>
             {% set th_c = rows|map(attribute='vasuliCleaningTax')|sum %}
             {% set ch_c = rows|map(attribute='vasuliChaluCleaningTax')|sum %}
-            <td>{{ th_c }}</td>
-            <td>{{ ch_c }}</td>
-            <td>{{ th_c + ch_c }}</td>
+            <td>{{ (th_c)|amt }}</td>
+            <td>{{ (ch_c)|amt }}</td>
+            <td>{{ (th_c + ch_c)|amt }}</td>
             {% set th_t = rows|map(attribute='vasuliToiletTax')|map('float')|sum %}
             {% set ch_t = rows|map(attribute='vasuliChaluToiletTax')|map('float')|sum %}
-            <td>{{ th_t }}</td>
-            <td>{{ ch_t }}</td>
-            <td>{{ th_t + ch_t }}</td>
-            <td>{{ rows|map(attribute='total')|sum }}</td>
+            <td>{{ (th_t)|amt }}</td>
+            <td>{{ (ch_t)|amt }}</td>
+            <td>{{ (th_t + ch_t)|amt }}</td>
+            <td>{{ (rows|map(attribute='total')|sum)|amt }}</td>
         </tr>
     </table>
     </div>

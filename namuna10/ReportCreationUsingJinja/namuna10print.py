@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 import httpx
 from datetime import date
 from Utility.date_display import to_dmy
+from Utility.amount_display import format_amount_display
 
 router = APIRouter()
 # Load templates from the 'templates' folder (adjust path as needed)
@@ -18,6 +19,9 @@ home_path = os.path.expanduser("~")
 # Path to: C:\Users\<User>\AppData\Local\grampanchayat\reports
 static_dir = os.path.join(home_path, 'Documents', 'grampanchayat', 'reports')
 env = Environment(loader=FileSystemLoader(namuna10_template_dir))
+# vasuliHishob.html मधले filters (पावती दिनांक DD-MM-YYYY, रकमा एकसारख्या)
+env.filters['dmy'] = to_dmy
+env.filters['amt'] = format_amount_display
 
 # API base URL
 localhost = "http://127.0.0.1:8000"
