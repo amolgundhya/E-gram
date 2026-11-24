@@ -14,6 +14,28 @@
             font-size: 15px;
             padding: 2px 4px;
         }
+        .qr-anchor {
+            position: relative;
+            height: 0;
+        }
+        .qr-anchor .qr-side {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            white-space: nowrap;
+        }
+        .qr-box {
+            display: inline-block;
+            text-align: center;
+            margin: 0 4px;
+            font-size: 11px;
+            line-height: 1.1;
+        }
+        .qr-box img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+        }
         .center { text-align: center; }
         .left { text-align: left; }
         .right { text-align: right; }
@@ -163,6 +185,27 @@
     <div class="print-page"{% if not loop.last %} style="page-break-after: always;"{% endif %}>
     <!-- Top section: फक्त पहिल्या पानावर (मथळा + GP/village/taluka/jilha) -->
     {% if loop.first %}
+    {# घर कर / पाणी कर QR (Master Bank Scanner चालू असेल तरच) - नमुना 9 All सारखेच QR/आकार/लेबल, मथळ्याच्या
+       उजव्या वरच्या कोपऱ्यात. शून्य-उंचीच्या आवरणात absolute, त्यामुळे मथळ्याची उंची, कॉलम-रुंदी व पान-विभाजन
+       जसेच्या तसे (QR 78px < मथळ्याच्या 3 ओळी, खालच्या ग्रामपंचायत ओळीवर येत नाही). #}
+    {% if showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+    <div class="qr-anchor">
+        <div class="qr-side">
+            {% if houseTaxQrUrl %}
+            <span class="qr-box">
+                <img src="{{ houseTaxQrUrl }}" /><br>
+                <span>घर कर</span>
+            </span>
+            {% endif %}
+            {% if waterTaxQrUrl %}
+            <span class="qr-box">
+                <img src="{{ waterTaxQrUrl }}" /><br>
+                <span>पाणी कर</span>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
     <table class="report-top">
         <tr>
             <td colspan="3" class="center bold" style="font-size:22px;">नमुना ९</td>
