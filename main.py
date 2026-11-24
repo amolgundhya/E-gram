@@ -774,7 +774,9 @@ def _report_page_number_enabled(gp=None):
 @app.get("/report_assets/page_numbers.js", include_in_schema=False)
 def report_page_numbers_js(gp: int = None):
     from fastapi.responses import Response as _Resp
-    headers = {"Cache-Control": "no-store"}  # setting बदलल्यावर लगेच लागू व्हावं
+    # setting बदलल्यावर लगेच लागू व्हावं - ब्राउझर/viewer ने script साठवू नये (templates मध्ये ?v=2:
+    # आधीच्या StaticFiles मधून cache झालेलं जुनं script वापरलं जाऊ नये म्हणून नवीन URL)
+    headers = {"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache", "Expires": "0"}
     if _report_page_number_enabled(gp):
         path = os.path.join("templates", "_assets", "page_numbers.js")
         with open(path, "rb") as f:
