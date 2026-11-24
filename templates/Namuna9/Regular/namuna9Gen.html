@@ -224,6 +224,11 @@
         </tr>
     </table>
     {% endif %}
+    {# पहिल्या पानानंतरच्या प्रत्येक पानावर घर कर / पाणी कर QR (Master Bank Scanner चालू असेल तरच) - 9 All सारखेच.
+       पान-विभाजनात (_QR_STRIP_H) एवढी उंची राखलेली आहे - QR बंद असेल तर पूर्वीसारखेच. #}
+    {% if not loop.first and showBankScanner and (houseTaxQrUrl or waterTaxQrUrl) %}
+    <div style="height: 78px; text-align: right; white-space: nowrap; overflow: hidden;">{% if houseTaxQrUrl %}<span style="display: inline-block; text-align: center; margin: 0 4px; font-size: 11px; line-height: 1.1;"><img src="{{ houseTaxQrUrl }}" style="width: 64px; height: 64px; object-fit: contain;" /><br><span>घर कर</span></span>{% endif %}{% if waterTaxQrUrl %}<span style="display: inline-block; text-align: center; margin: 0 4px; font-size: 11px; line-height: 1.1;"><img src="{{ waterTaxQrUrl }}" style="width: 64px; height: 64px; object-fit: contain;" /><br><span>पाणी कर</span></span>{% endif %}</div>
+    {% endif %}
     <!-- Main Table Header -->
     <table class="main-table" style= "width:100%; border-collapse:collapse; margin-top:8px; font-size:14px;">
         <thead>
