@@ -507,14 +507,10 @@
               <tr>
                 <td>{{ tax }}</td>
                 <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~
-                  loop.index] or 0) }}
+                  {{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0)) }}
                 </td>
                 <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index]
-                  or 0) }}
+                  {{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0)) }}
                 </td>
 
                 {% set current_value =
@@ -523,11 +519,10 @@
                 ~ loop.index] or 0 %}
 
                 <td class="right">
-                  {{ current_value }}
+                  {{ "%.2f"|format(current_value) }}
                 </td>
                 <td class="right">
-                  {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
-                  else total_value }}
+                  {{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value) }}
                 </td>
 
                 {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
@@ -539,10 +534,10 @@
               {% endfor %}
               <tr class="bold">
                 <td style="white-space: nowrap">एकूण (दिनांक : {{ ((data[i].currentDate or '') if showN9Date != 'false' else '') | dmy }})</td>
-                <td class="right">{{ totals.magil }}</td>
-                <td class="right">{{ totals.dand }}</td>
-                <td class="right">{{ totals.current }}</td>
-                <td class="right">{{ totals.ekun }}</td>
+                <td class="right">{{ "%.2f"|format(totals.magil) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.dand) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.current) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
               </tr>
             </table>
             {% set kmap = (data[i]['कराचे नाव'] if data[i]['कराचे नाव'] is
@@ -645,14 +640,10 @@
               <tr>
                 <td>{{ tax }}</td>
                 <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~
-                  loop.index] or 0) }}
+                  {{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0)) }}
                 </td>
                 <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index]
-                  or 0) }}
+                  {{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0)) }}
                 </td>
 
                 {% set current_value =
@@ -661,11 +652,10 @@
                 ~ loop.index] or 0 %}
 
                 <td class="right">
-                  {{ current_value }}
+                  {{ "%.2f"|format(current_value) }}
                 </td>
                 <td class="right">
-                  {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
-                  else total_value }}
+                  {{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value) }}
                 </td>
 
                 {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
@@ -677,10 +667,10 @@
               {% endfor %}
               <tr class="bold">
                 <td style="white-space: nowrap">एकूण (दिनांक : {{ ((data[i].currentDate or '') if showN9Date != 'false' else '') | dmy }})</td>
-                <td class="right">{{ totals.magil }}</td>
-                <td class="right">{{ totals.dand }}</td>
-                <td class="right">{{ totals.current }}</td>
-                <td class="right">{{ totals.ekun }}</td>
+                <td class="right">{{ "%.2f"|format(totals.magil) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.dand) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.current) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
               </tr>
             </table>
             {% set kmap2 = (data[i]['कराचे नाव'] if data[i]['कराचे नाव'] is
@@ -785,14 +775,10 @@
               <tr>
                 <td>{{ tax }}</td>
                 <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~
-                  loop.index] or 0) }}
+                  {{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0)) }}
                 </td>
                 <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~
-                  loop.index] or 0) }}
+                  {{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0)) }}
                 </td>
 
                 {% set current_value =
@@ -801,11 +787,10 @@
                 data[i+1].recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
                 <td class="right">
-                  {{ current_value }}
+                  {{ "%.2f"|format(current_value) }}
                 </td>
                 <td class="right">
-                  {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
-                  else total_value }}
+                  {{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value) }}
                 </td>
 
                 {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
@@ -817,10 +802,10 @@
               {% endfor %}
               <tr class="bold">
                 <td style="white-space: nowrap">एकूण (दिनांक : {{ ((data[i+1].currentDate or '') if showN9Date != 'false' else '') | dmy }})</td>
-                <td class="right">{{ totals.magil }}</td>
-                <td class="right">{{ totals.dand }}</td>
-                <td class="right">{{ totals.current }}</td>
-                <td class="right">{{ totals.ekun }}</td>
+                <td class="right">{{ "%.2f"|format(totals.magil) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.dand) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.current) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
               </tr>
             </table>
             {% set kmap3 = (data[i+1]['कराचे नाव'] if data[i+1]['कराचे नाव'] is
@@ -925,14 +910,10 @@
               <tr>
                 <td>{{ tax }}</td>
                 <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~
-                  loop.index] or 0) }}
+                  {{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0)) }}
                 </td>
                 <td class="right">
-                  {{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else
-                  (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~
-                  loop.index] or 0) }}
+                  {{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0)) }}
                 </td>
 
                 {% set current_value =
@@ -941,11 +922,10 @@
                 data[i+1].recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
                 <td class="right">
-                  {{ current_value }}
+                  {{ "%.2f"|format(current_value) }}
                 </td>
                 <td class="right">
-                  {{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी')
-                  else total_value }}
+                  {{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value) }}
                 </td>
 
                 {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}{% set totals.magil = totals.magil + (data[i+1].recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}{% set totals.dand = totals.dand + (data[i+1].recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + total_value %}{% else %}{% set totals.current = totals.current + current_value %}{% set totals.ekun = totals.ekun + current_value %}{% endif %}
@@ -957,10 +937,10 @@
               {% endfor %}
               <tr class="bold">
                 <td style="white-space: nowrap">एकूण (दिनांक : {{ ((data[i+1].currentDate or '') if showN9Date != 'false' else '') | dmy }})</td>
-                <td class="right">{{ totals.magil }}</td>
-                <td class="right">{{ totals.dand }}</td>
-                <td class="right">{{ totals.current }}</td>
-                <td class="right">{{ totals.ekun }}</td>
+                <td class="right">{{ "%.2f"|format(totals.magil) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.dand) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.current) }}</td>
+                <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
               </tr>
             </table>
             <div style="font-size: 10px; margin-top: 3px; padding: 0 3px; line-height: 1.4">
