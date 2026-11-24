@@ -689,6 +689,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -773,6 +775,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -856,6 +860,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -940,6 +946,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -1725,6 +1733,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -1992,6 +2002,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2077,6 +2089,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2162,6 +2176,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2247,6 +2263,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2855,6 +2873,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2940,6 +2960,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
+        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
+        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
         rendered_html = template.render(**context)
         
         # Save output.html
