@@ -655,7 +655,7 @@
             </tr>
             <tr>
               <td colspan="8" style="text-align: right; font-weight: bold">
-                {% if row.toilet or row.gharkul %}<span style="float: left; text-align: left; font-weight: normal;">{% if row.toilet %}<b>शौचालय :</b> {{ row.toilet }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}{% endif %}{% if row.toilet and row.gharkul %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{% if row.gharkul %}<b>घरकुल :</b> {{ row.gharkul }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}{% endif %}</span>{% endif %}एकूण चौरस फुट
+                {% if row.toilet or row.gharkul %}<span style="float: left; text-align: left; font-weight: normal;">{% if row.toilet %}<b>शौचालय :</b> {{ toilet_display(row.toilet, row.toiletBenefitYear) }}{% endif %}{% if row.toilet and row.gharkul %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{% if row.gharkul %}<b>घरकुल :</b> {{ gharkul_display(row.gharkul, row.gharkulYojana, row.gharkulBenefitYear) }}{% endif %}</span>{% endif %}एकूण चौरस फुट
               </td>
               <td>{{row.total_arearinfoot|default('')}}</td>
               <td>

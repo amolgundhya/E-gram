@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from Utility.QRcodeGeneration import QRCodeGeneration
 from Utility.qr_text import build_property_qr_text, build_area_lines, build_gp_heading
 from Utility import fast_qr
-from Utility.benefit_year import financial_year_full
+from Utility.benefit_year import financial_year_full, register_benefit_helpers
 import httpx
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -36,6 +36,8 @@ env.template_class = _AreaTemplate
 
 # शौचालय/घरकुल लाभ वर्ष - तारीख टाकली असली तरी प्रिंटमध्ये फक्त "2020-2021" (Utility/benefit_year.py)
 env.filters['financial_year_full'] = financial_year_full
+# शौचालय/घरकुल प्रिंट मजकूर - toilet_display()/gharkul_display() (Utility/benefit_year.py)
+register_benefit_helpers(env)
 
 # चौ.फु. क्षेत्रफळ/लांबी-रुंदी आकड्यांना 10.76 (किंवा 1/10.76) रूपांतरणामुळे 599.98,
 # 1199.96 सारखे किंचित-चुकीचे आकडे येतात - अपेक्षित आकड्याच्या 0.05 च्या आत असल्यास पूर्ण

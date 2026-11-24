@@ -30,3 +30,47 @@ def financial_year_full(value):
     if y is None:
         return s
     return "{}-{}".format(y, y + 1)
+
+
+# शौचालय / घरकुल प्रिंटवरील मजकूर - सर्व नमुना-8 प्रिंट्स (single, range, P1/P2, register
+# प्रकार 1-5, विशेष पाणी) व Index यादी याच दोन helpers ने छापतात (क्लायंट 24-Nov-2026).
+# फक्त दाखवणे - डेटा बदलत नाही. लेबल ("शौचालय :") template मध्येच राहते, इथे फक्त मजकूर.
+#   शौचालय: आहे+वर्ष -> "सन <वर्ष> शौचालयाचा लाभ मिळालेला आहे." | आहे, वर्ष नाही -> "आहे"
+#           नाही -> "नाही" | निवडले नाही -> ""
+#   घरकुल:  योजना+वर्ष -> "<योजना> सन <वर्ष> योजनेचा लाभ मिळाला आहे." | योजना, वर्ष नाही ->
+#           "आहे – <योजना>" | नाही -> "नाही" | निवडले नाही -> "" (आहे पण योजना नाही -> "आहे")
+def _clean(value):
+    return '' if value is None else str(value).strip()
+
+
+def toilet_display(toilet, benefit_year=None):
+    t = _clean(toilet)
+    if not t:
+        return ''
+    if t == 'आहे':
+        y = financial_year_full(benefit_year)
+        return "सन {} शौचालयाचा लाभ मिळालेला आहे.".format(y) if y else 'आहे'
+    return t
+
+
+def gharkul_display(gharkul, yojana=None, benefit_year=None):
+    g = _clean(gharkul)
+    if not g:
+        return ''
+    if g == 'आहे':
+        yo = _clean(yojana)
+        if not yo:
+            return 'आहे'
+        y = financial_year_full(benefit_year)
+        if y:
+            return "{} सन {} योजनेचा लाभ मिळाला आहे.".format(yo, y)
+        return "आहे – {}".format(yo)
+    return g
+
+
+def register_benefit_helpers(env):
+    """Jinja env मध्ये financial_year_full filter + toilet_display/gharkul_display globals."""
+    env.filters['financial_year_full'] = financial_year_full
+    env.globals['toilet_display'] = toilet_display
+    env.globals['gharkul_display'] = gharkul_display
+    return env

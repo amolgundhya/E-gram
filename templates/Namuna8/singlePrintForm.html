@@ -151,7 +151,7 @@
                 <td style="font-weight: bold; white-space: nowrap; width: 14%;">आधार क्रमांक :</td>
                 <td style="padding: 2px 6px;">{% if aadharCard %}{{aadharNumber|default('', true)}}{% endif %}</td>
                 <td style="font-weight: bold; white-space: nowrap; width: 5%;padding: 2px 6px;">घरकुल :</td>
-                <td style="width: 15%; padding: 2px 6px;">{{gharkul|default('', true)}}{% if gharkulYojana and gharkul != 'नाही' %} - {{gharkulYojana}}{% endif %}{% if gharkulBenefitYear and gharkul != 'नाही' %} ({{gharkulBenefitYear}}){% endif %}</td>
+                <td style="width: 15%; padding: 2px 6px;">{{ gharkul_display(gharkul, gharkulYojana, gharkulBenefitYear) }}</td>
             </tr>
             {% endif %}
         </table>
