@@ -259,14 +259,14 @@
 {% for tax in tax_names %}
 <tr>
     <td>{{ tax }}</td>
-    <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) }}</td>
-    <td class="right">{{ (0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) }}</td>
+    <td class="right">{{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0)) }}</td>
+    <td class="right">{{ "%.2f"|format((0) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else (record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0)) }}</td>
 
     {% set current_value = record.recoverableAmounts.current['current' ~ loop.index] or 0 %}
     {% set total_value = record.recoverableAmounts.total['total' ~ loop.index] or 0 %}
 
-    <td class="right">{{ current_value }}</td>
-    <td class="right">{{ (current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value }}</td>
+    <td class="right">{{ "%.2f"|format(current_value) }}</td>
+    <td class="right">{{ "%.2f"|format((current_value) if (tax == 'नोटीस फी' or tax == 'वारंट फी') else total_value) }}</td>
     {% if not (tax == 'नोटीस फी' or tax == 'वारंट फी') %}
         {% set totals.magil = totals.magil + (record.recoverableAmounts.arrears.Thakit['Thakit' ~ loop.index] or 0) %}
         {% set totals.dand = totals.dand + (record.recoverableAmounts.arrears.Dand['Dand' ~ loop.index] or 0) %}
@@ -287,10 +287,10 @@
 
 <tr class="bold">
     <td>एकूण</td>
-    <td class="right">{{ totals.magil }}</td>
-    <td class="right">{{ totals.dand }}</td>
-    <td class="right">{{ totals.current }}</td>
-    <td class="right">{{ totals.ekun }}</td>
+    <td class="right">{{ "%.2f"|format(totals.magil) }}</td>
+    <td class="right">{{ "%.2f"|format(totals.dand) }}</td>
+    <td class="right">{{ "%.2f"|format(totals.current) }}</td>
+    <td class="right">{{ "%.2f"|format(totals.ekun) }}</td>
 </tr>
 <tr class="bold">
     <td colspan="5" style="border:none;">दिनांक : {{ ((record.currentDate or '') if showN9Date != 'false' else '') | dmy }}</td>
