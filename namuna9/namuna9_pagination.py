@@ -124,8 +124,10 @@ _PROFILES = {
     # name=20 / Gen name=24 वर पानं दुसऱ्या शीटवर जातात - त्याखाली सुरक्षित आकडे.
     'namuna9AllVisheshPain.html': dict(page_h=717, top=134.8, thead=70.6, tfoot=38.7, grand=38.1, line1=24.4, extra=20.8,
         cpl=dict(prop=5, name=12.5, occ=7.5), safety=0.943),
+    # 24-Nov-2026: QR पट्टी (प्रत्येक पानावर) नंतर PDF मध्ये पानं सांडायची (auto layout: पानावरची नावं लहान असली की
+    # नाव-कॉलम अरुंद होऊन नावं 2 ओळींत) - name cpl कमी व safety पुन्हा मोजली (पूर्ण गावाच्या प्रत्यक्ष ओळी-उंचीवरून, सर्वात भरलेलं पान <= 0.96).
     'namuna9GenVisheshPain.html': dict(page_h=717, top=149.1, thead=85.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
-        cpl=dict(prop=6, name=20.5, occ=9.0), safety=0.944),
+        cpl=dict(prop=6, name=18, occ=9.0), safety=0.961),
     'namuna9PaniVisheshPain.html': dict(page_h=717, top=149.1, thead=85.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
         cpl=dict(prop=6, name=28.0, occ=13.5), safety=0.97),
     # विशेष पाणी Vasuli1 लँडस्केप A4 (L. Page) + मिळकत नंबर कॉलम - 1047px छापील रुंदीवर
@@ -149,8 +151,10 @@ _PROFILES = {
     # शीटवर जातात; 14 सुरक्षित (लांब नावांसह आणि फक्त प्रत्यक्ष डेटासह दोन्ही तपासलं).
     'namuna9AllVisheshPaniSafai.html': dict(page_h=717, top=123.1, thead=64.5, tfoot=35.5, grand=35.1, line1=21.9, extra=19.0,
         cpl=dict(prop=5, name=12.0, occ=7.5), safety=0.931),
+    # 24-Nov-2026: QR पट्टी (प्रत्येक पानावर) नंतर PDF मध्ये पानं सांडायची (auto layout: पानावरची नावं लहान असली की
+    # नाव-कॉलम अरुंद होऊन नावं 2 ओळींत) - name cpl कमी व safety पुन्हा मोजली (पूर्ण गावाच्या प्रत्यक्ष ओळी-उंचीवरून, सर्वात भरलेलं पान <= 0.96).
     'namuna9GenVisheshPaniSafai.html': dict(page_h=717, top=149.1, thead=85.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
-        cpl=dict(prop=5, name=13.5, occ=7.5), safety=0.919),
+        cpl=dict(prop=5, name=12, occ=7.5), safety=0.931),
     # विशेष पाणी (सफाई सह) Vasuli1 लँडस्केप A4 (L. Page) + मिळकत नंबर कॉलम - 1047px छापील
     # रुंदीवर मोजलेलं (टेबल 1337px -> 0.783; सर्वात लहान ओळही 2 ओळींची). name=20/24 वर
     # सर्वात भरलेलं पान 91-94% - खूप घट्ट; 16 वर 84% (लांब नावांसह आणि प्रत्यक्ष डेटासह तपासलं).
@@ -176,8 +180,10 @@ _PROFILES = {
         cpl=dict(prop=5, name=7.0, occ=6.0), safety=1.05),
     'namuna9GenPG2VisheshPain.html': dict(page_h=717, top=150, thead=100.0, tfoot=41.2, grand=40.7, line1=25.5, extra=22.5,
         cpl=dict(prop=5, name=12.5, occ=7.5), safety=0.97),
+    # 24-Nov-2026: QR पट्टी (प्रत्येक पानावर) नंतर PDF मध्ये पानं सांडायची (auto layout: पानावरची नावं लहान असली की
+    # नाव-कॉलम अरुंद होऊन नावं 2 ओळींत) - name cpl कमी व safety पुन्हा मोजली (पूर्ण गावाच्या प्रत्यक्ष ओळी-उंचीवरून, सर्वात भरलेलं पान <= 0.96).
     'namuna9PaniPG2VisheshPain.html': dict(page_h=717, top=150, thead=108.1, tfoot=42.0, grand=42.0, line1=26.0, extra=23.0,
-        cpl=dict(prop=5, name=16.5, occ=13.5), safety=0.969),
+        cpl=dict(prop=5, name=13, occ=13.5), safety=0.948),
     'namuna9AllPG2VisheshPaniSafai.html': dict(page_h=717, top=150, thead=136.1, tfoot=36.3, grand=36.4, line1=18.9, extra=14.6,
         cpl=dict(prop=5, name=7.5, occ=7.5), safety=1.04),
     'namuna9GenPG2VisheshPaniSafai.html': dict(page_h=717, top=150, thead=95, tfoot=35.9, grand=35.3, line1=21.8, extra=19.3,
