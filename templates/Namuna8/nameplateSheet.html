@@ -146,14 +146,36 @@
     /* ROW 3 - पूर्ण रुंदीत, बटणांच्या मध्ये न अडकता खालच्या भागात 3 ओळी. मोठ्या QR
        मुळे उरलेली जागा कमी झालीच आहे; उरलेल्या जागेत मजकूर वरतीच (flex-start) ठेवतो,
        जेणेकरून मधल्या रांगेखालची पोकळी वाढणार नाही. */
-    /* खालचा भाग: फक्त मजकूर (bottom-row), पूर्ण रुंदीत. घर कर / पाणी कर QR आणि
-       मोबाईल क्र. प्लेटवर नाहीत - मोठ्या QR च्या मजकुरात, स्कॅन केल्यावर दिसतात
-       (क्लायंट विनंती, नोव्हें 2026). */
+    /* खालचा भाग: मजकूर (bottom-row) मध्ये. मोबाईल क्र. प्लेटवर नाही - मोठ्या QR च्या
+       मजकुरात. घर कर QR डावीकडे / पाणी कर QR उजवीकडे (Master Bank Scanner चालू असेल
+       तरच, ~1in, खाली लहान लेबल) - क्लायंट, 24-नोव्हें 2026. */
     .bottom-area {
       flex: 1 1 auto;
       min-height: 0;
       display: flex;
       gap: 0.06in;
+    }
+    .bank-qr {
+      flex: 0 0 1in;
+      width: 1in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.02in;
+    }
+    .bank-qr img {
+      width: 1in;
+      height: 1in;
+      object-fit: contain;
+      print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    }
+    .bank-qr .bank-qr-label {
+      font-weight: 700;
+      color: #000;
+      font-size: 8pt;
+      line-height: 1.1;
+      white-space: nowrap;
     }
     .bottom-row {
       flex: 1 1 auto;
@@ -554,7 +576,16 @@
         </div>
       </div>
 
+      {% set show_bank_qr = house_tax_qr_url or water_tax_qr_url %}
       <div class="bottom-area">
+      {% if show_bank_qr %}
+      <div class="bank-qr bank-qr-house">
+        {% if house_tax_qr_url %}
+        <img src="{{ house_tax_qr_url }}" alt="घर कर QR" />
+        <div class="bank-qr-label">घर कर</div>
+        {% endif %}
+      </div>
+      {% endif %}
       <div class="bottom-row">
         <div class="owner-name">{{p.owner_name}}</div>
         <div class="id-occ-line">
@@ -563,6 +594,14 @@
         {# मोबाईल, खाली जागा व चतुःसीमा (दिशा) प्लेटवर नाहीत - मोठ्या QR मध्ये (क्लायंट विनंती) #}
         <div class="tagline">{{p.tagline}}</div>
       </div>
+      {% if show_bank_qr %}
+      <div class="bank-qr bank-qr-water">
+        {% if water_tax_qr_url %}
+        <img src="{{ water_tax_qr_url }}" alt="पाणी कर QR" />
+        <div class="bank-qr-label">पाणी कर</div>
+        {% endif %}
+      </div>
+      {% endif %}
       </div>
     </div>
     {% endfor %}
