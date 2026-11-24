@@ -666,9 +666,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -689,8 +691,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -752,9 +754,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -775,8 +779,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -837,9 +841,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -860,8 +866,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -923,9 +929,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -946,8 +954,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -1710,9 +1718,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1733,8 +1743,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -1979,9 +1989,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2002,8 +2014,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2066,9 +2078,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2089,8 +2103,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2153,9 +2167,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2176,8 +2192,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2240,9 +2256,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2263,8 +2281,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2850,9 +2868,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2873,8 +2893,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
@@ -2937,9 +2957,11 @@ async def prakar1(request : Request):
             data = [data]
         data = apply_name_sort(data, requestData)
         # Extract top-level fields from the first record
+        showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name),
+            'pages': paginate_by_height(data, template.name,
+                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -2960,8 +2982,8 @@ async def prakar1(request : Request):
             'year': requestData.get('year', ''),
             'pageNumber': await _get_checklist_page_number(gram_panchayat_id),
         }
-        # घर कर / पाणी कर QR मथळ्यात (Bank Scanner चालू असेल तरच); पान-विभाजन बदलत नाही.
-        context.update(zip(('showBankScanner', 'houseTaxQrUrl', 'waterTaxQrUrl'), await _get_bank_qr(request, gram_panchayat_id)))
+        # घर कर / पाणी कर QR: पहिल्या पानाच्या मथळ्यात + पुढच्या प्रत्येक पानावर पट्टी (9 All सारखे, Bank Scanner चालू असेल तरच).
+        context.update(showBankScanner=showBankScanner, houseTaxQrUrl=houseTaxQrUrl, waterTaxQrUrl=waterTaxQrUrl)
         rendered_html = template.render(**context)
         
         # Save output.html
