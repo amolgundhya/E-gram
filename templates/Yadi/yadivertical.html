@@ -42,10 +42,22 @@
             text-align: center;
             word-break: break-word;
         }
+        /* उभी प्रिंट (A4 portrait, क्लायंट Nov-2026): सर्व कॉलम पानाच्या रुंदीत - fixed कॉलम रुंदी,
+           लहान अक्षर, लांब मजकूर (वर्णन, नाव) पुढच्या ओळीत; उजवीकडचा कॉलम कापला जाऊ नये */
+        .main-table { table-layout: fixed; font-size: 11px; }
+        .main-table th, .main-table td { padding: 1px 2px; word-break: break-word; overflow-wrap: anywhere; }
+        .main-table .header-table td { font-size: 12px; word-break: normal; overflow-wrap: normal; }
+        .main-table .footer-summary { font-size: 11px; padding: 2px 3px; white-space: normal; }
+        @media screen {
+            #mainContent { max-width: 200mm; margin: 0 auto; }
+        }
         @media print {
             @page {
-                size: A4;
+                size: A4 portrait;
             }
+            .main-table { width: 100% !important; font-size: 10px; }
+            .main-table .header-table td { font-size: 11px; }
+            .main-table .footer-summary { font-size: 10px; }
             #toolbar {
                 display: none !important;
             }
@@ -178,10 +190,15 @@
     <div id="mainContent">
     <!-- Main Data Table -->
     <table class="main-table" style="margin-top:0; width:95%; margin-left:auto; margin-right:auto;">
+        <colgroup>
+            <col style="width:5%"><col style="width:10%"><col style="width:8%"><col style="width:14%">
+            <col style="width:16%"><col style="width:14%"><col style="width:8%"><col style="width:10%">
+            <col style="width:6%"><col style="width:9%">
+        </colgroup>
         <!-- Page Header - Repeats on every page -->
         <thead class="page-header">
             <tr>
-                <td colspan="21" style="border:none; padding:0;">
+                <td colspan="10" style="border:none; padding:0;">
                     <table class="header-table" style="width:100%; margin:0;">
                         <tr>
                             <td class="left" style="width:33%">ग्रामपंचायत : {{gramPanchayat}} <br>एकूण संख्या : {{totalCount}} </td>
