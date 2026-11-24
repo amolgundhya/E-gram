@@ -2399,6 +2399,14 @@ async def nameplate_sheet(request: Request):
         gp_data = gp_resp.json() if gp_resp.status_code == 200 else {}
         parent_gp_name = gp_data.get('parent_gram_panchayat_name')
         year_label = f"{datetime.now().year}-{datetime.now().year + 1}"
+        # घर कर / पाणी कर Bank Scanner QR (Master) - Bank Scanner चालू व QR अपलोड असेल
+        # तरच, प्रत्येक प्लेटच्या तळाशी डावीकडे / उजवीकडे (क्लायंट, 24-नोव्हें 2026)
+        house_tax_qr_url = water_tax_qr_url = None
+        if gram_panchayat_id and gp_data.get('show_bank_scanner_in_reports'):
+            if gp_data.get('house_tax_qr_url'):
+                house_tax_qr_url = f'/location/gram-panchayats/{gram_panchayat_id}/qr/house'
+            if gp_data.get('water_tax_qr_url'):
+                water_tax_qr_url = f'/location/gram-panchayats/{gram_panchayat_id}/qr/water'
 
         properties = response.json()
         if not isinstance(properties, list):
@@ -2470,6 +2478,8 @@ async def nameplate_sheet(request: Request):
             plate_width_in=plate_width_in,
             plate_height_in=plate_height_in,
             plates_per_row=requestData.get("platesPerRow", 2),
+            house_tax_qr_url=house_tax_qr_url,
+            water_tax_qr_url=water_tax_qr_url,
         )
 
         os.makedirs(static_dir, exist_ok=True)

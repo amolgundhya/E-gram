@@ -358,7 +358,7 @@ def png_data_uri(text, error_correction=constants.ERROR_CORRECT_L, box_size=8, b
 # Many QRs at once (डिजिटल नेम प्लेट): cache + parallel processes
 # ---------------------------------------------------------------------------
 # Bump when the PNG output of png_data_uri() changes, so old cache rows are ignored.
-CACHE_FORMAT = "fast_qr-1|L|box8|border4"
+CACHE_FORMAT = "fast_qr-2|L|box8|border4"  # 2: नाव प्लेट QR (मोबाईल ओळ / बँक QR) - 24-Nov-2026
 # Fewer missing QRs than this are made in this process: starting worker processes
 # costs a few seconds (in a non-exe run each worker re-imports main.py), which only
 # pays off for big batches such as a whole village; a 300-plate part runs directly.
