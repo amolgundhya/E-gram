@@ -519,7 +519,7 @@
 <!-- Footer/Signature/Logo area -->
 <table style="text-align: center; width: 100%; border-collapse: collapse; border: 1px solid #000; font-size: 14px; margin-top: 0;">
     <tr>
-        <td style="text-align: left; border-right: 1px solid #000;">{% if row.toilet == 'आहे' %}शौचालय : {% if row.toiletBenefitYear %}सन {{ row.toiletBenefitYear|financial_year_full }} शौचालयाचा लाभ मिळालेला आहे.{% else %}शौचालयाचा लाभ मिळालेला आहे.{% endif %}{% else %}शौचालय : {{row.toilet|default('')}}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}{% endif %} </td>
+        <td style="text-align: left; border-right: 1px solid #000;">शौचालय : {{ toilet_display(row.toilet, row.toiletBenefitYear) }} </td>
         <td style="text-align: left; border-right: 1px solid #000;">व्दार : {{row.dwarNaav|default('', true)}}</td>
         {% if row.boundaryMarking %}
         <td style="text-align: left; border-right: 1px solid #000;">चतुर्सिमा</td>
@@ -539,7 +539,7 @@
         {% endif %}
     </tr>
     <tr>
-        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">{% if row.gharkul == 'आहे' and row.gharkulYojana %}घरकुल : {{ row.gharkulYojana }} {% if row.gharkulBenefitYear %}सन {{ row.gharkulBenefitYear|financial_year_full }} {% endif %}योजनेचा लाभ मिळाला आहे.{% else %}घरकुल : {{row.gharkul|default('')}}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{row.gharkulYojana}}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}{% endif %}
+        <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">घरकुल : {{ gharkul_display(row.gharkul, row.gharkulYojana, row.gharkulBenefitYear) }}
             {% if row.date %}
             <td style="text-align: left; vertical-align: middle; border-right: 1px solid #000;">
                 दिनांक : {{row.todays_date|default('')}} <br>

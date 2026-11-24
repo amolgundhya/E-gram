@@ -444,8 +444,8 @@
                 <td>{{ row.cleaningTax | default('') }}</td>
                 <td>{{ row.toiletTax | default('') }}</td>
                 <td>{{row.totaltax|default('') - row.vpanikar|default('')}}</td>
-                <td class="extra-col">{{ row.toilet | default('', true) }}{% if row.toiletBenefitYear and row.toilet != 'नाही' %} ({{ row.toiletBenefitYear|financial_year_full }}){% endif %}</td>
-                <td class="extra-col">{{ row.gharkul | default('', true) }}{% if row.gharkulYojana and row.gharkul != 'नाही' %} - {{ row.gharkulYojana }}{% endif %}{% if row.gharkulBenefitYear and row.gharkul != 'नाही' %} ({{ row.gharkulBenefitYear|financial_year_full }}){% endif %}</td>
+                <td class="extra-col">{{ toilet_display(row.toilet, row.toiletBenefitYear) }}</td>
+                <td class="extra-col">{{ gharkul_display(row.gharkul, row.gharkulYojana, row.gharkulBenefitYear) }}</td>
                 <td class="extra-col">{{ row.dwarNaav | default('', true) }}</td>
             </tr>
             {% endfor %}
