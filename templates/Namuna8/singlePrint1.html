@@ -218,7 +218,7 @@
         <td rowspan="2" style="text-align: left;">{{roadName|default('')}}</td>
         <td rowspan="2">{{cityWardGatNumber|default('')}}</td>
         <td rowspan="2">{{propertyNumber|default('')}}</td>
-        <td rowspan="2" style="text-align: left;">{% if owners %}{% for o in owners %}{% if not loop.first %}<br>{% endif %}{{ o.name|default('', true) }}{% if o.wifeName %} पत्‍नी {{ o.wifeName }}{% endif %}{% endfor %}{% else %}{{ownerName|default('')}}{% if ownerWifeName %} पत्‍नी {{ownerWifeName}}{% endif %}{% endif %}</td>
+        <td rowspan="2" style="text-align: left;">{% if owners %}{% for o in owners %}{% if not loop.first %}<br>{% endif %}{{ o.name|default('', true) }}{% if (o.wifeName or '')|trim and '/' not in (o.name or '') %}, {{ o.wifeName|trim }}{% endif %}{% endfor %}{% else %}{{ownerName|default('', true)}}{% if (ownerWifeName or '')|trim and '/' not in (ownerName or '') %}, {{ownerWifeName|trim}}{% endif %}{% endif %}</td>
         <td rowspan="2">{{occupantName|default('')}}</td>
         <td rowspan="2" style="text-align: left;">
             {% for ct_row in (constructionType or []) %}{{ct_row.type if constructionType and constructionType|length > 0 else ''}}<br>
