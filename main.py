@@ -735,6 +735,53 @@ app.mount("/reports", StaticFiles(directory="reports"), name="reports")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/uploaded_images", StaticFiles(directory="uploaded_images"), name="uploaded_images")
 app.mount("/ReportImages", StaticFiles(directory="ReportImages"), name="ReportImages")
+# रिपोर्टवरचा "पृष्ठ X / Y" - Master setting "पेज नंबर ठेवा" (namuna8_setting_checklist.pageNumber).
+# सगळे रिपोर्ट (नमुना-8/9/10, गोषवारा, यादी, फेरफार, दाखले रजिस्टर, नमुना-7...) हेच एक script
+# लोड करतात, म्हणून setting इथेच तपासतो: टिक नसेल तर पान क्रमांक न टाकणारं script जातं.
+# Viewer, Print आणि Share PDF (headless Chrome पण याच localhost वरून script घेतो) - तिन्हीला लागू.
+# फक्त मजकूर - पानातल्या ओळी / layout बदलत नाही. ?gp=<id> दिलं तर त्या ग्रामपंचायतीचं setting,
+# नाहीतर (एकाच ग्रामपंचायतीचं install) पहिलं checklist.
+_PAGE_NUMBERS_OFF_JS = (
+    "/* पेज नंबर ठेवा = नाही (Master setting) - रिपोर्टवर पान क्रमांक नाही */\n"
+    "(function () {\n"
+    "    if (window.__reportPageNumbers) return;\n"
+    "    window.__reportPageNumbers = true;\n"
+    "    if (typeof window.CSSMarginRule === 'undefined') return;\n"
+    "    var css = document.createElement('style');\n"
+    "    css.className = 'report-page-number-css';\n"
+    "    css.textContent = '@page { @bottom-center { content: \"\"; } }';\n"
+    "    (document.head || document.documentElement).appendChild(css);\n"
+    "})();\n"
+)
+
+
+def _report_page_number_enabled(gp=None):
+    from sqlalchemy import text as _sql_text
+    try:
+        with engine.connect() as conn:
+            if gp:
+                row = conn.execute(_sql_text(
+                    "SELECT pageNumber FROM namuna8_setting_checklist WHERE gram_panchayat_id = :gp"), {"gp": gp}).fetchone()
+            else:
+                row = conn.execute(_sql_text(
+                    "SELECT pageNumber FROM namuna8_setting_checklist ORDER BY gram_panchayat_id LIMIT 1")).fetchone()
+        return bool(row and row[0])
+    except Exception as e:
+        print("[page_numbers] setting वाचता आलं नाही:", e)
+        return False
+
+
+@app.get("/report_assets/page_numbers.js", include_in_schema=False)
+def report_page_numbers_js(gp: int = None):
+    from fastapi.responses import Response as _Resp
+    headers = {"Cache-Control": "no-store"}  # setting बदलल्यावर लगेच लागू व्हावं
+    if _report_page_number_enabled(gp):
+        path = os.path.join("templates", "_assets", "page_numbers.js")
+        with open(path, "rb") as f:
+            return _Resp(f.read(), media_type="application/javascript", headers=headers)
+    return _Resp(_PAGE_NUMBERS_OFF_JS, media_type="application/javascript", headers=headers)
+
+
 # रिपोर्ट्सचं shared JS (पान क्रमांक) - templates/_assets; फोल्डर नसला तरी backend चालू व्हावा म्हणून check_dir=False
 app.mount("/report_assets", StaticFiles(directory="templates/_assets", check_dir=False), name="report_assets")
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
