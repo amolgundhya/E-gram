@@ -227,9 +227,6 @@ def get_property_record(
     ).first()
     if not gram_panchayat:
         raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
-    # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा,
-    # आजच्या तारखेवरून नाही.
-    assessment_year = get_assessment_year(gram_panchayat)
     prop = (
         db.query(models.Property)
         .filter(
@@ -251,6 +248,19 @@ def get_property_record(
     
     if prop.gram_panchayat_id != gram_panchayat_id:
         raise HTTPException(status_code=400, detail="Property does not belong to the specified gram panchayat")
+    return build_property_record(prop, db, district, taluka, gram_panchayat)
+
+
+def build_property_record(prop, db, district, taluka, gram_panchayat):
+    """एका मालमत्तेचा record (नमुना-8 / QR साठी) - मालमत्ता object थेट घेतो, अनुक्रमांकाने
+    शोधत नाही. Serialize मध्ये अनुक्रमांक बदलत असताना दुसऱ्याच मालमत्तेचा डेटा QR मध्ये
+    जाऊ नये म्हणून हे वेगळं केलं (get_property_record हेच वापरते)."""
+    # घसारा दर आकारणी चक्राच्या सुरुवातीच्या वर्षावरून (from_yearslap) काढायचा,
+    # आजच्या तारखेवरून नाही.
+    district_id = prop.district_id
+    taluka_id = prop.taluka_id
+    gram_panchayat_id = prop.gram_panchayat_id
+    assessment_year = get_assessment_year(gram_panchayat)
     owner_ids = [o.id for o in prop.owners]
     property_types = [c.construction_type.name for c in prop.constructions]
     property_description = ", ".join(property_types)
