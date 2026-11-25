@@ -115,9 +115,11 @@ _PROFILES = {
     # सूट सह All/Gen लँडस्केप A4 (L. Page) - headless Chrome मध्ये 1047px छापील रुंदीवर
     # मोजलेलं (All चा टेबल 1178px -> 0.889 ने लहान, Gen 1068px -> 0.98). name=18 वर
     # All चं एक पान दुसऱ्या शीटवर जातं, 17 पर्यंत नाही - सुरक्षिततेसाठी 16.
-    'namuna9AllSutSaha.html': dict(page_h=717, top=132.5, thead=69.4, tfoot=38.0, grand=37.6, line1=23.7, extra=20.5,
+    # 25-Nov-2026: सूट सह All/Gen 9 All सारखे - @page margin 8mm (733px), fixed layout (shrink नाही),
+    # मथळा + QR प्रत्येक पानावर (top_all). viewer पानं = PDF पानं.
+    'namuna9AllSutSaha.html': dict(page_h=733, top_all=True, top=132.5, thead=69.4, tfoot=38.0, grand=37.6, line1=23.7, extra=20.5,
         cpl=dict(prop=5, name=12.5, occ=7.5), safety=0.957),
-    'namuna9GenSutSaha.html': dict(page_h=717, top=150.0, thead=84.1, tfoot=42.0, grand=41.6, line1=26.0, extra=23.1,
+    'namuna9GenSutSaha.html': dict(page_h=733, top_all=True, top=150.0, thead=84.1, tfoot=42.0, grand=41.6, line1=26.0, extra=23.1,
         cpl=dict(prop=5, name=12.5, occ=7.5), safety=0.956),
     # विशेष पाणी All/Gen/Pani लँडस्केप A4 (L. Page) - headless Chrome मध्ये 1047px छापील
     # रुंदीवर मोजलेलं (All चा टेबल 1157px -> 0.905, Gen/Pani 994px -> 1.0). cpl: All
@@ -225,7 +227,8 @@ def paginate_by_height(data, template_name, extra_other_pages=0, extra_all_pages
     for row in data:
         if cur and _page_height(cur + [row], p) > budget:
             pages.append(cur)
-            cur, budget = [], usable - extra_other_pages
+            # top_all: मथळा (+ QR) प्रत्येक पानावर (सूट सह All/Gen) - प्रत्येक पानावर 'top' राखतो.
+            cur, budget = [], usable - extra_other_pages - (p['top'] if p.get('top_all') else 0)
         cur.append(row)
     # शेवटच्या पानावर एकूण बेरजेच्या ओळी मावत नसतील तर शेवटच्या ओळी नव्या पानावर.
     tail = []

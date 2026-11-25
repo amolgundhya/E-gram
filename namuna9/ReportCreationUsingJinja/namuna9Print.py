@@ -1631,8 +1631,7 @@ async def prakar1(request : Request):
         # Extract top-level fields from the first record
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name,
-                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
+            'pages': paginate_by_height(data, template.name),  # मथळा + QR प्रत्येक पानावर (profile top_all) - वेगळी QR पट्टी नाही
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
@@ -1721,8 +1720,7 @@ async def prakar1(request : Request):
         showBankScanner, houseTaxQrUrl, waterTaxQrUrl = await _get_bank_qr(request, gram_panchayat_id)
         context = {
             'data': data,
-            'pages': paginate_by_height(data, template.name,
-                                        extra_other_pages=_qr_strip_extra(showBankScanner, houseTaxQrUrl, waterTaxQrUrl)),
+            'pages': paginate_by_height(data, template.name),  # मथळा + QR प्रत्येक पानावर (profile top_all) - वेगळी QR पट्टी नाही
             'gramPanchayat': data[0].get('gramPanchayat', '') if data else '',
             'village': data[0].get('village', '') if data else '',
             'taluka': data[0].get('taluka', '') if data else '',
