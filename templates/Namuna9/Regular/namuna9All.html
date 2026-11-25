@@ -396,7 +396,8 @@
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सा. पाणी कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
-            <td class="gosh-label" colspan="2" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
@@ -423,6 +424,7 @@
             <td class="num">{% if removeChalu != 'true' %}{{ (page | sum(attribute='toiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td class="num">{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalToiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td class="num">{% if removePurnaYekun != 'true' %}{{ (((page | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (page | map(attribute='totalViWaterTax') | sum)) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
+            <td></td>
         </tr>
         {% if loop.last %}
         <tr>
@@ -433,7 +435,8 @@
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सा. पाणी कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सफाई कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
-            <td class="gosh-label" colspan="2" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
@@ -460,6 +463,7 @@
             <td class="num">{% if removeChalu != 'true' %}{{ (data | sum(attribute='toiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td class="num">{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalToiletTax')) | round(2) | blankzero(blankZero) }}{% endif %}</td>
             <td class="num">{% if removePurnaYekun != 'true' %}{{ (((data | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (data | map(attribute='totalViWaterTax') | sum)) | round(2)) | blankzero(blankZero) }}{% endif %}</td>
+            <td></td>
         </tr>
         {% endif %}
         </tfoot>

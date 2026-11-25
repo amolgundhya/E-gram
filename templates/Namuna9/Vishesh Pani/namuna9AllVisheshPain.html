@@ -282,6 +282,7 @@
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">वि.पाणीकर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
@@ -314,6 +315,7 @@
                     {{ (_tot - (_clean or 0)) | round(2) }}
                 {% endif %}
             </td>
+            <td></td>
         </tr>
         {% if loop.last %}
         <tr>
@@ -325,6 +327,7 @@
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">वि.पाणीकर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
@@ -357,6 +360,7 @@
                     {{ (_tot2 - (_clean2 or 0)) | round(2) }}
                 {% endif %}
             </td>
+            <td></td>
         </tr>
         {% endif %}
         </tfoot>

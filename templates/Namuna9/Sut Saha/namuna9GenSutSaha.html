@@ -312,6 +312,7 @@
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td ></td>
             <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
@@ -336,6 +337,7 @@
             <td>{% if removeYekun != 'true' %}{{ (page | sum(attribute='totalToiletTax')) | round(2) }}{% endif %}</td>
             <td ></td>
             <td>{% if removePurnaYekun != 'true' %}{{ (((page | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (page | map(attribute='totalViWaterTax') | sum) - (page | map(attribute='totalSaWaterTax') | sum)) | round(2)) }}{% endif %}</td>
+            <td></td>
         </tr>
         {% if loop.last %}
         <tr>
@@ -347,6 +349,7 @@
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">शौचालय कर</td>
             <td ></td>
             <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
@@ -371,6 +374,7 @@
             <td>{% if removeYekun != 'true' %}{{ (data | sum(attribute='totalToiletTax')) | round(2) }}{% endif %}</td>
             <td ></td>
             <td>{% if removePurnaYekun != 'true' %}{{ (((data | map(attribute='totaltaxwithoutnoticwarrant') | sum) - (data | map(attribute='totalViWaterTax') | sum) - (data | map(attribute='totalSaWaterTax') | sum)) | round(2)) }}{% endif %}</td>
+            <td></td>
         </tr>
         {% endif %}
         </tfoot>
