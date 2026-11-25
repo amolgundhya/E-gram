@@ -290,6 +290,7 @@
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सा. पाणी कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">वि.पाणीकर</td>
             <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
@@ -319,6 +320,7 @@
             <td>{% if removeChalu != 'true' %}{{ page | sum(attribute='viWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ page | sum(attribute='totalViWaterTax') }}{% endif %}</td>
             <td>{% if removePurnaYekun != 'true' %}{{ (page | sum(attribute='totaltaxwithoutnoticwarrant')) | round(2) }}{% endif %}</td>
+            <td></td>
         </tr>
         {% if loop.last %}
         <tr>
@@ -331,6 +333,7 @@
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">सा. पाणी कर</td>
             <td class="gosh-label" colspan="3" style="font-weight:bold; text-align:center;">वि.पाणीकर</td>
             <td class="gosh-label" style="font-weight:bold; text-align:center;">एकूण </td>
+            <td></td>
         </tr>
         <tr>
             <td>{% if removeDhakit != 'true' %}{% endif %}</td>
@@ -360,6 +363,7 @@
             <td>{% if removeChalu != 'true' %}{{ data | sum(attribute='viWaterTax') }}{% endif %}</td>
             <td>{% if removeYekun != 'true' %}{{ data | sum(attribute='totalViWaterTax') }}{% endif %}</td>
             <td>{% if removePurnaYekun != 'true' %}{{ (data | sum(attribute='totaltaxwithoutnoticwarrant')) | round(2) }}{% endif %}</td>
+            <td></td>
         </tr>
         {% endif %}
         </tfoot>
