@@ -26,7 +26,9 @@ def compute_construction_values(db, construction_type, length, width, constructi
     depreciation_rate = calculate_depreciation_rate(construction_year, construction_type.name, assessment_year)
     usage_factor = usage_weight(weightage_map, bharank)
     if formula1:
-        capital_value = ((area_in_meter * annual_land_value_rate) + (area_in_meter * construction_rate * (depreciation_rate / 100))) * usage_factor
+        # भारांक फक्त इमारतीच्या भागाला, जमिनीच्या भागाला नाही (शासन राजपत्र 2015 अनुसूची अ,
+        # क्लायंट 25-Nov-2026): (क्षेत्र x जमीन दर) + (क्षेत्र x बांधकाम दर x घसारा x भारांक)
+        capital_value = (area_in_meter * annual_land_value_rate) + (area_in_meter * construction_rate * (depreciation_rate / 100) * usage_factor)
     else:
         capital_value = area_in_meter * annual_land_value_rate * depreciation_rate / 100 * usage_factor
     capital_value = round(capital_value, 2)
