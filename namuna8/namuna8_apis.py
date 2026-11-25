@@ -2730,7 +2730,8 @@ def serialize_properties(
     """
     Renumber anuKramank start_number, start_number+1, ... in the CURRENT list order
     (sort_order), then reset sort_order to 10, 20, 30 ... in that same order.
-    मालमत्ता क्रमांक कधीच बदलत नाही. QR / दस्तऐवज नव्या अनुक्रमांकानुसार.
+    change_malmatta=True असेल तरच मालमत्ता क्रमांक = नवा अनुक्रमांक (त्याच क्रमाने).
+    QR / दस्तऐवज नव्या अनुक्रमांकानुसार.
     """
     # सुरुवात क्रमांक हाच पहिल्या मालमत्तेचा अनुक्रमांक - 0 (किंवा उणे) दिल्यास अनुक्रमांक 0
     # पासून लागायचा आणि डिस्प्ले अ.क्र. (1 पासून) शी कधीच जुळायचा नाही. म्हणून 1 पासूनच.
@@ -2770,8 +2771,9 @@ def serialize_properties(
             if not properties:
                 return {"success": True, "message": "No properties found for this village", "updated_count": 0}
 
-            # change_malmatta जुन्या UI साठी फक्त स्वीकारतो - मालमत्ता क्रमांक बदलत नाही.
-            _ = change_malmatta
+            # change_malmatta ("मालमत्ता नंबर सुद्धा बदला" टिक): मालमत्ता क्रमांक = नवा अनुक्रमांक,
+            # त्याच सध्याच्या (हाताने ठेवलेल्या) क्रमाने - पुन्हा क्रमवारी नाही. टिक नसेल तर
+            # मालमत्ता क्रमांक जसाच्या तसा.
 
             # दस्तऐवज आधीच, प्रत्येक मालमत्तेचे (गाव + जुना अनुक्रमांक)
             docs_by_property = {p.id: [] for p in properties}
@@ -2837,6 +2839,8 @@ def serialize_properties(
             # टप्प्यात दोन मालमत्ता एकाच क्रमांकावर असतानाचा शोध आता कुठेच होत नाही.
             for index, (p, old, new) in enumerate(plan):
                 p.sort_order = (index + 1) * SORT_ORDER_GAP
+                if change_malmatta:
+                    p.malmattaKramank = str(new)
                 if old != new:
                     p.anuKramank = new
                     # फेरफार / मालकी इतिहासातला जुना अनुक्रमांक कॉलमही नवा (शोध property_db_id ने होतो)
