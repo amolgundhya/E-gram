@@ -127,7 +127,9 @@ def init_construction_types():
             "rate": 0.0,
             "bandhmastache_dar": 0.0,
             "bandhmastache_prakar": 0,
-            "gharache_prakar": 1,
+            # टिन शेड = 2 (झोपडी/मातीची रकाना) - क्लायंट Excel "New Software Formula 2025":
+            # 35 वर्षं -> घसारा 0.45. फक्त नवीन DB साठी डिफॉल्ट; Master मधलं मूल्य बदलत नाही.
+            "gharache_prakar": 2,
             "annualLandValueRate": 0.0,
             "district_id": 1,
             "taluka_id": 1,
@@ -162,10 +164,12 @@ init_construction_types()
 # एकदाच चालतो (migration_flags मध्ये नोंद) - क्लायंटच्या DB वरही पहिल्यांदाच सुरू
 # केल्यावर चालेल, आणि नंतर युजरने Settings मधून स्वतः गharache_prakar बदललं तरी ही
 # migration पुन्हा चालून ते बदल पुसणार नाही.
+# टिन शेड यात नाही - तो Master मध्ये युजर ठरवतो (क्लायंट 25-Nov-2026: टिन शेड = 2); ही
+# migration त्याला कधीच हात लावत नाही. बाकीच्या रो सुद्धा फक्त जुनं उलटं मूल्य (1 <-> 2)
+# असेल तरच बदलतात - युजरने Master मधून ठरवलेलं दुसरं मूल्य कधीच पुसलं जात नाही.
 GHARACHE_PRAKAR_GAZETTE_2015_FIX = {
     "आरसीसी पद्धतीची इमारत": 1,
     "दगड विटांची व चुना किंवा सिमेंट वापरून उभारलेली इमारत": 1,
-    "टिन शेड": 1,
     "दगड किंवा विटा वापरलेली मातीची इमारत": 2,
     "झोपडी किंवा मातीची इमारत": 2,
 }
@@ -195,8 +199,8 @@ def fix_gharache_prakar_gazette_2015():
                 return
             for name, correct_value in GHARACHE_PRAKAR_GAZETTE_2015_FIX.items():
                 result = conn.exec_driver_sql(
-                    "UPDATE construction_types SET gharache_prakar = ? WHERE name = ?",
-                    (correct_value, name),
+                    "UPDATE construction_types SET gharache_prakar = ? WHERE name = ? AND gharache_prakar = ?",
+                    (correct_value, name, 3 - correct_value),
                 )
                 if result.rowcount:
                     _safe_print(f"[Migration] gharache_prakar: '{name}' -> {correct_value} ({result.rowcount} row(s))")
