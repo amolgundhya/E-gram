@@ -2835,9 +2835,10 @@ def serialize_properties(
                     logging.warning(f"PropertyDocument move failed {tmp} -> {dst}: {e}")
             db.flush()
 
-            # --- पास 3: QR प्रत्येक मालमत्तेच्या स्वतःच्या object वरून (अनुक्रमांकाने शोध नाही).
-            updated_count = 0
-            for db_property, old_anuKramank, new_anuKramank in changed:
+            # --- पास 3: QR प्रत्येक मालमत्तेच्या स्वतःच्या object वरून (अनुक्रमांकाने शोध नाही) -
+            # गावातल्या सगळ्या मालमत्तांचा, फक्त अनुक्रमांक बदललेल्यांचा नाही (क्लायंट, 25-नोव्हें).
+            qr_failed = []
+            for db_property, old_anuKramank, new_anuKramank in plan:
                 try:
                     record_response = build_property_record(db_property, db, district_obj, taluka_obj, gram_panchayat_obj)
 
@@ -2936,18 +2937,21 @@ def serialize_properties(
                     except Exception as e:
                         logging.error(f"Error generating QR template for property {db_property.id}: {e}")
 
-                    updated_count += 1
-                    logging.info(f"Updated property {db_property.id}: anuKramank {old_anuKramank} -> {new_anuKramank}")
+                    logging.debug(f"Serialized property {db_property.id}: anuKramank {old_anuKramank} -> {new_anuKramank}")
 
                 except Exception:
                     logging.exception(f"Error generating QR code during serialize_properties (property {getattr(db_property, 'id', None)}: {old_anuKramank} -> {new_anuKramank})")
+                    qr_failed.append(str(db_property.malmattaKramank))
                     # Continue with next property even if QR generation fails
             db.flush()
 
+            # अनुक्रमांक / sort_order गावातल्या सगळ्या मालमत्तांना लावले जातात - म्हणून संख्या सगळ्यांची.
             return {
                 "success": True,
-                "message": f"Successfully serialized {updated_count} properties",
-                "updated_count": updated_count
+                "message": f"Successfully serialized {len(plan)} properties",
+                "updated_count": len(plan),
+                "qr_failed_count": len(qr_failed),
+                "qr_failed": qr_failed,
             }
             
     except SQLAlchemyError as e:
