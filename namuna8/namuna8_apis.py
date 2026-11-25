@@ -29,7 +29,7 @@ from namuna8.calculations.diva_arogya import diva_arogya_applies, khali_jaga_div
 from Utility import fast_qr
 from Utility import qr_cache
 import threading
-from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no
+from namuna8.recordresponses.property_record_response import get_property_record, compute_display_sr_no, build_property_record
 from namuna8.mastertab.mastertabmodels import GeneralSetting, BuildingUsageWeightage
 from location_management import models as location_models
 from namuna8.PropertyDocuments.property_document_model import PropertyDocument
@@ -2728,8 +2728,9 @@ def serialize_properties(
     db: Session = Depends(database.get_db)
 ):
     """
-    Serialize property anuKramank numbers starting from start_number (1 -> 1, 2, 3 ...).
-    Updates QR codes and moves owner photos based on new anuKramank.
+    Renumber anuKramank start_number, start_number+1, ... in the CURRENT list order
+    (sort_order), then reset sort_order to 10, 20, 30 ... in that same order.
+    मालमत्ता क्रमांक कधीच बदलत नाही. QR / दस्तऐवज नव्या अनुक्रमांकानुसार.
     """
     # सुरुवात क्रमांक हाच पहिल्या मालमत्तेचा अनुक्रमांक - 0 (किंवा उणे) दिल्यास अनुक्रमांक 0
     # पासून लागायचा आणि डिस्प्ले अ.क्र. (1 पासून) शी कधीच जुळायचा नाही. म्हणून 1 पासूनच.
@@ -2759,27 +2760,20 @@ def serialize_properties(
             if not gram_panchayat:
                 raise HTTPException(status_code=400, detail="Gram Panchayat does not belong to the specified taluka")
             
-            # गावातल्या सर्व मालमत्ता - जुन्या (साठवलेल्या) अ.क्र. नुसार नव्हे, तर मालमत्ता
-            # क्रमांकाच्या नैसर्गिक क्रमवारीनुसार (क्लायंटची ऑगस्टची गरज: 15, 23, 100, 175,
-            # 500, 500/1) - जेणेकरून सिरीयलाईज केल्यावर साठवलेला अ.क्र. हाच डिस्प्ले अ.क्र.
-            # (sort_order वरून ठरणारा) असेल. "या मालमत्तेनंतर ठेवा"/"जागा बदला" ने हाताने
-            # ठेवलेल्या जागा इथे जाणूनबुजून पुन्हा मालमत्ता क्रमांकानुसार होतात (frontend
-            # सिरीयलाईज आधी तशी सूचना दाखवतो); खास प्रकरणं सिरीयलाईजनंतर "जागा बदला" ने दुरुस्त करायची.
-            properties = sorted(
-                db.query(models.Property).filter(
-                    models.Property.village_id == village_id
-                ).all(),
-                key=lambda p: malmatta_kramank_sort_key(p.malmattaKramank)
-            )
+            # गावातल्या सर्व मालमत्ता सध्याच्या यादीच्या क्रमाने (sort_order - म्हणजे "या
+            # मालमत्तेनंतर ठेवा" / "जागा बदला" ने ठरलेला क्रम; क्लायंटने नोव्हेंबर 2026 मध्ये
+            # पक्कं केलं). मालमत्ता क्रमांकानुसार पुन्हा क्रमवारी लावत नाही आणि मालमत्ता
+            # क्रमांकाचा मजकूर कधीच बदलत नाही - फक्त अनुक्रमांक (सुरुवात क्रमांकापासून) त्याच
+            # क्रमाने पुन्हा लावतो आणि sort_order 10,20,30... करतो (क्रम तोच).
+            properties = ordered_village_properties(db, village_id)
 
             if not properties:
                 return {"success": True, "message": "No properties found for this village", "updated_count": 0}
 
-            updated_count = 0
-            village_property_ids = {p.id for p in properties}
-            # दस्तऐवज आधीच, प्रत्येक मालमत्तेचे (गाव + जुना अनुक्रमांक) - आधी लूपमध्ये फक्त
-            # अनुक्रमांकाने शोधायचो: दुसऱ्या गावाचे त्याच अनुक्रमांकाचे दस्तऐवज इथे हलायचे, आणि
-            # याच लूपमध्ये आधी नवा क्रमांक मिळालेल्या मालमत्तेचे दस्तऐवज पुन्हा दुसऱ्या मालमत्तेकडे.
+            # change_malmatta जुन्या UI साठी फक्त स्वीकारतो - मालमत्ता क्रमांक बदलत नाही.
+            _ = change_malmatta
+
+            # दस्तऐवज आधीच, प्रत्येक मालमत्तेचे (गाव + जुना अनुक्रमांक)
             docs_by_property = {p.id: [] for p in properties}
             property_id_by_anu = {p.anuKramank: p.id for p in properties}
             for doc in db.query(PropertyDocument).filter(PropertyDocument.village_id == village_id).all():
@@ -2792,180 +2786,117 @@ def serialize_properties(
             from namuna8.mastertab.transfer_apis import PropertyTransferLogDB
             from namuna8.property_owner_history_model import PropertyOwnerHistory
 
-            for index, db_property in enumerate(properties):
-                old_anuKramank = db_property.anuKramank
-                # सुरुवात क्रमांक हाच पहिल्या मालमत्तेचा नवा अ.क्र. असायला हवा (उदा.
-                # सुरुवात क्रमांक = 1 दिल्यास मालमत्ता 1,2,3... व्हायला हव्यात) - आधी इथे
-                # "+1" जास्त होत होतं, त्यामुळे 1 दिल्यावर प्रत्यक्षात 2 पासून सुरू होत असे.
-                new_anuKramank = start_number + index
-                # sort_order हाच "डिस्प्ले अ.क्र." (compute_display_sr_no) ठरवतो - इथेही
-                # त्याच नैसर्गिक-क्रमवारीने (10,20,30... मोकळी जागा ठेवून, backfill
-                # फंक्शनप्रमाणेच) अपडेट करतो, जेणेकरून साठवलेला अ.क्र. = डिस्प्ले अ.क्र.
-                # ही अट पुढेही (नवी मालमत्ता "Insert" होईपर्यंत / जागा बदलेपर्यंत) टिकून राहील.
-                db_property.sort_order = (index + 1) * 10.0
-                anu_needs_change = old_anuKramank != new_anuKramank
-                # मालमत्ता क्रमांक (e.g. "500/1") must also be serialized even when
-                # अ.क्र. is already in the right position - these are independent fields.
-                malmatta_needs_change = change_malmatta and str(db_property.malmattaKramank) != str(new_anuKramank)
+            def safe_name(value: str) -> str:
+                try:
+                    value = value.strip()
+                    value = re.sub(r"\s+", "_", value)
+                    value = re.sub(r"[^\w\-\.\u0900-\u097F]", "", value)
+                    return value[:80] if len(value) > 80 else value
+                except Exception:
+                    return str(value)
 
-                # Skip only if neither field actually needs to change
-                if not anu_needs_change and not malmatta_needs_change:
-                    continue
+            first = properties[0]
+            district_obj = db.query(location_models.District).filter(location_models.District.id == first.district_id).first()
+            taluka_obj = db.query(location_models.Taluka).filter(location_models.Taluka.id == first.taluka_id).first()
+            gram_panchayat_obj = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == first.gram_panchayat_id).first()
+            village_obj = db.query(models.Village).filter(models.Village.id == village_id).first()
+            district_name = safe_name(district_obj.name if district_obj else str(first.district_id))
+            taluka_name = safe_name(taluka_obj.name if taluka_obj else str(first.taluka_id))
+            gp_name = safe_name(gram_panchayat_obj.name if gram_panchayat_obj else str(first.gram_panchayat_id))
+            village_name = safe_name(village_obj.name if village_obj else str(village_id))
+            qr_template_dir = os.path.join("uploaded_images", "qrTemplate", district_name, taluka_name, gp_name, village_name)
 
-                if anu_needs_change:
-                    # Check if new anuKramank already exists in this village
-                    existing = db.query(models.Property).filter(
-                        models.Property.village_id == village_id,
-                        models.Property.anuKramank == new_anuKramank
-                    ).first()
-                    # Allow collisions with properties from the same serialization batch,
-                    # because they will also be renumbered in this run.
-                    if existing and existing.id != db_property.id and existing.id not in village_property_ids:
-                        logging.warning(f"Skipping property {db_property.id}: anuKramank {new_anuKramank} already exists")
-                        continue
+            plan = [(p, p.anuKramank, start_number + i) for i, p in enumerate(properties)]
+            changed = [(p, old, new) for p, old, new in plan if old != new]
 
-                # Delete old QR code files
-                if db_property.qrcode:
-                    old_qr_path = db_property.qrcode
+            # --- पास 1: बदलणाऱ्या सगळ्या मालमत्तांच्या जुन्या QR फाईल्स आधी काढतो. आधी हे
+            # एकेका मालमत्तेसाठी लूपमध्ये व्हायचं - त्यामुळे नंतरची मालमत्ता (जुना क्रमांक =
+            # आधीच्या मालमत्तेचा नवा क्रमांक) आधीच बनलेला नवा QR पुसून टाकू शकत होती.
+            for p, old, _new in changed:
+                if p.qrcode:
+                    old_qr_path = p.qrcode
                     if os.path.exists(old_qr_path):
                         try:
                             os.remove(old_qr_path)
                         except Exception as e:
                             logging.warning(f"Could not delete old QR code {old_qr_path}: {e}")
-                    
-                    # Also delete old QR directory if empty
                     old_qr_dir = os.path.dirname(old_qr_path)
                     if os.path.exists(old_qr_dir) and not os.listdir(old_qr_dir):
                         try:
                             os.rmdir(old_qr_dir)
                         except Exception:
                             pass
-                
-                # Delete old QR template HTML files (stored with anuKramank in filename)
-                try:
-                    district_obj = db.query(location_models.District).filter(location_models.District.id == db_property.district_id).first()
-                    taluka_obj = db.query(location_models.Taluka).filter(location_models.Taluka.id == db_property.taluka_id).first()
-                    gram_panchayat_obj = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
-                    village_obj = db.query(models.Village).filter(models.Village.id == db_property.village_id).first()
-                    
-                    def safe_name(value: str) -> str:
-                        try:
-                            value = value.strip()
-                            value = re.sub(r"\s+", "_", value)
-                            value = re.sub(r"[^\w\-\.\u0900-\u097F]", "", value)
-                            return value[:80] if len(value) > 80 else value
-                        except Exception:
-                            return str(value)
-                    
-                    district_name = safe_name(district_obj.name if district_obj else str(db_property.district_id))
-                    taluka_name = safe_name(taluka_obj.name if taluka_obj else str(db_property.taluka_id))
-                    gp_name = safe_name(gram_panchayat_obj.name if gram_panchayat_obj else str(db_property.gram_panchayat_id))
-                    village_name = safe_name(village_obj.name if village_obj else str(db_property.village_id))
-                    
-                    old_qr_template_dir = os.path.join(
-                        "uploaded_images",
-                        "qrTemplate",
-                        district_name,
-                        taluka_name,
-                        gp_name,
-                        village_name,
-                    )
-                    old_qr_template_path = os.path.join(old_qr_template_dir, f'qr_template_{old_anuKramank}.html')
-                    if os.path.exists(old_qr_template_path):
-                        try:
-                            os.remove(old_qr_template_path)
-                            logging.info(f"Deleted old QR template: {old_qr_template_path}")
-                        except Exception as e:
-                            logging.warning(f"Could not delete old QR template {old_qr_template_path}: {e}")
-                except Exception as e:
-                    logging.warning(f"Error deleting old QR template: {e}")
-                
-                # Note: Owner photos are stored by owner_id, not anuKramank
-                # Path structure: uploaded_images/owners/{district_id}/{taluka_id}/{gram_panchayat_id}/{owner_id}/
-                # Since owner_id doesn't change during serialization, no need to move owner photos
-                
-                # Update anuKramank
-                db_property.anuKramank = new_anuKramank
-                
-                # Update malmattaKramank if requested
-                if change_malmatta:
-                    db_property.malmattaKramank = str(new_anuKramank)
-                
-                # फेरफार / मालकी इतिहासातला जुना अनुक्रमांक कॉलमही नवा (शोध property_db_id ने होतो)
-                if anu_needs_change:
+                old_qr_template_path = os.path.join(qr_template_dir, f'qr_template_{old}.html')
+                if os.path.exists(old_qr_template_path):
+                    try:
+                        os.remove(old_qr_template_path)
+                    except Exception as e:
+                        logging.warning(f"Could not delete old QR template {old_qr_template_path}: {e}")
+
+            # --- पास 2: सगळ्यांचे नवे अनुक्रमांक + sort_order एकदम (एकाच flush मध्ये) - मधल्या
+            # टप्प्यात दोन मालमत्ता एकाच क्रमांकावर असतानाचा शोध आता कुठेच होत नाही.
+            for index, (p, old, new) in enumerate(plan):
+                p.sort_order = (index + 1) * SORT_ORDER_GAP
+                if old != new:
+                    p.anuKramank = new
+                    # फेरफार / मालकी इतिहासातला जुना अनुक्रमांक कॉलमही नवा (शोध property_db_id ने होतो)
                     for history_model in (PropertyTransferLogDB, PropertyOwnerHistory):
                         db.query(history_model).filter(
-                            history_model.property_db_id == db_property.id
-                        ).update({history_model.property_id: new_anuKramank}, synchronize_session=False)
-                
-                db.flush()
+                            history_model.property_db_id == p.id
+                        ).update({history_model.property_id: new}, synchronize_session=False)
+            db.flush()
+
+            # दस्तऐवज: DB फील्ड + फाईल्स. फाईल्स दोन टप्प्यांत हलवतो (आधी तात्पुरत्या नावावर,
+            # मग अंतिम) - एका मालमत्तेची फाईल दुसऱ्याच्या जुन्या (अजून न हललेल्या) फाईलवर बसू नये.
+            def target_path(path_value, old, new):
+                if not path_value:
+                    return None, None
+                abs_path = path_value if os.path.isabs(path_value) else os.path.join(os.getcwd(), path_value)
+                if not os.path.exists(abs_path):
+                    return None, None
+                old_seg = os.sep + str(old) + os.sep
+                if old_seg in abs_path:
+                    new_abs = abs_path.replace(old_seg, os.sep + str(new) + os.sep)
+                else:
+                    new_abs = abs_path.replace(str(old), str(new))
+                return abs_path, new_abs
+
+            pending_moves = []  # (doc, attr, tmp_abs, final_abs)
+            for p, old, new in changed:
+                for doc in docs_by_property.get(p.id, []):
+                    doc.property_anuKramank = new
+                    for attr in ('document_image', 'document_path'):
+                        try:
+                            src, dst = target_path(getattr(doc, attr, None), old, new)
+                            if not src or src == dst:
+                                continue
+                            tmp = dst + ".serialize_tmp"
+                            os.makedirs(os.path.dirname(tmp), exist_ok=True)
+                            shutil.move(src, tmp)
+                            pending_moves.append((doc, attr, tmp, dst))
+                        except Exception as e:
+                            logging.warning(f"PropertyDocument move failed for {old} -> {new}: {e}")
+            for doc, attr, tmp, dst in pending_moves:
                 try:
-                    docs = docs_by_property.get(db_property.id, []) if anu_needs_change else []
-                    for doc in docs:
-                        # update DB field
-                        doc.property_anuKramank = new_anuKramank
-
-                        def migrate_path(path_value):
-                            if not path_value:
-                                return None
-                            # resolve absolute path
-                            abs_path = path_value if os.path.isabs(path_value) else os.path.join(os.getcwd(), path_value)
-                            if not os.path.exists(abs_path):
-                                return None
-                            # try to replace directory segment that equals old anuKramank
-                            old_seg = os.sep + str(old_anuKramank) + os.sep
-                            if old_seg in abs_path:
-                                new_abs = abs_path.replace(old_seg, os.sep + str(new_anuKramank) + os.sep)
-                            else:
-                                # fallback: replace occurrences of the number (safe within upload tree)
-                                new_abs = abs_path.replace(str(old_anuKramank), str(new_anuKramank))
-                            new_dir = os.path.dirname(new_abs)
-                            os.makedirs(new_dir, exist_ok=True)
-                            try:
-                                shutil.move(abs_path, new_abs)
-                            except Exception:
-                                try:
-                                    shutil.copy2(abs_path, new_abs)
-                                    os.remove(abs_path)
-                                except Exception:
-                                    return None
-                            # return relative path for DB (forward slashes)
-                            return os.path.relpath(new_abs, start=os.getcwd()).replace(os.sep, '/')
-
-                        new_doc_image = migrate_path(getattr(doc, 'document_image', None))
-                        if new_doc_image:
-                            doc.document_image = new_doc_image
-                        new_doc_path = migrate_path(getattr(doc, 'document_path', None))
-                        if new_doc_path:
-                            doc.document_path = new_doc_path
-
-                    db.flush()
+                    if os.path.exists(dst):
+                        os.remove(dst)
+                    shutil.move(tmp, dst)
+                    setattr(doc, attr, os.path.relpath(dst, start=os.getcwd()).replace(os.sep, '/'))
                 except Exception as e:
-                    logging.warning(f"PropertyDocument migration failed for {old_anuKramank} -> {new_anuKramank}: {e}")
-                # --- END INSERTED MIGRATION LOGIC ---
+                    logging.warning(f"PropertyDocument move failed {tmp} -> {dst}: {e}")
+            db.flush()
 
-                # Generate new QR code
+            # --- पास 3: QR प्रत्येक मालमत्तेच्या स्वतःच्या object वरून (अनुक्रमांकाने शोध नाही).
+            updated_count = 0
+            for db_property, old_anuKramank, new_anuKramank in changed:
                 try:
-                    record_response = get_property_record(
-                        db_property.anuKramank,
-                        db_property.village_id,
-                        db_property.district_id,
-                        db_property.taluka_id,
-                        db_property.gram_panchayat_id,
-                        db
-                    )
-                    
-                    vpanikar_qr = record_response.get('vpanikar', 0)
-                    totalTax_qr = record_response.get('totaltax', 0)
-                    totalTax = totalTax_qr - vpanikar_qr
+                    record_response = build_property_record(db_property, db, district_obj, taluka_obj, gram_panchayat_obj)
+
                     totalArea = round(record_response.get('totalArea', 0) or 0, 2)
-                    
                     owners_list = list(db_property.owners)
                     owner_name = owners_list[0].name if owners_list else None
-                    wife_name = owners_list[0].wifeName if owners_list and getattr(owners_list[0], "wifeName", None) else None
                     occupant_name = owners_list[0].occupantName if owners_list and getattr(owners_list[0], "occupantName", None) else record_response.get('occupantName')
-                    mobile_number = owners_list[0].mobileNumber if owners_list and getattr(owners_list[0], "mobileNumber", None) else record_response.get('mobileNumber')
-                    
+
                     # Construction area (exclude 'खाली जागा')
                     constructionArea = sum(
                         (c.length or 0) * (c.width or 0)
@@ -2974,31 +2905,7 @@ def serialize_properties(
                     )
                     constructionArea = round(constructionArea, 2)
                     openArea = round(totalArea - constructionArea, 2)
-                    
-                    boundary_east = record_response.get('boundaryEast') or getattr(db_property, 'eastBoundary', None)
-                    boundary_west = record_response.get('boundaryWest') or getattr(db_property, 'westBoundary', None)
-                    boundary_north = record_response.get('boundaryNorth') or getattr(db_property, 'northBoundary', None)
-                    boundary_south = record_response.get('boundarySouth') or getattr(db_property, 'southBoundary', None)
-                    
-                    def safe_name(value: str) -> str:
-                        try:
-                            value = value.strip()
-                            value = re.sub(r"\s+", "_", value)
-                            value = re.sub(r"[^\w\-\.\u0900-\u097F]", "", value)
-                            return value[:80] if len(value) > 80 else value
-                        except Exception:
-                            return str(value)
-                    
-                    district_obj = db.query(location_models.District).filter(location_models.District.id == db_property.district_id).first()
-                    taluka_obj = db.query(location_models.Taluka).filter(location_models.Taluka.id == db_property.taluka_id).first()
-                    gram_panchayat_obj = db.query(location_models.GramPanchayat).filter(location_models.GramPanchayat.id == db_property.gram_panchayat_id).first()
-                    village_obj = db.query(models.Village).filter(models.Village.id == db_property.village_id).first()
-                    
-                    district_name = safe_name(district_obj.name if district_obj else str(db_property.district_id))
-                    taluka_name = safe_name(taluka_obj.name if taluka_obj else str(db_property.taluka_id))
-                    gp_name = safe_name(gram_panchayat_obj.name if gram_panchayat_obj else str(db_property.gram_panchayat_id))
-                    
-                    # Create location-based QR directory structure
+
                     qr_dir = os.path.join(
                         "uploaded_images", "qrcode",
                         str(db_property.district_id),
@@ -3009,13 +2916,10 @@ def serialize_properties(
                     )
                     os.makedirs(qr_dir, exist_ok=True)
                     qr_path = os.path.join(qr_dir, "qrcode.png")
-                    parent_gp_name_qr = getattr(gram_panchayat_obj, 'parent_gram_panchayat_name', None) if gram_panchayat_obj else None
-                    year_label_qr = f"{datetime.now().year}-{datetime.now().year + 1}"
                     qr_text = build_property_qr_text_short(record_response)
                     QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path)
                     db_property.qrcode = qr_path.replace(os.sep, "/")
-                    db.flush()
-                    
+
                     # Generate QR template
                     try:
                         if not WRITE_QR_TEMPLATE_FILES:
@@ -3027,38 +2931,23 @@ def serialize_properties(
                         total_area_sqft = round(float(getattr(db_property, 'totalAreaSqFt', 0) or totalArea or 0), 2)
                         construction_area_sqft = sqm_to_sqft(constructionArea) if construction_unit_for_template == 'sqm' else round((constructionArea or 0), 2)
                         open_area_sqft = sqm_to_sqft(openArea) if area_unit_for_template == 'sqm' else round((openArea or 0), 2)
-                        
+
                         qr_path_template = os.path.join(qr_dir, "qrcode_template.png")
                         QRCodeGeneration.createQRcodeTextTemp(qr_text, qr_path_template)
-                        
-                        # Generate QR template HTML file (same as in create method)
+
                         try:
                             base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-                            template_dir = os.path.join(base_dir, 'templates')
-                            namuna8_template_dir = os.path.join(template_dir, 'Namuna8')
+                            namuna8_template_dir = os.path.join(base_dir, 'templates', 'Namuna8')
                             env = Environment(loader=FileSystemLoader(namuna8_template_dir))
                             template = env.get_template('qrTemplate.html')
-                            
-                            qr_template_dir = os.path.join(
-                                "uploaded_images",
-                                "qrTemplate",
-                                district_name,
-                                taluka_name,
-                                gp_name,
-                                village_name,
-                            )
                             os.makedirs(qr_template_dir, exist_ok=True)
-                            
-                            # Create relative paths for template
+
                             report_images_dir = os.path.join(base_dir, 'ReportImages')
                             reports_dir = os.path.join(base_dir, 'reports')
                             rel_report_images = os.path.relpath(report_images_dir, start=qr_template_dir)
                             rel_reports = os.path.relpath(reports_dir, start=qr_template_dir)
-                            
-                            # Convert QR code path to relative path
-                            qr_code_abs_path = os.path.abspath(qr_path_template)
-                            rel_qrcode = os.path.relpath(qr_code_abs_path, start=qr_template_dir)
-                            
+                            rel_qrcode = os.path.relpath(os.path.abspath(qr_path_template), start=qr_template_dir)
+
                             construction_types = ', '.join(sorted({
                                 c.construction_type.name.strip()
                                 for c in db_property.constructions
@@ -3076,7 +2965,7 @@ def serialize_properties(
                                 "village_name": village_obj.name if village_obj else "",
                                 "owner_name": owner_name,
                                 "occupant_name": occupant_name,
-                                "anu_kramank": compute_display_sr_no(db, db_property.village_id, db_property.anuKramank),
+                                "anu_kramank": record_response.get('srNo'),
                                 "malmatta_kramank": getattr(db_property, 'malmattaKramank', None),
                                 "total_area_sqft": total_area_sqft,
                                 "construction_area_sqft": construction_area_sqft,
@@ -3091,47 +2980,21 @@ def serialize_properties(
                             qr_template_html_path = os.path.join(qr_template_dir, f'qr_template_{db_property.anuKramank}.html')
                             with open(qr_template_html_path, 'w', encoding='utf-8') as f:
                                 f.write(rendered_html)
-                            logging.info(f"Generated QR template HTML: {qr_template_html_path}")
                         except Exception as e:
                             logging.error(f"Error generating QR template HTML for property {db_property.id}: {e}")
                     except _SkipQrTemplate:
                         pass
                     except Exception as e:
                         logging.error(f"Error generating QR template for property {db_property.id}: {e}")
-                    
+
                     updated_count += 1
                     logging.info(f"Updated property {db_property.id}: anuKramank {old_anuKramank} -> {new_anuKramank}")
-                    
+
                 except Exception:
-                    _log_qr_failure(
-                        "serialize_properties.qr_main",
-                        {
-                            "property_id": getattr(db_property, "id", None),
-                            "old_anuKramank": old_anuKramank if "old_anuKramank" in locals() else None,
-                            "new_anuKramank": new_anuKramank if "new_anuKramank" in locals() else None,
-                            "village_id": getattr(db_property, "village_id", None),
-                            "district_id": getattr(db_property, "district_id", None),
-                            "taluka_id": getattr(db_property, "taluka_id", None),
-                            "gram_panchayat_id": getattr(db_property, "gram_panchayat_id", None),
-                            "qr_path": locals().get("qr_path"),
-                            "traceback": traceback.format_exc(),
-                        },
-                    )
-                    logging.exception(
-                        "Error generating QR code during serialize_properties",
-                        extra={
-                            "property_id": getattr(db_property, "id", None),
-                            "old_anuKramank": old_anuKramank if "old_anuKramank" in locals() else None,
-                            "new_anuKramank": new_anuKramank if "new_anuKramank" in locals() else None,
-                            "village_id": getattr(db_property, "village_id", None),
-                            "district_id": getattr(db_property, "district_id", None),
-                            "taluka_id": getattr(db_property, "taluka_id", None),
-                            "gram_panchayat_id": getattr(db_property, "gram_panchayat_id", None),
-                            "qr_path": locals().get("qr_path"),
-                        },
-                    )
+                    logging.exception(f"Error generating QR code during serialize_properties (property {getattr(db_property, 'id', None)}: {old_anuKramank} -> {new_anuKramank})")
                     # Continue with next property even if QR generation fails
-            
+            db.flush()
+
             return {
                 "success": True,
                 "message": f"Successfully serialized {updated_count} properties",
